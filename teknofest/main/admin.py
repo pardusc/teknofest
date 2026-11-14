@@ -1,8 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
+from django.urls import reverse
+from django.utils.html import format_html
 
-from .models import Profile, User
+from .forms import FormFieldAdminForm
+from .models import Category, CompetitionYear, FormDefinition, FormField, Profile, User
 
 
 class UserCreationForm(BaseUserCreationForm):
@@ -45,3 +48,100 @@ class ProfileAdmin(admin.ModelAdmin):
     list_filter = ("education_level",)
     search_fields = ("user__username", "user__email", "city", "institution")
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(CompetitionYear)
+class CompetitionYearAdmin(admin.ModelAdmin):
+    list_display = ("year", "is_active", "created_at")
+    list_filter = ("is_active",)
+    ordering = ("-year",)
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "order", "is_active")
+    list_editable = ("order", "is_active")
+    list_filter = ("is_active",)
+    prepopulated_fields = {"slug": ("name",)}
+    search_fields = ("name", "slug")
+
+
+class FormFieldInline(admin.StackedInline):
+    model = FormField
+    form = FormFieldAdminForm
+    extra = 0
+    can_delete = True
+    fields = (
+        "key",
+        "label",
+        "field_type",
+        "help_text",
+        "is_required",
+        ("min_length", "max_length"),
+        "regex",
+        "regex_error_message",
+        "choices_text",
+        ("order", "is_active", "is_visible_in_review"),
+    )
+
+
+@admin.register(FormDefinition)
+class FormDefinitionAdmin(admin.ModelAdmin):
+    inlines = (FormFieldInline,)
+    list_display = (
+        "year",
+        "category",
+        "status",
+        "opens_at",
+        "closes_at",
+        "preview_link",
+    )
+    list_filter = ("status", "year", "category")
+    search_fields = ("title", "description")
+    actions = ("mark_open", "mark_in_review", "mark_closed")
+
+    @admin.display(description="Preview")
+    def preview_link(self, obj):
+        if not obj.pk:
+            return "—"
+        url = reverse("main:form_preview", args=[obj.pk])
+        return format_html('<a href="{}">Preview</a>', url)
+
+    @admin.action(description="Mark selected forms as open")
+    def mark_open(self, request, queryset):
+        updated = queryset.update(status=FormDefinition.Status.OPEN)
+        self.message_user(request, f"{updated} form(s) marked as open.")
+
+    @admin.action(description="Put selected forms in review")
+    def mark_in_review(self, request, queryset):
+        updated = queryset.update(status=FormDefinition.Status.IN_REVIEW)
+        self.message_user(request, f"{updated} form(s) put in review.")
+
+    @admin.action(description="Close selected forms")
+    def mark_closed(self, request, queryset):
+        updated = queryset.update(status=FormDefinition.Status.CLOSED)
+        self.message_user(request, f"{updated} form(s) closed.")
+
+
+@admin.register(FormField)
+class FormFieldAdmin(admin.ModelAdmin):
+    form = FormFieldAdminForm
+    list_display = (
+        "label",
+        "key",
+        "form",
+        "field_type",
+        "is_required",
+        "order",
+        "is_active",
+        "is_visible_in_review",
+    )
+    list_filter = (
+        "field_type",
+        "is_active",
+        "is_visible_in_review",
+        "form__year",
+        "form__category",
+    )
+    search_fields = ("label", "key", "form__title")
+    ordering = ("form", "order")

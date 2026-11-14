@@ -1,0 +1,33 @@
+{% extends "main/base.html" %}
+
+{% block title %}{{ definition.title }} · Preview{% endblock %}
+
+{% block content %}
+  <h1>{{ definition.title }}</h1>
+  <p class="muted">
+    {{ definition.year }} · {{ definition.category.name }} · {{ definition.get_status_display }}
+  </p>
+
+  {% if definition.description %}
+    <p>{{ definition.description }}</p>
+  {% endif %}
+
+  <div class="card form">
+    {% if form.fields %}
+      {% for field in form %}
+        <p>
+          {{ field.label_tag }}
+          {% if field.field.required %}<span class="muted">*</span>{% endif %}
+          {{ field }}
+          {% if field.help_text %}
+            <span class="helptext">{{ field.help_text }}</span>
+          {% endif %}
+          {{ field.errors }}
+        </p>
+      {% endfor %}
+      <p class="muted">This is a preview of the form definition.</p>
+    {% else %}
+      <p class="muted">This form has no active fields yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}

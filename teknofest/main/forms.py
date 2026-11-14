@@ -3,7 +3,7 @@ import re
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Profile
+from .models import FormField, Profile
 
 MAX_PHOTO_SIZE = 5 * 1024 * 1024
 ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -47,3 +47,70 @@ class ProfileForm(forms.ModelForm):
         if photo.content_type not in ALLOWED_PHOTO_TYPES:
             raise ValidationError("Upload a JPG, PNG or WebP image.")
         return photo
+
+
+class FormFieldAdminForm(forms.ModelForm):
+    """Admin form that edits the JSON ``choices`` list as one option per line."""
+
+    choices_text = forms.CharField(
+        required=False,
+        label="Choices",
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text="One option per line, used by single and multiple choice fields.",
+    )
+
+    class Meta:
+        model = FormField
+        fields = (
+            "form",
+            "key",
+            "label",
+            "field_type",
+            "help_text",
+            "is_required",
+            "min_length",
+            "max_length",
+            "regex",
+            "regex_error_message",
+            "order",
+            "is_active",
+            "is_visible_in_review",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["choices_text"].initial = "\n".join(
+                value for value, _label in self.instance.choice_pairs
+            )
+
+    def clean_choices_text(self):
+        text = self.cleaned_data.get("choices_text", "")
+        values = [line.strip() for line in text.splitlines() if line.strip()]
+        if len(values) != len(set(values)):
+            raise ValidationError("Choices must be unique.")
+        if self.cleaned_data.get("field_type") in FormField.CHOICE_TYPES and not values:
+            raise ValidationError("Choose at least one option for this field type.")
+        return values
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Set choices before ModelForm._post_clean() runs model validation.
+        if "choices_text" in cleaned_data:
+            self.instance.choices = [
+                {"value": value, "label": value}
+                for value in cleaned_data["choices_text"]
+            ]
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if "choices_text" in self.cleaned_data:
+            instance.choices = [
+                {"value": value, "label": value}
+                for value in self.cleaned_data["choices_text"]
+            ]
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance

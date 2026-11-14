@@ -36,8 +36,11 @@ Roles are determined by the Keycloak roles assigned to each account.
     ├── manage.py
     ├── main/
     │   ├── admin.py
+    │   ├── dynamic_forms.py
     │   ├── forms.py
-    │   ├── models.py
+    │   ├── models/
+    │   │   ├── accounts.py
+    │   │   └── competitions.py
     │   ├── urls.py
     │   ├── views.py
     │   ├── migrations/
@@ -59,6 +62,16 @@ It extends `django.contrib.auth.models.AbstractUser` and adds a unique
 Personal information (phone, city, institution, education level and an optional
 photo) lives in the related `main.Profile` model.
 Swapping this model later is expensive, so it must not be reverted.
+
+## Competition forms
+
+Competition years, categories and form definitions are managed from the Django admin.
+Each `FormDefinition` belongs to one year and category and is built from ordered
+`FormField` definitions. The same definitions generate the applicant form and its
+validation through `main.dynamic_forms`.
+
+Forms can be opened, put in review or closed manually from the admin, and each field can
+be hidden from reviewers. Staff members can preview a form before opening it.
 
 ## Getting started
 
@@ -97,11 +110,12 @@ Settings are read from environment variables with development-friendly defaults:
 ## Status
 
 The Django project skeleton, the custom user model and the applicant profile are in
-place, including login/logout and profile editing. Authentication currently uses
+place, including login/logout and profile editing. Competition years, categories and
+dynamic form definitions can be managed from the admin. Authentication currently uses
 Django's local login; Keycloak integration is planned.
 
-Planned work includes Keycloak roles, KVKK consent, yearly application forms with file
-uploads, and jury scoring.
+Planned work includes KVKK consent, application submission with file uploads, jury
+scoring, and Keycloak roles.
 
 ## License
 
