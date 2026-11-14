@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -35,6 +35,14 @@ from .services.applications import (
     save_draft,
     start_application,
     submit,
+)
+from .views import (
+    ApplicationDetailView,
+    ApplicationListView,
+    ApplicationPreviewView,
+    ApplicationUpdateView,
+    FormDetailView,
+    FormListView,
 )
 
 
@@ -886,3 +894,330 @@ class ApplicationServiceTests(MediaTestCase):
             add_attachment(application, make_image())
         with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
             delete_application(application)
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class ApplicationViewTests(MediaTestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="applicant",
+            email="applicant@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=self.user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.other_user = get_user_model().objects.create_user(
+            username="other",
+            email="other@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=self.other_user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.bug = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.bug,
+            title="Bug form",
+        )
+        self.title_field = FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+            order=1,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="level",
+            label="Level",
+            field_type=FormField.FieldType.SELECT,
+            is_required=False,
+            choices=[{"value": "low", "label": "Low"}],
+            order=2,
+        )
+        self.client.force_login(self.user)
+
+    def get_view(self, view_class, url, **kwargs):
+        request = RequestFactory().get(url)
+        request.user = self.user
+        return view_class.as_view()(request, **kwargs)
+
+    def make_draft(self):
+        application = start_application(self.user, self.form)
+        save_draft(application, {"title": "A bug report"})
+        return application
+
+    def test_application_routes_require_login(self):
+        self.client.logout()
+        urls = (
+            reverse("main:form_list"),
+            reverse("main:form_detail", args=[self.form.pk]),
+            reverse("main:application_list"),
+            reverse("main:application_start", args=[self.form.pk]),
+        )
+
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 302)
+
+    def test_form_list_context(self):
+        response = self.get_view(FormListView, reverse("main:form_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.form, response.context_data["forms"])
+
+    def test_form_detail_context_allows_applying(self):
+        response = self.get_view(
+            FormDetailView,
+            reverse("main:form_detail", args=[self.form.pk]),
+            pk=self.form.pk,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context_data["can_apply"])
+        self.assertIn(self.title_field, response.context_data["fields"])
+
+    def test_form_detail_disables_applying_when_draft_exists(self):
+        application = self.make_draft()
+
+        response = self.get_view(
+            FormDetailView,
+            reverse("main:form_detail", args=[self.form.pk]),
+            pk=self.form.pk,
+        )
+
+        self.assertFalse(response.context_data["can_apply"])
+        self.assertEqual(response.context_data["existing_application"], application)
+
+    def test_start_application_redirects_to_edit(self):
+        response = self.client.post(
+            reverse("main:application_start", args=[self.form.pk])
+        )
+        application = Application.objects.get(applicant=self.user, form=self.form)
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_edit", args=[application.public_id]),
+        )
+
+    def test_start_application_rejects_closed_form(self):
+        self.form.status = FormDefinition.Status.IN_REVIEW
+        self.form.save()
+
+        response = self.client.post(
+            reverse("main:application_start", args=[self.form.pk])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:form_detail", args=[self.form.pk]),
+        )
+        self.assertFalse(Application.objects.exists())
+
+    def test_application_list_context(self):
+        application = self.make_draft()
+
+        response = self.get_view(ApplicationListView, reverse("main:application_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(application, response.context_data["applications"])
+
+    def test_application_detail_context(self):
+        application = self.make_draft()
+
+        response = self.get_view(
+            ApplicationDetailView,
+            reverse("main:application_detail", args=[application.public_id]),
+            public_id=application.public_id,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context_data["can_edit"])
+        self.assertEqual(
+            response.context_data["field_answers"][0]["value"],
+            "A bug report",
+        )
+
+    def test_other_user_cannot_access_application(self):
+        application = start_application(self.other_user, self.form)
+
+        response = self.client.get(
+            reverse("main:application_detail", args=[application.public_id])
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_edit_get_exposes_stored_answers(self):
+        application = self.make_draft()
+
+        response = self.get_view(
+            ApplicationUpdateView,
+            reverse("main:application_edit", args=[application.public_id]),
+            public_id=application.public_id,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        dynamic_form = response.context_data["application_form"]
+        self.assertEqual(dynamic_form["title"].value(), "A bug report")
+        self.assertTrue(response.context_data["can_add_attachment"])
+
+    def test_edit_post_saves_draft(self):
+        application = self.make_draft()
+
+        response = self.client.post(
+            reverse("main:application_edit", args=[application.public_id]),
+            {"title": "Updated title"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
+        self.assertEqual(
+            ApplicationAnswer.objects.get(
+                application=application,
+                field=self.title_field,
+            ).value,
+            "Updated title",
+        )
+
+    def test_edit_post_with_invalid_choice_rerenders(self):
+        application = self.make_draft()
+
+        response = self.client.post(
+            reverse("main:application_edit", args=[application.public_id]),
+            {"title": "Updated", "level": "unknown"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("level", response.context["application_form"].errors)
+
+    def test_closed_form_blocks_edit(self):
+        application = self.make_draft()
+        self.form.status = FormDefinition.Status.IN_REVIEW
+        self.form.save()
+
+        response = self.client.get(
+            reverse("main:application_edit", args=[application.public_id])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
+
+    def test_upload_attachment(self):
+        application = start_application(self.user, self.form)
+
+        response = self.client.post(
+            reverse("main:attachment_upload", args=[application.public_id]),
+            {"file": make_image()},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_edit", args=[application.public_id]),
+        )
+        self.assertEqual(application.attachments.count(), 1)
+
+    def test_upload_rejects_invalid_file_type(self):
+        application = start_application(self.user, self.form)
+
+        response = self.client.post(
+            reverse("main:attachment_upload", args=[application.public_id]),
+            {"file": make_image(name="animation.gif", image_format="GIF")},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_edit", args=[application.public_id]),
+        )
+        self.assertEqual(application.attachments.count(), 0)
+
+    def test_delete_attachment_removes_file(self):
+        application = start_application(self.user, self.form)
+        attachment = add_attachment(application, make_image())
+        path = Path(attachment.file.path)
+
+        response = self.client.post(
+            reverse(
+                "main:attachment_delete",
+                args=[application.public_id, attachment.pk],
+            )
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_edit", args=[application.public_id]),
+        )
+        self.assertFalse(path.exists())
+
+    def test_submit_requires_attachment_for_bug_category(self):
+        application = self.make_draft()
+
+        response = self.client.post(
+            reverse("main:application_submit", args=[application.public_id])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_edit", args=[application.public_id]),
+        )
+        application.refresh_from_db()
+        self.assertEqual(application.status, Application.Status.DRAFT)
+
+    def test_submit_succeeds_with_attachment(self):
+        application = self.make_draft()
+        add_attachment(application, make_image())
+
+        response = self.client.post(
+            reverse("main:application_submit", args=[application.public_id])
+        )
+
+        application.refresh_from_db()
+        self.assertEqual(application.status, Application.Status.SUBMITTED)
+        self.assertEqual(application.code, "BUG-2026-00001")
+        self.assertRedirects(
+            response,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_delete_application(self):
+        application = self.make_draft()
+        attachment = add_attachment(application, make_image())
+        path = Path(attachment.file.path)
+
+        response = self.client.post(
+            reverse("main:application_delete", args=[application.public_id])
+        )
+
+        self.assertRedirects(response, reverse("main:application_list"))
+        self.assertFalse(Application.objects.filter(pk=application.pk).exists())
+        self.assertFalse(path.exists())
+
+    def test_preview_context(self):
+        application = self.make_draft()
+
+        response = self.get_view(
+            ApplicationPreviewView,
+            reverse("main:application_preview", args=[application.public_id]),
+            public_id=application.public_id,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context_data["field_answers"][0]["value"],
+            "A bug report",
+        )

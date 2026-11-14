@@ -56,7 +56,7 @@ def to_django_field(field: FormField, required: bool | None = None) -> forms.Fie
     raise ValueError(f"Unsupported field type: {field.field_type}")
 
 
-def build_form(definition, data=None, files=None, enforce_required=True):
+def build_form(definition, data=None, files=None, enforce_required=True, initial=None):
     """Create a Django form class from a ``FormDefinition`` and its active fields."""
     fields = {
         field.key: to_django_field(
@@ -66,4 +66,4 @@ def build_form(definition, data=None, files=None, enforce_required=True):
         for field in definition.fields.filter(is_active=True)
     }
     form_class = type("DynamicApplicationForm", (forms.Form,), fields)
-    return form_class(data=data, files=files)
+    return form_class(data=data, files=files, initial=initial)

@@ -92,6 +92,27 @@ Limits are 10 files maximum, 2 MB per file and 10 MB in total. Only real JPG and
 images are accepted, verified from their content rather than their extension.
 Applications can be edited or deleted until the form closes.
 
+## Applicant flow
+
+All routes require login, and non-owners receive a 404.
+
+| Route | Template | Purpose |
+| --- | --- | --- |
+| `/forms/` | `main/form_list.html` | Available forms |
+| `/forms/<pk>/` | `main/form_detail.html` | Form details and apply action |
+| `/forms/<pk>/apply/` | — | Start or reuse a draft (POST) |
+| `/applications/` | `main/application_list.html` | My applications |
+| `/applications/<uuid>/` | `main/application_detail.html` | Application detail |
+| `/applications/<uuid>/edit/` | `main/application_edit.html` | Dynamic form and draft saving |
+| `/applications/<uuid>/preview/` | `main/application_preview.html` | Submission preview |
+| `/applications/<uuid>/submit/` | — | Submit (POST) |
+| `/applications/<uuid>/delete/` | — | Delete (POST) |
+| `/applications/<uuid>/attachments/upload/` | — | Upload an attachment (POST) |
+| `/applications/<uuid>/attachments/<pk>/delete/` | — | Delete an attachment (POST) |
+
+The frontend team owns the templates; empty placeholders are committed so the views
+render while the interface is being built.
+
 ## Getting started
 
 Requirements: Python 3.15 and [uv](https://docs.astral.sh/uv/) (or plain `venv` + `pip`).
