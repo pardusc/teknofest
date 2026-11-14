@@ -4,12 +4,12 @@ from django.core.validators import RegexValidator
 from .models import FormField
 
 
-def to_django_field(field: FormField) -> forms.Field:
+def to_django_field(field: FormField, required: bool | None = None) -> forms.Field:
     """Build the Django form field for a stored ``FormField`` definition."""
     common = {
         "label": field.label,
         "help_text": field.help_text,
-        "required": field.is_required,
+        "required": field.is_required if required is None else required,
     }
     text_kwargs = dict(common)
     if field.max_length:
@@ -56,10 +56,13 @@ def to_django_field(field: FormField) -> forms.Field:
     raise ValueError(f"Unsupported field type: {field.field_type}")
 
 
-def build_form(definition, data=None, files=None):
+def build_form(definition, data=None, files=None, enforce_required=True):
     """Create a Django form class from a ``FormDefinition`` and its active fields."""
     fields = {
-        field.key: to_django_field(field)
+        field.key: to_django_field(
+            field,
+            required=field.is_required if enforce_required else False,
+        )
         for field in definition.fields.filter(is_active=True)
     }
     form_class = type("DynamicApplicationForm", (forms.Form,), fields)

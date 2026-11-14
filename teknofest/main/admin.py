@@ -5,7 +5,17 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .forms import FormFieldAdminForm
-from .models import Category, CompetitionYear, FormDefinition, FormField, Profile, User
+from .models import (
+    Application,
+    ApplicationAnswer,
+    Attachment,
+    Category,
+    CompetitionYear,
+    FormDefinition,
+    FormField,
+    Profile,
+    User,
+)
 
 
 class UserCreationForm(BaseUserCreationForm):
@@ -59,9 +69,9 @@ class CompetitionYearAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "order", "is_active")
+    list_display = ("name", "slug", "code_prefix", "attachment_policy", "order", "is_active")
     list_editable = ("order", "is_active")
-    list_filter = ("is_active",)
+    list_filter = ("is_active", "attachment_policy")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name", "slug")
 
@@ -145,3 +155,38 @@ class FormFieldAdmin(admin.ModelAdmin):
     )
     search_fields = ("label", "key", "form__title")
     ordering = ("form", "order")
+
+
+class ApplicationAnswerInline(admin.TabularInline):
+    model = ApplicationAnswer
+    extra = 0
+    can_delete = False
+    fields = ("field", "value")
+    readonly_fields = fields
+
+
+class AttachmentInline(admin.TabularInline):
+    model = Attachment
+    extra = 0
+    can_delete = False
+    fields = ("original_name", "content_type", "size", "uploaded_at", "file")
+    readonly_fields = fields
+
+
+@admin.register(Application)
+class ApplicationAdmin(admin.ModelAdmin):
+    inlines = (ApplicationAnswerInline, AttachmentInline)
+    list_display = ("code", "applicant", "category", "year", "status", "submitted_at")
+    list_filter = ("status", "category", "year", "form")
+    search_fields = ("code", "applicant__email", "applicant__username")
+    readonly_fields = (
+        "public_id",
+        "code",
+        "applicant",
+        "form",
+        "year",
+        "category",
+        "submitted_at",
+        "created_at",
+        "updated_at",
+    )

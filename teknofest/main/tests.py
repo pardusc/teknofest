@@ -1,20 +1,41 @@
+import os
 import shutil
 import tempfile
 from datetime import timedelta
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
+from django.db.models import Sum
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
 from .dynamic_forms import build_form
-from .models import Category, CompetitionYear, FormDefinition, FormField, Profile
+from .models import (
+    Application,
+    ApplicationAnswer,
+    Attachment,
+    Category,
+    CompetitionYear,
+    FormDefinition,
+    FormField,
+    Profile,
+)
+from .services.applications import (
+    add_attachment,
+    delete_application,
+    delete_attachment,
+    save_draft,
+    start_application,
+    submit,
+)
 
 
 def make_image(name="photo.png", image_format="PNG"):
@@ -72,7 +93,7 @@ class UserModelTests(TestCase):
         self.assertEqual(get_user_model().USERNAME_FIELD, "username")
 
 
-class ProfileTests(TestCase):
+class MediaTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -86,6 +107,8 @@ class ProfileTests(TestCase):
         shutil.rmtree(cls._media_root, ignore_errors=True)
         super().tearDownClass()
 
+
+class ProfileTests(MediaTestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
             username="applicant",
@@ -570,3 +593,296 @@ class AdminTests(TestCase):
                 {"value": "High", "label": "High"},
             ],
         )
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class ApplicationServiceTests(MediaTestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="applicant",
+            email="applicant@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=self.user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.bug = Category.objects.get(slug="bug")
+        self.development = Category.objects.get(slug="development")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.bug,
+            title="Bug form",
+        )
+        self.title_field = FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+            order=1,
+        )
+        self.level_field = FormField.objects.create(
+            form=self.form,
+            key="level",
+            label="Level",
+            field_type=FormField.FieldType.SELECT,
+            is_required=False,
+            choices=[{"value": "low", "label": "Low"}],
+            order=2,
+        )
+
+    def make_user(self, username="second", email="second@example.com"):
+        user = get_user_model().objects.create_user(
+            username=username,
+            email=email,
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        return user
+
+    def make_dev_form(self):
+        form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.development,
+            title="Development form",
+        )
+        FormField.objects.create(
+            form=form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+        return form
+
+    def ready_draft(self, form=None):
+        application = start_application(self.user, form or self.form)
+        save_draft(application, {"title": "A bug report"})
+        return application
+
+    def test_start_application_creates_draft_and_reuses_it(self):
+        application = start_application(self.user, self.form)
+
+        self.assertEqual(application.status, Application.Status.DRAFT)
+        self.assertEqual(application.year_id, self.year.pk)
+        self.assertEqual(application.category_id, self.bug.pk)
+        self.assertIsNone(application.code)
+        self.assertEqual(start_application(self.user, self.form).pk, application.pk)
+
+    def test_start_application_rejects_closed_form(self):
+        self.form.status = FormDefinition.Status.IN_REVIEW
+        self.form.save()
+
+        with self.assertRaises(ValidationError):
+            start_application(self.user, self.form)
+
+    def test_draft_allows_partial_answers(self):
+        application = start_application(self.user, self.form)
+
+        save_draft(application, {"title": "Hello"})
+        answer = ApplicationAnswer.objects.get(
+            application=application,
+            field=self.title_field,
+        )
+        self.assertEqual(answer.value, "Hello")
+
+        save_draft(application, {})
+        self.assertEqual(application.answers.count(), 1)
+
+    def test_draft_rejects_invalid_choice(self):
+        application = start_application(self.user, self.form)
+
+        with self.assertRaises(ValidationError) as context:
+            save_draft(application, {"level": "unknown"})
+
+        self.assertIn("level", context.exception.message_dict)
+
+    def test_submit_requires_required_answers(self):
+        application = start_application(self.user, self.form)
+
+        with self.assertRaises(ValidationError) as context:
+            submit(application)
+
+        self.assertIn("title", context.exception.message_dict)
+        application.refresh_from_db()
+        self.assertEqual(application.status, Application.Status.DRAFT)
+        self.assertIsNone(application.code)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_submit_requires_complete_profile(self):
+        self.user.profile.city = ""
+        self.user.profile.save()
+        application = self.ready_draft()
+        add_attachment(application, make_image())
+
+        with self.assertRaisesMessage(ValidationError, "Complete your profile"):
+            submit(application)
+
+    def test_bug_submission_requires_attachment_and_sends_email(self):
+        application = self.ready_draft()
+
+        with self.assertRaisesMessage(ValidationError, "At least one attachment"):
+            submit(application)
+
+        add_attachment(application, make_image())
+        result = submit(application)
+
+        self.assertEqual(result.status, Application.Status.SUBMITTED)
+        self.assertEqual(result.code, "BUG-2026-00001")
+        self.assertIsNotNone(result.submitted_at)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+        self.assertIn(result.code, mail.outbox[0].body)
+
+    def test_development_submission_needs_no_attachment(self):
+        form = self.make_dev_form()
+        application = start_application(self.user, form)
+        save_draft(application, {"title": "A development project"})
+
+        with self.assertRaisesMessage(ValidationError, "does not accept attachments"):
+            add_attachment(application, make_image())
+
+        result = submit(application)
+
+        self.assertEqual(result.status, Application.Status.SUBMITTED)
+        self.assertTrue(result.code.startswith("DEVELOPMENT-2026-"))
+
+    def test_application_codes_increment_per_year_and_category(self):
+        other_user = self.make_user()
+        codes = []
+        for user in (self.user, other_user):
+            application = start_application(user, self.form)
+            save_draft(application, {"title": "A bug report"})
+            add_attachment(application, make_image())
+            codes.append(submit(application).code)
+
+        self.assertEqual(codes, ["BUG-2026-00001", "BUG-2026-00002"])
+
+    def test_application_is_unique_per_applicant_and_form(self):
+        application = self.ready_draft()
+        add_attachment(application, make_image())
+        submit(application)
+
+        self.assertEqual(start_application(self.user, self.form).pk, application.pk)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Application.objects.create(
+                applicant=self.user,
+                form=self.form,
+                year=self.year,
+                category=self.bug,
+            )
+
+    def test_submit_accepts_final_answers(self):
+        application = start_application(self.user, self.form)
+        add_attachment(application, make_image())
+
+        result = submit(application, {"title": "Final title"})
+
+        self.assertEqual(
+            ApplicationAnswer.objects.get(
+                application=result,
+                field=self.title_field,
+            ).value,
+            "Final title",
+        )
+
+    def test_png_and_jpeg_are_accepted(self):
+        application = start_application(self.user, self.form)
+
+        png = add_attachment(application, make_image())
+        jpeg = add_attachment(
+            application,
+            make_image(name="photo.jpg", image_format="JPEG"),
+        )
+
+        self.assertEqual(png.content_type, "image/png")
+        self.assertTrue(png.file.name.endswith(".png"))
+        self.assertEqual(jpeg.content_type, "image/jpeg")
+        self.assertTrue(jpeg.file.name.endswith(".jpg"))
+
+    def test_other_file_types_are_rejected(self):
+        application = start_application(self.user, self.form)
+        uploads = (
+            make_image(name="animation.gif", image_format="GIF"),
+            SimpleUploadedFile("document.pdf", b"%PDF-1.4", content_type="application/pdf"),
+            SimpleUploadedFile("fake.png", b"not an image", content_type="image/png"),
+        )
+
+        for upload in uploads:
+            with self.subTest(name=upload.name):
+                with self.assertRaisesMessage(
+                    ValidationError,
+                    "Upload a JPG or PNG image.",
+                ):
+                    add_attachment(application, upload)
+
+    @patch("main.services.applications.MAX_FILE_SIZE", 10)
+    def test_per_file_size_limit(self):
+        application = start_application(self.user, self.form)
+
+        with self.assertRaisesMessage(ValidationError, "2 MB or smaller"):
+            add_attachment(application, make_image())
+
+    def test_total_size_limit(self):
+        application = start_application(self.user, self.form)
+        add_attachment(application, make_image())
+        current_total = application.attachments.aggregate(total=Sum("size"))["total"]
+
+        with patch(
+            "main.services.applications.MAX_TOTAL_SIZE",
+            current_total + 1,
+        ):
+            with self.assertRaisesMessage(ValidationError, "10 MB or smaller"):
+                add_attachment(application, make_image())
+
+    @patch("main.services.applications.MAX_ATTACHMENTS", 1)
+    def test_attachment_count_limit(self):
+        application = start_application(self.user, self.form)
+        add_attachment(application, make_image())
+
+        with self.assertRaisesMessage(ValidationError, "At most 1"):
+            add_attachment(application, make_image())
+
+    def test_delete_attachment_removes_the_file(self):
+        application = start_application(self.user, self.form)
+        attachment = add_attachment(application, make_image())
+        path = Path(attachment.file.path)
+        self.assertTrue(path.exists())
+
+        delete_attachment(attachment)
+
+        self.assertFalse(Attachment.objects.filter(pk=attachment.pk).exists())
+        self.assertFalse(path.exists())
+
+    def test_delete_application_removes_answers_and_files(self):
+        application = self.ready_draft()
+        attachment = add_attachment(application, make_image())
+        path = Path(attachment.file.path)
+
+        delete_application(application)
+
+        self.assertFalse(Application.objects.filter(pk=application.pk).exists())
+        self.assertFalse(path.exists())
+        self.assertEqual(ApplicationAnswer.objects.count(), 0)
+
+    def test_closed_form_blocks_editing_and_deletion(self):
+        application = self.ready_draft()
+        self.form.status = FormDefinition.Status.IN_REVIEW
+        self.form.save()
+        application.refresh_from_db()
+
+        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
+            save_draft(application, {"title": "Changed"})
+        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
+            add_attachment(application, make_image())
+        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
+            delete_application(application)

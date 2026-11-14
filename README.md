@@ -40,7 +40,10 @@ Roles are determined by the Keycloak roles assigned to each account.
     │   ├── forms.py
     │   ├── models/
     │   │   ├── accounts.py
+    │   │   ├── applications.py
     │   │   └── competitions.py
+    │   ├── services/
+    │   │   └── applications.py
     │   ├── urls.py
     │   ├── views.py
     │   ├── migrations/
@@ -72,6 +75,22 @@ validation through `main.dynamic_forms`.
 
 Forms can be opened, put in review or closed manually from the admin, and each field can
 be hidden from reviewers. Staff members can preview a form before opening it.
+
+## Applications
+
+Applicants work on a draft and submit it while the form is open. On submission the
+application receives a readable code such as `BUG-2026-00001` or
+`DEVELOPMENT-2026-00001`. Drafts may be incomplete; submission validates all required
+fields and requires a complete profile.
+
+Attachments are category-specific:
+
+- **Bug / Suggestion** requires at least one attachment.
+- **Development** does not accept attachments.
+
+Limits are 10 files maximum, 2 MB per file and 10 MB in total. Only real JPG and PNG
+images are accepted, verified from their content rather than their extension.
+Applications can be edited or deleted until the form closes.
 
 ## Getting started
 
@@ -111,11 +130,12 @@ Settings are read from environment variables with development-friendly defaults:
 
 The Django project skeleton, the custom user model and the applicant profile are in
 place, including login/logout and profile editing. Competition years, categories and
-dynamic form definitions can be managed from the admin. Authentication currently uses
-Django's local login; Keycloak integration is planned.
+dynamic form definitions can be managed from the admin. Application drafts, submission,
+attachment rules and readable application codes are implemented in the service layer.
+Authentication currently uses Django's local login; Keycloak integration is planned.
 
-Planned work includes KVKK consent, application submission with file uploads, jury
-scoring, and Keycloak roles.
+Planned work includes KVKK consent, applicant and jury views, jury scoring, and Keycloak
+roles.
 
 ## License
 
