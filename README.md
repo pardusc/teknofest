@@ -36,11 +36,14 @@ Roles are determined by the Keycloak roles assigned to each account.
     ├── manage.py
     ├── main/
     │   ├── admin.py
+    │   ├── forms.py
     │   ├── models.py
     │   ├── urls.py
     │   ├── views.py
     │   ├── migrations/
-    │   └── templates/main/
+    │   └── templates/
+    │       ├── main/
+    │       └── registration/
     └── teknofest/
         ├── settings.py
         ├── urls.py
@@ -53,6 +56,8 @@ Roles are determined by the Keycloak roles assigned to each account.
 The project uses a custom user model, `main.User`, from the very first migration.
 It extends `django.contrib.auth.models.AbstractUser` and adds a unique
 `keycloak_id` field for the OIDC `sub` claim plus a unique e-mail address.
+Personal information (phone, city, institution, education level and an optional
+photo) lives in the related `main.Profile` model.
 Swapping this model later is expensive, so it must not be reverted.
 
 ## Getting started
@@ -91,10 +96,12 @@ Settings are read from environment variables with development-friendly defaults:
 
 ## Status
 
-The Django project skeleton and the custom user model are in place, with a
-placeholder home page and admin integration. Planned work includes Keycloak
-authentication, applicant profiles and consent, yearly application forms with
-file uploads, and jury scoring.
+The Django project skeleton, the custom user model and the applicant profile are in
+place, including login/logout and profile editing. Authentication currently uses
+Django's local login; Keycloak integration is planned.
+
+Planned work includes Keycloak roles, KVKK consent, yearly application forms with file
+uploads, and jury scoring.
 
 ## License
 

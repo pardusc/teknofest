@@ -1,0 +1,30 @@
+{% extends "main/base.html" %}
+
+{% block title %}Profile · Pardus Teknofest{% endblock %}
+
+{% block content %}
+  <h1>Profile</h1>
+  <p class="muted">{{ user.email }}</p>
+
+  <div class="card">
+    {% if profile.photo %}
+      <img class="avatar" src="{{ profile.photo.url }}" alt="Profile photo">
+    {% endif %}
+
+    <dl class="details">
+      <dt>Phone</dt>
+      <dd>{{ profile.phone|default:"Not provided" }}</dd>
+
+      <dt>City</dt>
+      <dd>{{ profile.city|default:"Not provided" }}</dd>
+
+      <dt>Institution</dt>
+      <dd>{{ profile.institution|default:"Not provided" }}</dd>
+
+      <dt>Education level</dt>
+      <dd>{{ profile.get_education_level_display|default:"Not provided" }}</dd>
+    </dl>
+
+    <a class="button" href="{% url 'main:profile_edit' %}">Edit profile</a>
+  </div>
+{% endblock %}

@@ -52,6 +52,11 @@ INSTALLED_APPS = [
 # Custom user model; must be set before the first migration.
 AUTH_USER_MODEL = 'main.User'
 
+# Authentication
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'main:home'
+LOGOUT_REDIRECT_URL = 'main:home'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

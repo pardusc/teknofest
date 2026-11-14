@@ -1,0 +1,18 @@
+{% extends "main/base.html" %}
+
+{% block title %}Log in · Pardus Teknofest{% endblock %}
+
+{% block content %}
+  <h1>Log in</h1>
+
+  <form method="post" class="card form">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    {% if next %}
+      <input type="hidden" name="next" value="{{ next }}">
+    {% endif %}
+
+    <button class="button" type="submit">Log in</button>
+  </form>
+{% endblock %}
