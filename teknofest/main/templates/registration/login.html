@@ -1,18 +1,40 @@
 {% extends "main/base.html" %}
 
-{% block title %}Log in · Pardus Teknofest{% endblock %}
+{% block title %}Giriş yap · Pardus Teknofest{% endblock %}
 
 {% block content %}
-  <h1>Log in</h1>
-
-  <form method="post" class="card form">
-    {% csrf_token %}
-    {{ form.as_p }}
-
-    {% if next %}
-      <input type="hidden" name="next" value="{{ next }}">
-    {% endif %}
-
-    <button class="button" type="submit">Log in</button>
-  </form>
+  <section class="container py-5">
+    <div class="row justify-content-center align-items-center g-5">
+      <div class="lg:col-5 d-none lg:d-block">
+        <span class="eyebrow fg-success">Pardus Teknofest</span>
+        <h1 class="fs-4xl fw-bold mt-3">Katkınla<br><span class="text-accent">iz bırak.</span></h1>
+        <p class="fs-lg fw-light fg-secondary mt-3">Başvurunu hazırlamak ve profil bilgilerini yönetmek için hesabına giriş yap.</p>
+        <div class="login-aside-note mt-4"><span class="fg-success fw-bold me-2">✳</span>Hata bildir · Fikrini paylaş · Pardus’u geliştir</div>
+      </div>
+      <div class="md:col-8 lg:col-5">
+        <div class="card login-card">
+          <div class="card-body p-4 p-lg-5">
+            <p class="eyebrow fg-success mb-2">Hesap alanı</p>
+            <h2 class="h3 fw-bold mb-2">Tekrar hoş geldin</h2>
+            <p class="fg-secondary mb-4">Devam etmek için kullanıcı bilgilerini gir.</p>
+            {% if form.errors %}<div class="alert theme-danger" role="alert">Kullanıcı adı veya parola hatalı. Bilgilerini kontrol edip yeniden dene.</div>{% endif %}
+            <form method="post" class="login-form">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.username.id_for_label }}">Kullanıcı adı</label>
+                <input class="form-control form-control-lg" type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" autofocus required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.password.id_for_label }}">Parola</label>
+                <input class="form-control form-control-lg" type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}" autocomplete="current-password" required>
+              </div>
+              {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+              <button class="btn-solid theme-success btn-lg w-100 mt-2" type="submit">Giriş yap <span aria-hidden="true">→</span></button>
+            </form>
+            <p class="small fg-secondary text-center mt-4 mb-0">Giriş sorunu yaşıyorsan yarışma koordinasyon ekibine ulaş.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 {% endblock %}

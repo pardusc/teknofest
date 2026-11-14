@@ -27,13 +27,13 @@ class Profile(models.Model):
     """Personal information an applicant completes after signing in."""
 
     class EducationLevel(models.TextChoices):
-        PRIMARY = "primary", "Primary school"
-        MIDDLE = "middle", "Middle school"
-        HIGH = "high", "High school"
-        ASSOCIATE = "associate", "Associate degree"
-        BACHELOR = "bachelor", "Bachelor's degree"
-        MASTER = "master", "Master's degree"
-        DOCTORATE = "doctorate", "Doctorate"
+        PRIMARY = "primary", "İlkokul"
+        MIDDLE = "middle", "Ortaokul"
+        HIGH = "high", "Lise"
+        ASSOCIATE = "associate", "Ön lisans"
+        BACHELOR = "bachelor", "Lisans"
+        MASTER = "master", "Yüksek lisans"
+        DOCTORATE = "doctorate", "Doktora"
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

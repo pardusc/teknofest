@@ -1,161 +1,68 @@
-{% load static %}<!DOCTYPE html>
-<html lang="en">
+{% load static %}<!doctype html>
+<html lang="tr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10251f">
   <title>{% block title %}Pardus Teknofest{% endblock %}</title>
-  <style>
-    :root {
-      --bg: #f7f7f5;
-      --fg: #1f2328;
-      --muted: #5d6670;
-      --accent: #0f6b4f;
-      --border: #dfe3e0;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      line-height: 1.6;
-    }
-    header, footer {
-      background: #fff;
-      border-bottom: 1px solid var(--border);
-    }
-    footer { border-top: 1px solid var(--border); border-bottom: 0; }
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 1rem 1.5rem;
-    }
-    header .container, footer .container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-    .brand { font-weight: 700; color: var(--accent); text-decoration: none; }
-    nav { display: flex; align-items: center; gap: 1rem; }
-    nav a { color: var(--muted); text-decoration: none; }
-    nav a:hover { color: var(--accent); }
-    .link-button {
-      background: none;
-      border: 0;
-      padding: 0;
-      color: var(--muted);
-      font: inherit;
-      cursor: pointer;
-    }
-    .link-button:hover { color: var(--accent); }
-    main .container { padding: 3rem 1.5rem; }
-    h1 { font-size: 2rem; margin-top: 0; }
-    .card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.5rem;
-      margin-top: 1.5rem;
-    }
-    .muted { color: var(--muted); }
-    code { background: #eef1ef; padding: 0.1rem 0.35rem; border-radius: 4px; }
-    footer { color: var(--muted); font-size: 0.875rem; }
-
-    .messages { list-style: none; margin: 0 0 1.5rem; padding: 0; }
-    .message {
-      background: #e8f3ed;
-      border: 1px solid #c3e0d1;
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-    }
-
-    .form p { margin: 0 0 1.25rem; }
-    .form label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
-    .form input[type="text"],
-    .form input[type="email"],
-    .form input[type="password"],
-    .form select,
-    .form textarea {
-      width: 100%;
-      padding: 0.55rem 0.7rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font: inherit;
-      background: #fff;
-    }
-    .form .helptext { display: block; color: var(--muted); font-size: 0.875rem; }
-    .form ul.errorlist {
-      list-style: none;
-      margin: 0 0 0.5rem;
-      padding: 0;
-      color: #b42318;
-      font-size: 0.875rem;
-    }
-    .button {
-      display: inline-block;
-      background: var(--accent);
-      color: #fff;
-      border: 0;
-      border-radius: 6px;
-      padding: 0.6rem 1.1rem;
-      font: inherit;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .button:hover { background: #0b5540; }
-    .button.secondary { background: #eef1ef; color: var(--fg); }
-
-    dl.details { display: grid; grid-template-columns: 12rem 1fr; gap: 0.5rem 1rem; margin: 1.5rem 0; }
-    dl.details dt { color: var(--muted); }
-    dl.details dd { margin: 0; }
-
-    .avatar {
-      width: 96px;
-      height: 96px;
-      object-fit: cover;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-    }
-  </style>
+  <link rel="stylesheet" href="{% static 'main/vendor/bootstrap/css/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'main/css/site.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <header>
+  <nav class="navbar lg:navbar-expand site-navbar">
     <div class="container">
-      <a class="brand" href="{% url 'main:home' %}">Pardus Teknofest</a>
-      <nav>
-        {% if user.is_authenticated %}
-          <a href="{% url 'main:profile' %}">Profile</a>
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="link-button">Log out</button>
-          </form>
-        {% else %}
-          <a href="{% url 'login' %}">Log in</a>
-        {% endif %}
-        <a href="/admin/">Admin</a>
-      </nav>
+      <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'main:home' %}">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span>Pardus <span class="fw-normal on-dark-muted">Teknofest</span></span>
+      </a>
+      <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="Menüyü aç">
+        <span class="navbar-toggler-icon" aria-hidden="true"></span>
+      </button>
+      <dialog class="drawer drawer-end" tabindex="-1" id="siteNav" aria-labelledby="siteNavTitle">
+        <div class="drawer-header">
+          <h2 class="drawer-title h5" id="siteNavTitle">Menü</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="drawer" aria-label="Menüyü kapat"></button>
+        </div>
+        <div class="drawer-body">
+        <div class="navbar-nav ms-auto lg:align-items-center lg:gap-2 py-3 lg:py-0">
+          <a class="nav-link" href="{% url 'main:home' %}">Ana sayfa</a>
+          {% if user.is_authenticated %}
+            <a class="nav-link" href="{% url 'main:profile' %}">Profilim</a>
+            <form method="post" action="{% url 'logout' %}" class="m-0">
+              {% csrf_token %}
+              <button type="submit" class="btn-outline theme-inverse btn-sm lg:ms-2 navbar-logout">Çıkış yap</button>
+            </form>
+          {% else %}
+            <a class="btn-solid theme-secondary btn-sm lg:ms-2 navbar-login" href="{% url 'login' %}">Giriş yap <span aria-hidden="true">→</span></a>
+          {% endif %}
+        </div>
+        </div>
+      </dialog>
     </div>
-  </header>
+  </nav>
 
   <main>
-    <div class="container">
-      {% if messages %}
-        <ul class="messages">
-          {% for message in messages %}
-            <li class="message">{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-      {% block content %}{% endblock %}
-    </div>
+    {% if messages %}
+      <div class="container pt-3" aria-live="polite">
+        {% for message in messages %}
+          <div class="alert theme-success mb-2" role="status">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
   </main>
 
-  <footer>
-    <div class="container">
-      <span>Application and evaluation platform</span>
-      <span>GPL-3.0</span>
+  <footer class="site-footer mt-5">
+    <div class="container py-4 d-flex flex-column md:flex-row justify-content-between gap-2">
+      <span><strong>Pardus Teknofest</strong> <span class="fg-secondary">· Açık kaynakla daha iyi bir Pardus</span></span>
+      <span class="fg-secondary">Yarışma başvuruları ve değerlendirme platformu</span>
     </div>
   </footer>
+  <script type="module" src="{% static 'main/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,30 +1,55 @@
 {% extends "main/base.html" %}
 
-{% block title %}Profile · Pardus Teknofest{% endblock %}
+{% block title %}Profilim · Pardus Teknofest{% endblock %}
 
 {% block content %}
-  <h1>Profile</h1>
-  <p class="muted">{{ user.email }}</p>
+  <section class="container py-5">
+    <div class="d-flex flex-column sm:flex-row justify-content-between sm:align-items-end gap-3 mb-4">
+      <div><span class="eyebrow fg-success">Hesap alanı</span><h1 class="h2 fw-bold mt-2 mb-1">Profilim</h1><p class="fg-secondary mb-0">Başvuru sürecinde kullanılacak profil bilgilerini yönet.</p></div>
+      <a class="btn-solid theme-success" href="{% url 'main:profile_edit' %}">Profili düzenle <span aria-hidden="true">→</span></a>
+    </div>
 
-  <div class="card">
-    {% if profile.photo %}
-      <img class="avatar" src="{{ profile.photo.url }}" alt="Profile photo">
-    {% endif %}
-
-    <dl class="details">
-      <dt>Phone</dt>
-      <dd>{{ profile.phone|default:"Not provided" }}</dd>
-
-      <dt>City</dt>
-      <dd>{{ profile.city|default:"Not provided" }}</dd>
-
-      <dt>Institution</dt>
-      <dd>{{ profile.institution|default:"Not provided" }}</dd>
-
-      <dt>Education level</dt>
-      <dd>{{ profile.get_education_level_display|default:"Not provided" }}</dd>
-    </dl>
-
-    <a class="button" href="{% url 'main:profile_edit' %}">Edit profile</a>
-  </div>
+    <div class="row g-4">
+      <div class="lg:col-4">
+        <section class="card profile-card h-100">
+          <div class="card-body p-4 text-center">
+            {% if profile.photo %}
+              <img class="profile-avatar mb-3" src="{{ profile.photo.url }}" alt="Profil fotoğrafı">
+            {% else %}
+              <div class="profile-avatar avatar-placeholder mb-3" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</div>
+            {% endif %}
+            <h2 class="h4 fw-bold mb-1">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</h2>
+            <p class="fg-secondary mb-4">{{ user.email }}</p>
+            {% if profile.is_complete %}
+              <span class="badge rounded-pill theme-success">Profil tamamlandı</span>
+            {% else %}
+              <span class="badge rounded-pill theme-warning">Bilgiler eksik</span>
+            {% endif %}
+            <div class="profile-note mt-4 text-start">
+              <p class="small fw-semibold mb-1">İpucu</p>
+              <p class="small fg-secondary mb-0">Güncel iletişim ve eğitim bilgileri, yarışma sürecindeki bilgilendirmeleri kolaylaştırır.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="lg:col-8">
+        <section class="card h-100">
+          <div class="card-body p-4 p-lg-5">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-4"><div><p class="eyebrow fg-success mb-2">Kişisel bilgiler</p><h2 class="h4 fw-bold mb-0">Profil detayları</h2></div><span class="small fg-secondary">Son güncelleme: {{ profile.updated_at|date:"d.m.Y" }}</span></div>
+            <div class="row g-4">
+              <div class="sm:col-6"><p class="detail-label">Telefon</p><p class="detail-value">{{ profile.phone|default:"Henüz eklenmedi" }}</p></div>
+              <div class="sm:col-6"><p class="detail-label">Şehir</p><p class="detail-value">{{ profile.city|default:"Henüz eklenmedi" }}</p></div>
+              <div class="sm:col-6"><p class="detail-label">Okul / kurum</p><p class="detail-value">{{ profile.institution|default:"Henüz eklenmedi" }}</p></div>
+              <div class="sm:col-6"><p class="detail-label">Eğitim seviyesi</p><p class="detail-value">{{ profile.get_education_level_display|default:"Henüz eklenmedi" }}</p></div>
+            </div>
+            <hr class="my-4">
+            <div class="d-flex flex-column sm:flex-row justify-content-between sm:align-items-center gap-3">
+              <p class="small fg-secondary mb-0">Bilgilerini istediğin zaman güncelleyebilirsin.</p>
+              <a class="btn-outline theme-success" href="{% url 'main:profile_edit' %}">Bilgileri güncelle</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
 {% endblock %}

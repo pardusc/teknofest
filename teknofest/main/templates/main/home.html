@@ -1,22 +1,95 @@
 {% extends "main/base.html" %}
 
-{% block title %}Home · Pardus Teknofest{% endblock %}
+{% block title %}Ana sayfa · Pardus Teknofest{% endblock %}
 
 {% block content %}
-  <h1>Pardus Teknofest</h1>
-  <p class="muted">
-    Internal platform for collecting and evaluating applications for the
-    Pardus Teknofest competition.
-  </p>
+  <section class="hero-section">
+    <div class="container py-5 py-lg-6">
+      <div class="row align-items-center g-5">
+        <div class="lg:col-7">
+          <span class="eyebrow"><span class="status-dot"></span> 2026 yarışma dönemi</span>
+          <h1 class="fs-5xl fw-bold mt-3 mb-4">Pardus’u birlikte <span class="text-accent">geliştirelim.</span></h1>
+          <p class="fs-lg fw-light fg-secondary mb-4">Hata bildir, yeni bir fikir öner ya da geliştirme katkını paylaş. Pardus Teknofest platformunda başvurunu hazırla ve değerlendirme sürecini takip et.</p>
+          <div class="d-flex flex-wrap gap-3">
+            {% if user.is_authenticated %}
+              <a class="btn-solid theme-success btn-lg" href="{% url 'main:profile_edit' %}">Başvuruna hazırlan <span aria-hidden="true">→</span></a>
+              <a class="btn-outline theme-secondary btn-lg" href="{% url 'main:profile' %}">Profilimi görüntüle</a>
+            {% else %}
+              <a class="btn-solid theme-success btn-lg" href="{% url 'login' %}">Başvuruya başla <span aria-hidden="true">→</span></a>
+              <a class="btn-outline theme-secondary btn-lg" href="#kategoriler">Yarışma kategorileri</a>
+            {% endif %}
+          </div>
+          <p class="small fg-secondary mt-3 mb-0">Örnek arayüz içeriğidir. Başvuru tarihleri ve yarışma duyuruları organizatör tarafından yayımlanacaktır.</p>
+        </div>
+        <div class="lg:col-5">
+          <div class="hero-card p-4 p-lg-5">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+              <div><p class="small text-uppercase on-dark-muted fw-semibold mb-1">Bu yılın odağı</p><h2 class="h3 fg-white mb-0">Açık kaynak katkısı</h2></div>
+              <span class="hero-icon" aria-hidden="true">✳</span>
+            </div>
+            <p class="on-dark-muted">Küçük bir hata düzeltmesi de, büyük bir geliştirme fikri de Pardus topluluğuna değer katar.</p>
+            <div class="hero-divider my-4"></div>
+            <div class="d-flex gap-3 align-items-center">
+              <div class="avatar-stack"><span>P</span><span>↗</span><span>+</span></div>
+              <span class="small on-dark-muted">Öğrenciler, geliştiriciler ve meraklılar için</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <div class="card">
-    <h2>Project status</h2>
-    <p>
-      The Django project skeleton is running. User accounts, application forms
-      and jury scoring will be added in the next steps.
-    </p>
-    <p class="muted">
-      Manage accounts from <a href="/admin/">the admin panel</a>.
-    </p>
-  </div>
+  <section class="container py-5" id="kategoriler">
+    <div class="row align-items-end mb-4 g-3">
+      <div class="md:col-8"><span class="eyebrow fg-success">Nasıl katkı sunabilirsin?</span><h2 class="h1 fw-bold mt-2 mb-0">Sana uygun kategoriyi seç</h2></div>
+      <div class="md:col-4 md:text-end"><span class="fg-secondary">İki kategori, ortak bir hedef: daha iyi Pardus.</span></div>
+    </div>
+    <div class="row g-4">
+      <div class="md:col-6">
+        <article class="card category-card h-100">
+          <div class="card-body p-4 p-lg-5">
+            <span class="category-icon icon-amber" aria-hidden="true">⌕</span>
+            <p class="small text-uppercase fw-semibold fg-secondary mt-4 mb-2">Kategori 01</p>
+            <h3 class="h3 fw-bold">Hata yakalama ve öneri</h3>
+            <p class="fg-secondary">Karşılaştığın bir sorunu adımlarıyla anlat veya Pardus’u daha kullanışlı hâle getirecek fikrini paylaş.</p>
+            <ul class="list-unstyled category-list mb-4">
+              <li>Hata bildirimi ve yeniden üretme adımları</li>
+              <li>Kullanılabilirlik ve özellik önerileri</li>
+            </ul>
+            <a class="link-success fw-semibold text-decoration-none" href="{% if user.is_authenticated %}{% url 'main:profile_edit' %}{% else %}{% url 'login' %}{% endif %}">Hazırlığa başla <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+      </div>
+      <div class="md:col-6">
+        <article class="card category-card h-100">
+          <div class="card-body p-4 p-lg-5">
+            <span class="category-icon icon-blue" aria-hidden="true">⌘</span>
+            <p class="small text-uppercase fw-semibold fg-secondary mt-4 mb-2">Kategori 02</p>
+            <h3 class="h3 fw-bold">Geliştirme katkısı</h3>
+            <p class="fg-secondary">Bir yazılım geliştirmesi, araç, iyileştirme ya da teknik çözümle özgür yazılım ekosistemine katkı sun.</p>
+            <ul class="list-unstyled category-list mb-4">
+              <li>Çalışan prototip veya kod katkısı</li>
+              <li>Teknik açıklama ve proje çıktıları</li>
+            </ul>
+            <a class="link-success fw-semibold text-decoration-none" href="{% if user.is_authenticated %}{% url 'main:profile_edit' %}{% else %}{% url 'login' %}{% endif %}">Hazırlığa başla <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="container pb-5">
+    <div class="how-card p-4 p-lg-5">
+      <div class="row g-4 align-items-center">
+        <div class="lg:col-5"><span class="eyebrow fg-success">Başlangıç rehberi</span><h2 class="h2 fw-bold mt-2">Başvuruya hazırlanmak kolay</h2><p class="fg-secondary mb-0">Profil bilgilerini tamamla; başvuru modülü açıldığında proje detaylarını ve gerekli dosyaları ekleyebilirsin.</p></div>
+        <div class="lg:col-7">
+          <div class="row g-3">
+            <div class="sm:col-4"><div class="step-number">01</div><h3 class="h6 fw-bold mt-3">Giriş yap</h3><p class="small fg-secondary mb-0">Hesabınla platforma eriş.</p></div>
+            <div class="sm:col-4"><div class="step-number">02</div><h3 class="h6 fw-bold mt-3">Profilini tamamla</h3><p class="small fg-secondary mb-0">İletişim ve eğitim bilgilerini ekle.</p></div>
+            <div class="sm:col-4"><div class="step-number">03</div><h3 class="h6 fw-bold mt-3">Katkını hazırla</h3><p class="small fg-secondary mb-0">Proje anlatımını ve dosyalarını düzenle.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 {% endblock %}

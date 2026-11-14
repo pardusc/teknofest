@@ -14,9 +14,15 @@ class ProfileForm(forms.ModelForm):
         model = Profile
         fields = ("phone", "city", "institution", "education_level", "photo")
         widgets = {
-            "phone": forms.TextInput(attrs={"placeholder": "+90 5xx xxx xx xx"}),
-            "city": forms.TextInput(attrs={"placeholder": "City"}),
-            "institution": forms.TextInput(attrs={"placeholder": "School or institution"}),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "+90 5xx xxx xx xx"}
+            ),
+            "city": forms.TextInput(attrs={"class": "form-control", "placeholder": "Örn. Ankara"}),
+            "institution": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Örn. Ankara Üniversitesi"}
+            ),
+            "education_level": forms.Select(attrs={"class": "form-control"}),
+            "photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
