@@ -6,7 +6,7 @@
   <section class="container py-5">
     <div class="row justify-content-center">
       <div class="col-xl-9">
-        <div class="mb-4"><a class="small fg-success text-decoration-none" href="{% url 'main:profile' %}">← Profilime dön</a><p class="eyebrow fg-success mt-4 mb-2">Hesap alanı</p><h1 class="h2 fw-bold mb-2">Profilini düzenle</h1><p class="fg-secondary mb-0">İletişim ve eğitim bilgilerini gir. Yıldızlı alanlar zorunludur.</p></div>
+        <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:profile' %}">Profil bilgilerine dön</a><p class="eyebrow fg-primary mt-4 mb-2">Hesap alanı</p><h1 class="h2 fw-bold mb-2">Profil bilgilerini düzenle</h1><p class="fg-secondary mb-0">Güncel iletişim ve eğitim bilgilerinizi girin. Yıldızla işaretli alanlar zorunludur.</p></div>
         <form method="post" enctype="multipart/form-data" class="card profile-form">
           {% csrf_token %}
           <div class="card-body p-4 p-lg-5">
@@ -42,8 +42,8 @@
             </div>
           </div>
           <div class="card-footer px-4 px-lg-5 py-3 d-flex flex-column sm:flex-row justify-content-between sm:align-items-center gap-3">
-            <span class="small fg-secondary">Profil bilgilerin yalnızca bu hesap üzerinden düzenlenebilir.</span>
-            <div class="d-flex gap-2"><a class="btn-outline theme-secondary" href="{% url 'main:profile' %}">Vazgeç</a><button class="btn-solid theme-success" type="submit">Değişiklikleri kaydet</button></div>
+            <span class="small fg-secondary">Bilgiler hesabınıza bağlı profil kaydında saklanır.</span>
+            <div class="d-flex gap-2"><a class="btn-outline theme-secondary" href="{% url 'main:profile' %}">İptal</a><button class="btn-solid theme-primary" type="submit">Değişiklikleri kaydet</button></div>
           </div>
         </form>
       </div>
