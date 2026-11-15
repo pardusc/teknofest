@@ -45,51 +45,15 @@ from .services.reviews import review_stats
 
 
 def home(request):
-    settings = SiteSettings.load()
     categories = Category.objects.filter(is_active=True).order_by("order", "name")
-    context = {
-        "home_categories": categories,
-        "home_category_count": categories.count(),
-    }
-
-    if request.user.is_authenticated and not is_jury(request.user):
-        profile, _ = Profile.objects.get_or_create(user=request.user)
-        current_forms = list(
-            FormDefinition.objects.select_related("year", "category")
-            .filter(
-                year__year=settings.current_year,
-                category__is_active=True,
-            )
-            .order_by("category__order")
-        )
-        applications = {
-            application.form_id: application
-            for application in Application.objects.filter(
-                applicant=request.user,
-                form__in=current_forms,
-            ).select_related("form", "year", "category")
-        }
-        my_applications = list(
-            Application.objects.filter(applicant=request.user)
-            .select_related("form", "year", "category")
-            .order_by("-updated_at")[:5]
-        )
-        context.update(
-            {
-                "profile": profile,
-                "my_applications": my_applications,
-                "continue_application": my_applications[0] if my_applications else None,
-                "form_rows": [
-                    {"form": form, "application": applications.get(form.pk)}
-                    for form in current_forms
-                ],
-                "open_form_count": sum(
-                    1 for form in current_forms if form.is_accepting_submissions
-                ),
-            }
-        )
-
-    return render(request, "main/home.html", context)
+    return render(
+        request,
+        "main/home.html",
+        {
+            "home_categories": categories,
+            "home_category_count": categories.count(),
+        },
+    )
 
 
 class ProfileView(ApplicantOnlyMixin, UpdateView):
@@ -113,33 +77,11 @@ class ProfileUpdateView(ApplicantOnlyMixin, RedirectView):
     permanent = False
 
 
-class FormListView(ApplicantOnlyMixin, ListView):
-    template_name = "main/form_list.html"
-    context_object_name = "forms"
+class FormListView(ApplicantOnlyMixin, RedirectView):
+    """Legacy URL: forms are now listed on the My Applications page."""
 
-    def get_queryset(self):
-        settings = SiteSettings.load()
-        return (
-            FormDefinition.objects.select_related("year", "category")
-            .filter(year__year=settings.current_year, category__is_active=True)
-            .order_by("category__order")
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        forms = list(context["forms"])
-        existing = {
-            application.form_id: application
-            for application in Application.objects.filter(
-                applicant=self.request.user,
-                form__in=forms,
-            )
-        }
-        context["form_rows"] = [
-            {"form": form, "application": existing.get(form.pk)}
-            for form in forms
-        ]
-        return context
+    pattern_name = "main:application_list"
+    permanent = False
 
 
 class FormDetailView(ApplicantOnlyMixin, View):
@@ -167,7 +109,7 @@ class FormDetailView(ApplicantOnlyMixin, View):
             return redirect("main:application_start", pk=form_definition.pk)
 
         messages.error(request, _("This form is not accepting applications."))
-        return redirect("main:form_list")
+        return redirect("main:application_list")
 
 
 class ApplicationStartView(ApplicantOnlyMixin, View):
@@ -180,7 +122,7 @@ class ApplicationStartView(ApplicantOnlyMixin, View):
         )
         if not form_definition.is_accepting_submissions:
             messages.error(request, _("This form is not accepting applications."))
-            return redirect("main:form_list")
+            return redirect("main:application_list")
 
         existing = Application.objects.filter(
             applicant=request.user,
@@ -237,9 +179,45 @@ class ApplicationListView(ApplicantOnlyMixin, ListView):
     context_object_name = "applications"
 
     def get_queryset(self):
-        return Application.objects.select_related("form", "year", "category").filter(
-            applicant=self.request.user
+        return (
+            Application.objects.select_related("form", "year", "category")
+            .filter(applicant=self.request.user)
+            .order_by("-updated_at")
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        settings = SiteSettings.load()
+        profile, _ = Profile.objects.get_or_create(user=self.request.user)
+        applications = list(context["applications"])
+        current_forms = list(
+            FormDefinition.objects.select_related("year", "category")
+            .filter(
+                year__year=settings.current_year,
+                category__is_active=True,
+            )
+            .order_by("category__order")
+        )
+        applications_by_form = {
+            application.form_id: application for application in applications
+        }
+        context.update(
+            {
+                "profile": profile,
+                "continue_application": applications[0] if applications else None,
+                "form_rows": [
+                    {
+                        "form": form,
+                        "application": applications_by_form.get(form.pk),
+                    }
+                    for form in current_forms
+                ],
+                "open_form_count": sum(
+                    1 for form in current_forms if form.is_accepting_submissions
+                ),
+            }
+        )
+        return context
 
 
 class ApplicationDetailView(ApplicantOnlyMixin, DetailView):

@@ -7,47 +7,139 @@
 <div class="container site-main">
   <div class="page-header">
     <div>
-      <span class="eyebrow">{% translate "Account area" %}</span>
+      <span class="eyebrow">{{ site_settings.current_year }} · {% translate "Account area" %}</span>
       <h1>{% translate "My applications" %}</h1>
-      <p>{% translate "Follow your applications and continue editing until the deadline." %}</p>
+      <p>{% translate "Follow your applications and create new ones from the open forms below." %}</p>
     </div>
-    <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "View application forms" %}</a>
+    {% if continue_application %}
+      <a class="btn-solid" href="{% url 'main:application_detail' continue_application.public_id %}">{% translate "Continue application" %}</a>
+    {% endif %}
   </div>
 
-  {% if applications %}
-    <section class="card section-card">
-      <div class="table-responsive">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>{% translate "Application" %}</th>
-              <th class="hide-sm">{% translate "Last updated" %}</th>
-              <th class="text-end">{% translate "Action" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for application in applications %}
-              <tr>
-                <td>
-                  <a class="row-link" href="{% url 'main:application_detail' application.public_id %}">
-                    <span class="row-title">{{ application.form.title }}</span>
-                    <span class="row-meta">{{ application.year.year }} · {{ application.category.display_name }} · {{ application.code }}</span>
-                  </a>
-                </td>
-                <td class="small fg-secondary hide-sm">{{ application.updated_at|date:"d.m.Y H:i" }}</td>
-                <td class="text-end"><a class="btn-outline btn-sm" href="{% url 'main:application_detail' application.public_id %}">{% translate "Open application" %}</a></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  {% else %}
-    <section class="card empty-state">
-      <h2>{% translate "You have no applications yet" %}</h2>
-      <p>{% translate "You can create a new application by reviewing the open application forms." %}</p>
-      <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "Browse application forms" %}</a>
-    </section>
-  {% endif %}
+  <div class="row g-3">
+    <div class="lg:col-8">
+      <section class="card section-card">
+        <div class="section-head">
+          <h2>{% translate "My applications" %}</h2>
+          <span class="small fg-secondary">{% blocktranslate count counter=applications|length %}{{ counter }} application{% plural %}{{ counter }} applications{% endblocktranslate %}</span>
+        </div>
+        {% if applications %}
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>{% translate "Application" %}</th><th class="hide-sm">{% translate "Last updated" %}</th><th class="text-end">{% translate "Action" %}</th></tr></thead>
+              <tbody>
+                {% for application in applications %}
+                  <tr>
+                    <td>
+                      <a class="row-link" href="{% url 'main:application_detail' application.public_id %}">
+                        <span class="row-title">{{ application.form.title }}</span>
+                        <span class="row-meta">{{ application.year.year }} · {{ application.category.display_name }} · {{ application.code }}</span>
+                      </a>
+                    </td>
+                    <td class="small fg-secondary hide-sm">{{ application.updated_at|date:"d.m.Y H:i" }}</td>
+                    <td class="text-end"><a class="btn-outline btn-sm" href="{% url 'main:application_detail' application.public_id %}">{% translate "Open application" %}</a></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <h3>{% translate "You have no applications yet" %}</h3>
+            <p>{% translate "Choose an open form below to create your first application." %}</p>
+            <a class="btn-solid btn-sm" href="#forms">{% translate "Browse application forms" %}</a>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="card section-card mt-3" id="forms">
+        <div class="section-head">
+          <h2>{% translate "Application forms" %}</h2>
+          <span class="small fg-secondary">{{ open_form_count }} {% translate "open" %}</span>
+        </div>
+        {% if form_rows %}
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>{% translate "Form" %}</th>
+                  <th class="hide-sm">{% translate "Deadline" %}</th>
+                  <th>{% translate "Status" %}</th>
+                  <th class="text-end">{% translate "Action" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in form_rows %}
+                  <tr>
+                    <td>
+                      {% if row.application %}
+                        <a class="row-link" href="{% url 'main:application_detail' row.application.public_id %}">
+                          <span class="row-title">{{ row.form.title }}</span>
+                          <span class="row-meta">{{ row.form.category.display_name }} · {{ row.application.code }}</span>
+                        </a>
+                      {% elif row.form.is_accepting_submissions %}
+                        <a class="row-link" href="{% url 'main:application_start' row.form.pk %}">
+                          <span class="row-title">{{ row.form.title }}</span>
+                          <span class="row-meta">{{ row.form.category.display_name }}</span>
+                        </a>
+                      {% else %}
+                        <span class="row-title">{{ row.form.title }}</span>
+                        <span class="row-meta">{{ row.form.category.display_name }}</span>
+                      {% endif %}
+                    </td>
+                    <td class="small fg-secondary hide-sm">{% if row.form.closes_at %}{{ row.form.closes_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
+                    <td>
+                      {% if row.application %}
+                        <span class="chip chip-neutral">{% translate "Application received" %}</span>
+                      {% elif row.form.is_accepting_submissions %}
+                        <span class="chip chip-success">{% translate "Open for applications" %}</span>
+                      {% else %}
+                        <span class="chip chip-neutral">{% translate "Closed for applications" %}</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">
+                      {% if row.application %}
+                        <a class="btn-outline btn-sm" href="{% url 'main:application_detail' row.application.public_id %}">{% translate "Open application" %}</a>
+                      {% elif row.form.is_accepting_submissions %}
+                        <a class="btn-solid btn-sm" href="{% url 'main:application_start' row.form.pk %}">{% translate "Apply" %}</a>
+                      {% else %}
+                        <button class="btn-outline btn-sm" type="button" disabled>{% translate "Closed" %}</button>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state"><p class="mb-0">{% translate "No forms are available for this period." %}</p></div>
+        {% endif %}
+      </section>
+    </div>
+
+    <div class="lg:col-4">
+      <section class="card section-card">
+        <div class="section-head"><h2>{% translate "Application period" %}</h2></div>
+        <div class="section-body">
+          <p class="mb-3">
+            {% if site_settings.is_application_open %}<span class="chip chip-success">{% translate "Open for applications" %}</span>{% else %}<span class="chip chip-neutral">{% translate "Closed for applications" %}</span>{% endif %}
+          </p>
+          <dl class="facts">
+            <dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd>
+            {% if site_settings.application_closes_at %}<dt>{% translate "Application deadline" %}</dt><dd>{{ site_settings.application_closes_at|date:"d.m.Y H:i" }}</dd>{% endif %}
+            {% if home_text.calendar_note %}<dt>{% translate "Calendar" %}</dt><dd>{{ home_text.calendar_note|linebreaksbr }}</dd>{% endif %}
+          </dl>
+        </div>
+      </section>
+
+      <section class="card section-card mt-3">
+        <div class="section-head"><h2>{% translate "Profile" %}</h2><a class="small" href="{% url 'main:profile' %}">{% translate "Edit" %}</a></div>
+        <div class="section-body">
+          <p class="small mb-2">{% if profile.is_complete %}<span class="chip chip-success">{% translate "Profile complete" %}</span>{% else %}<span class="chip chip-warning">{% translate "Missing information" %}</span>{% endif %}</p>
+          <p class="small fg-secondary mb-0">{{ user.email }}</p>
+        </div>
+      </section>
+    </div>
+  </div>
 </div>
 {% endblock %}

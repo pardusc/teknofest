@@ -56,7 +56,7 @@ AUTH_USER_MODEL = 'main.User'
 
 # Authentication
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'main:home'
+LOGIN_REDIRECT_URL = 'main:application_list'
 LOGOUT_REDIRECT_URL = 'main:home'
 
 MIDDLEWARE = [

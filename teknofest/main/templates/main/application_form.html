@@ -7,7 +7,7 @@
 {% translate "Delete this file?" as delete_file_confirm %}
 <div class="container site-main">
   <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
-    <a href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+    <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
     <span>{{ form_definition.title }}</span>
   </nav>
 
@@ -82,7 +82,7 @@
         <div class="form-actions">
           <span class="hint">{% translate "Required fields are marked with an asterisk." %}</span>
           <div class="d-flex flex-wrap gap-2">
-            <a class="btn-outline" href="{% if application %}{% url 'main:application_detail' application.public_id %}{% else %}{% url 'main:form_list' %}{% endif %}">{% translate "Cancel" %}</a>
+            <a class="btn-outline" href="{% if application %}{% url 'main:application_detail' application.public_id %}{% else %}{% url 'main:application_list' %}{% endif %}">{% translate "Cancel" %}</a>
             <button class="btn-solid" type="submit">{% if application %}{% translate "Save changes" %}{% else %}{% translate "Submit application" %}{% endif %}</button>
           </div>
         </div>

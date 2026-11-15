@@ -1230,3 +1230,18 @@ msgstr "curl ile deneyin:"
 
 msgid "Calendar"
 msgstr "Takvim"
+
+msgid ""
+"Follow your applications and create new ones from the open forms below."
+msgstr ""
+"Başvurularınızı takip edin ve aşağıdaki açık formlardan yeni başvuru "
+"oluşturun."
+
+msgid "Choose an open form below to create your first application."
+msgstr ""
+"İlk başvurunuzu oluşturmak için aşağıdaki açık formlardan birini seçin."
+
+msgid "%(counter)s application"
+msgid_plural "%(counter)s applications"
+msgstr[0] "%(counter)s başvuru"
+msgstr[1] "%(counter)s başvuru"

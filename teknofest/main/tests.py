@@ -63,7 +63,6 @@ from .views import (
     ApplicationPreviewView,
     ApplicationUpdateView,
     FormDetailView,
-    FormListView,
     _validation_message,
 )
 
@@ -114,6 +113,27 @@ class HomeViewTests(TestCase):
 
         self.assertContains(response, "Takvim")
         self.assertContains(response, "Etkinlik takvimi")
+
+    def test_home_stays_public_for_authenticated_applicants(self):
+        user = get_user_model().objects.create_user(
+            username="landing-applicant",
+            email="landing-applicant@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("main:home"))
+
+        self.assertTemplateUsed(response, "main/home.html")
+        self.assertNotIn("my_applications", response.context)
+        self.assertContains(response, "Başvuru kategorileri")
 
 
 class UserModelTests(TestCase):
@@ -371,11 +391,11 @@ class ProfileTests(MediaTestCase):
 
         self.assertRedirects(
             response,
-            reverse("main:home"),
+            reverse("main:application_list"),
             fetch_redirect_response=False,
         )
         self.assertRedirects(
-            self.client.get(reverse("main:home")),
+            self.client.get(reverse("main:application_list")),
             reverse("main:profile"),
         )
         self.assertEqual(self.client.get(reverse("main:profile")).status_code, 200)
@@ -1159,18 +1179,18 @@ class ApplicationViewTests(MediaTestCase):
             files=files,
         )
 
-    def test_dashboard_calendar_follows_site_setting(self):
+    def test_my_applications_calendar_follows_site_setting(self):
         settings = SiteSettings.load()
         settings.calendar_note = ""
         settings.save(update_fields=["calendar_note"])
 
-        response = self.client.get(reverse("main:home"))
+        response = self.client.get(reverse("main:application_list"))
         self.assertNotContains(response, "Takvim")
 
         settings.calendar_note = "Etkinlik takvimi"
         settings.save(update_fields=["calendar_note"])
 
-        response = self.client.get(reverse("main:home"))
+        response = self.client.get(reverse("main:application_list"))
         self.assertContains(response, "Takvim")
         self.assertContains(response, "Etkinlik takvimi")
 
@@ -1189,9 +1209,16 @@ class ApplicationViewTests(MediaTestCase):
                 self.assertEqual(self.client.get(url).status_code, 302)
 
     def test_form_list_context(self):
-        response = self.client.get(reverse("main:form_list"))
+        response = self.client.get(reverse("main:application_list"))
 
-        self.assertIn(self.form, response.context["forms"])
+        self.assertIn(
+            self.form,
+            [row["form"] for row in response.context["form_rows"]],
+        )
+        self.assertRedirects(
+            self.client.get(reverse("main:form_list")),
+            reverse("main:application_list"),
+        )
 
     def test_form_detail_redirects_to_application_form(self):
         response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
@@ -1278,7 +1305,7 @@ class ApplicationViewTests(MediaTestCase):
             reverse("main:application_start", args=[self.form.pk])
         )
 
-        self.assertRedirects(response, reverse("main:form_list"))
+        self.assertRedirects(response, reverse("main:application_list"))
 
     def test_application_list_and_detail_context(self):
         application = self.make_application()
@@ -1304,7 +1331,6 @@ class ApplicationViewTests(MediaTestCase):
 
             urls = [
                 reverse("main:home"),
-                reverse("main:form_list"),
                 reverse("main:application_list"),
                 reverse("main:application_detail", args=[application.public_id]),
             ]
@@ -1956,7 +1982,14 @@ class JuryTests(MediaTestCase):
     def test_applicant_is_not_redirected_from_applicant_routes(self):
         self.client.force_login(self.applicant)
 
-        self.assertEqual(self.client.get(reverse("main:form_list")).status_code, 200)
+        self.assertRedirects(
+            self.client.get(reverse("main:form_list")),
+            reverse("main:application_list"),
+        )
+        self.assertEqual(
+            self.client.get(reverse("main:application_list")).status_code,
+            200,
+        )
         self.assertEqual(self.client.get(reverse("main:profile")).status_code, 200)
         self.assertEqual(
             self.client.get(
@@ -2978,7 +3011,7 @@ class SiteSettingsTests(TestCase):
         self.assertContains(response, "First")
         self.assertContains(response, "Second")
 
-    def test_form_list_shows_only_current_year(self):
+    def test_my_applications_shows_only_current_year_forms(self):
         user = get_user_model().objects.create_user(
             username="settings-viewer",
             email="settings-viewer@example.com",
@@ -2996,12 +3029,11 @@ class SiteSettingsTests(TestCase):
         self.make_form(year=other_year, title="Next year form")
         self.client.force_login(user)
 
-        response = self.client.get(reverse("main:form_list"))
+        response = self.client.get(reverse("main:application_list"))
 
-        self.assertIn(current_form, response.context["forms"])
-        self.assertNotIn("Next year form", [
-            form.title for form in response.context["forms"]
-        ])
+        form_titles = [row["form"].title for row in response.context["form_rows"]]
+        self.assertIn(current_form.title, form_titles)
+        self.assertNotIn("Next year form", form_titles)
 
     def test_admin_singleton(self):
         staff = get_user_model().objects.create_user(
