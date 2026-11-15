@@ -144,6 +144,7 @@ class FormDefinitionAdmin(admin.ModelAdmin):
     form = FormDefinitionAdminForm
     inlines = (FormFieldInline,)
     fields = (
+        "year",
         "category",
         "title",
         "description",
@@ -155,6 +156,7 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "closes_at",
     )
     list_display = (
+        "year",
         "category",
         "status",
         "attachment_policy",
@@ -163,9 +165,14 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "closes_at",
         "preview_link",
     )
-    list_filter = ("status", "category")
+    list_filter = ("status", "year", "category")
     search_fields = ("title", "description")
     actions = ("mark_open", "mark_in_review", "mark_closed")
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        initial.setdefault("year", CompetitionYear.current().pk)
+        return initial
 
     def save_model(self, request, obj, form, change):
         if not obj.year_id:

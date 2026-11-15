@@ -870,9 +870,14 @@ class AdminTests(TestCase):
         response = self.client.get(add_url)
         prefix = response.context["inline_admin_formsets"][0].formset.prefix
         self.assertFalse(response.context["adminform"].form.fields["closes_at"].required)
-        self.assertNotIn("year", response.context["adminform"].form.fields)
+        self.assertIn("year", response.context["adminform"].form.fields)
+        self.assertEqual(
+            int(response.context["adminform"].form.initial["year"]),
+            CompetitionYear.current().pk,
+        )
         category = Category.objects.create(slug="deadline", name="Deadline")
         data = {
+            "year": self.year.pk,
             "category": category.pk,
             "title": "Deadline optional",
             "description": "",
@@ -902,6 +907,7 @@ class AdminTests(TestCase):
         prefix = response.context["inline_admin_formsets"][0].formset.prefix
         category = Category.objects.create(slug="no-fields", name="No fields")
         data = {
+            "year": self.year.pk,
             "category": category.pk,
             "title": "Needs a field",
             "description": "",
@@ -952,6 +958,33 @@ class AdminTests(TestCase):
         form = FormDefinition.objects.get(title="Needs a field")
         self.assertEqual(form.fields.count(), 1)
 
+    def test_admin_form_definition_uses_selected_year(self):
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        selected_year = CompetitionYear.objects.create(year=2030)
+        category = Category.objects.create(slug="selected-year", name="Selected year")
+        data = {
+            "year": selected_year.pk,
+            "category": category.pk,
+            "title": "Selected year form",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "",
+            "opens_at_1": "",
+            "closes_at_0": "",
+            "closes_at_1": "",
+            "_save": "Save",
+        }
+        data.update(self.inline_field_data(prefix))
+
+        response = self.client.post(add_url, data)
+
+        self.assertEqual(response.status_code, 302)
+        form = FormDefinition.objects.get(title="Selected year form")
+        self.assertEqual(form.year, selected_year)
+
     def test_admin_form_definition_deadline_optional_with_global_deadline(self):
         settings = SiteSettings.load()
         settings.application_closes_at = timezone.now() + timedelta(days=30)
@@ -963,10 +996,11 @@ class AdminTests(TestCase):
         self.assertFalse(
             response.context["adminform"].form.fields["closes_at"].required
         )
-        self.assertNotIn("year", response.context["adminform"].form.fields)
+        self.assertIn("year", response.context["adminform"].form.fields)
 
         category = Category.objects.create(slug="global-deadline", name="Global")
         data = {
+            "year": self.year.pk,
             "category": category.pk,
             "title": "Deadline optional",
             "description": "",
