@@ -1007,3 +1007,19 @@ msgstr "Türkçe"
 #: main/templates/main/base.html
 msgid "English"
 msgstr "İngilizce"
+
+#: main/templates/jury/_application_nav.html
+msgid "Application navigation"
+msgstr "Başvuru gezinmesi"
+
+#: main/templates/jury/_application_nav.html
+msgid "Previous application"
+msgstr "Önceki başvuru"
+
+#: main/templates/jury/_application_nav.html
+msgid "Next application"
+msgstr "Sonraki başvuru"
+
+#: main/views.py
+msgid "No more applications in this queue."
+msgstr "Bu kuyrukta başka başvuru yok."

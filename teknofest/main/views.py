@@ -9,7 +9,7 @@ from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Q, Subque
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils._os import safe_join
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
@@ -503,6 +503,62 @@ class JuryDashboardView(JuryRequiredMixin, ListView):
         )
 
 
+def _jury_application_queryset(form_definition, request):
+    my_reviews = Review.objects.filter(
+        application=OuterRef("pk"),
+        juror=request.user,
+    )
+    average_reviews = (
+        Review.objects.filter(application=OuterRef("pk"))
+        .values("application")
+        .annotate(value=Avg("score"))
+        .values("value")
+    )
+
+    queryset = (
+        Application.objects.select_related("form", "year", "category")
+        .filter(
+            form=form_definition,
+            status__in=REVIEWABLE_APPLICATION_STATUSES,
+        )
+        .annotate(
+            my_score=Subquery(my_reviews.values("score")[:1]),
+            my_completed=Exists(my_reviews),
+            average=Subquery(average_reviews, output_field=FloatField()),
+            attachment_count=Count("attachments", distinct=True),
+        )
+    )
+
+    mine = request.GET.get("mine")
+    if mine == "completed":
+        queryset = queryset.filter(my_completed=True)
+    elif mine == "pending":
+        queryset = queryset.filter(my_completed=False)
+
+    if request.GET.get("files") == "1":
+        queryset = queryset.filter(attachment_count__gt=0)
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        conditions = Q(code__icontains=query)
+        if not form_definition.mask_applicant_identity:
+            conditions |= Q(applicant__email__icontains=query)
+        queryset = queryset.filter(conditions)
+
+    ordering = request.GET.get("ordering", "-submitted_at")
+    if ordering not in REVIEW_ORDERING:
+        ordering = "-submitted_at"
+    return queryset.order_by(ordering, "pk")
+
+
+def _jury_application_queue(form_definition, request):
+    return list(
+        _jury_application_queryset(form_definition, request)
+        .values_list("public_id", flat=True)
+        .distinct()
+    )
+
+
 class JuryApplicationListView(JuryRequiredMixin, ListView):
     template_name = "jury/application_list.html"
     context_object_name = "applications"
@@ -513,52 +569,7 @@ class JuryApplicationListView(JuryRequiredMixin, ListView):
             FormDefinition.objects.select_related("year", "category"),
             pk=self.kwargs["pk"],
         )
-
-        my_reviews = Review.objects.filter(
-            application=OuterRef("pk"),
-            juror=self.request.user,
-        )
-        average_reviews = (
-            Review.objects.filter(application=OuterRef("pk"))
-            .values("application")
-            .annotate(value=Avg("score"))
-            .values("value")
-        )
-
-        queryset = (
-            Application.objects.select_related("form", "year", "category")
-            .filter(
-                form=self.form_definition,
-                status__in=REVIEWABLE_APPLICATION_STATUSES,
-            )
-            .annotate(
-                my_score=Subquery(my_reviews.values("score")[:1]),
-                my_completed=Exists(my_reviews),
-                average=Subquery(average_reviews, output_field=FloatField()),
-                attachment_count=Count("attachments", distinct=True),
-            )
-        )
-
-        mine = self.request.GET.get("mine")
-        if mine == "completed":
-            queryset = queryset.filter(my_completed=True)
-        elif mine == "pending":
-            queryset = queryset.filter(my_completed=False)
-
-        if self.request.GET.get("files") == "1":
-            queryset = queryset.filter(attachment_count__gt=0)
-
-        query = self.request.GET.get("q", "").strip()
-        if query:
-            conditions = Q(code__icontains=query)
-            if not self.form_definition.mask_applicant_identity:
-                conditions |= Q(applicant__email__icontains=query)
-            queryset = queryset.filter(conditions)
-
-        ordering = self.request.GET.get("ordering", "-submitted_at")
-        if ordering not in REVIEW_ORDERING:
-            ordering = "-submitted_at"
-        return queryset.order_by(ordering)
+        return _jury_application_queryset(self.form_definition, self.request)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -600,6 +611,15 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
         applicant = application.applicant
         masked = application.form.mask_applicant_identity
 
+        queue = _jury_application_queue(application.form, self.request)
+        try:
+            index = queue.index(application.public_id)
+        except ValueError:
+            previous_id = next_id = None
+        else:
+            previous_id = queue[index - 1] if index > 0 else None
+            next_id = queue[index + 1] if index + 1 < len(queue) else None
+
         context.update(review_stats(application, self.request.user))
         context.update(
             {
@@ -616,6 +636,9 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
                     else (applicant.get_full_name() or applicant.username)
                 ),
                 "applicant_email": None if masked else applicant.email,
+                "previous_application_id": previous_id,
+                "next_application_id": next_id,
+                "queue_query": self.request.GET.urlencode(),
             }
         )
         return context
@@ -624,6 +647,15 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
 class JuryReviewSubmitView(JuryRequiredMixin, View):
     def post(self, request, public_id):
         application = _get_reviewable_application(request, public_id)
+        queue = _jury_application_queue(application.form, request)
+        try:
+            index = queue.index(application.public_id)
+        except ValueError:
+            in_queue = False
+            next_id = None
+        else:
+            in_queue = True
+            next_id = queue[index + 1] if index + 1 < len(queue) else None
 
         try:
             review_service.submit_review(
@@ -634,13 +666,43 @@ class JuryReviewSubmitView(JuryRequiredMixin, View):
             )
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
-        else:
-            messages.success(request, _("Review submitted."))
+            return redirect(
+                _with_query(
+                    reverse(
+                        "main:jury_application_detail",
+                        args=[application.public_id],
+                    ),
+                    request.GET.urlencode(),
+                )
+            )
 
+        messages.success(request, _("Review submitted."))
+        if next_id:
+            return redirect(
+                _with_query(
+                    reverse(
+                        "main:jury_application_detail",
+                        args=[next_id],
+                    ),
+                    request.GET.urlencode(),
+                )
+            )
+
+        if in_queue:
+            messages.info(request, _("No more applications in this queue."))
         return redirect(
-            "main:jury_application_detail",
-            public_id=application.public_id,
+            _with_query(
+                reverse(
+                    "main:jury_application_list",
+                    args=[application.form_id],
+                ),
+                request.GET.urlencode(),
+            )
         )
+
+
+def _with_query(url, query):
+    return f"{url}?{query}" if query else url
 
 
 def _get_reviewable_application(request, public_id):

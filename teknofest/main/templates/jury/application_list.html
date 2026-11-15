@@ -74,13 +74,13 @@
           <tbody>
             {% for row in rows %}
               <tr>
-                <td><a class="row-link" href="{% url 'main:jury_application_detail' row.application.public_id %}"><span class="row-title">{{ row.application.code|default:application_label }}</span><span class="row-meta">{{ row.application.category.display_name }}</span></a></td>
+                <td><a class="row-link" href="{% url 'main:jury_application_detail' row.application.public_id %}{% if page_query %}?{{ page_query }}{% endif %}"><span class="row-title">{{ row.application.code|default:application_label }}</span><span class="row-meta">{{ row.application.category.display_name }}</span></a></td>
                 <td class="small fg-secondary">{{ row.application.submitted_at|date:"d.m.Y H:i"|default:"—" }}</td>
                 <td>{{ row.attachment_count }}</td>
                 <td>{% if row.my_score is not None %}<strong>{{ row.my_score }}</strong><span class="small fg-secondary"> / 100</span>{% else %}—{% endif %}</td>
                 <td>{% if row.average is not None %}<strong>{{ row.average|floatformat:1 }}</strong><span class="small fg-secondary"> / 100</span>{% else %}—{% endif %}</td>
                 <td>{% if row.my_completed %}<span class="chip chip-success">{% translate "Completed" %}</span>{% else %}<span class="chip chip-neutral">{% translate "Pending" %}</span>{% endif %}</td>
-                <td class="text-end"><a class="btn-outline btn-sm" href="{% url 'main:jury_application_detail' row.application.public_id %}">{% translate "Review" %}</a></td>
+                <td class="text-end"><a class="btn-outline btn-sm" href="{% url 'main:jury_application_detail' row.application.public_id %}{% if page_query %}?{{ page_query }}{% endif %}">{% translate "Review" %}</a></td>
               </tr>
             {% endfor %}
           </tbody>

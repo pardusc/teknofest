@@ -1591,6 +1591,99 @@ class JuryTests(MediaTestCase):
         self.form.save()
         self.assertFalse(self.client.get(url).context["can_review"])
 
+    def test_detail_navigation_follows_current_queue(self):
+        newer = self.make_application(code="BUG-2026-00002")
+        Application.objects.filter(pk=newer.pk).update(
+            submitted_at=timezone.now() + timedelta(minutes=5)
+        )
+        older = self.make_application(code="BUG-2026-00003")
+        Application.objects.filter(pk=older.pk).update(
+            submitted_at=timezone.now() - timedelta(minutes=5)
+        )
+
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            )
+        )
+
+        self.assertEqual(
+            response.context["previous_application_id"],
+            newer.public_id,
+        )
+        self.assertEqual(
+            response.context["next_application_id"],
+            older.public_id,
+        )
+
+    def test_detail_navigation_keeps_queue_filters(self):
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            ),
+            {"mine": "pending", "ordering": "submitted_at"},
+        )
+
+        self.assertEqual(
+            response.context["queue_query"],
+            "mine=pending&ordering=submitted_at",
+        )
+
+    def test_list_links_keep_filters_for_detail_navigation(self):
+        response = self.client.get(
+            reverse("main:jury_application_list", args=[self.form.pk]),
+            {"mine": "pending", "ordering": "submitted_at"},
+        )
+
+        self.assertContains(response, "mine=pending")
+        self.assertContains(response, "ordering=submitted_at")
+
+    def test_submit_review_moves_to_next_application(self):
+        next_application = self.make_application(code="BUG-2026-00002")
+        Application.objects.filter(pk=next_application.pk).update(
+            submitted_at=timezone.now() - timedelta(minutes=5)
+        )
+
+        response = self.client.post(
+            reverse(
+                "main:jury_review_submit",
+                args=[self.application.public_id],
+            )
+            + "?mine=pending&ordering=-submitted_at",
+            {"score": "90"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "main:jury_application_detail",
+                args=[next_application.public_id],
+            )
+            + "?mine=pending&ordering=-submitted_at",
+        )
+
+    def test_submit_review_returns_to_list_when_queue_is_finished(self):
+        response = self.client.post(
+            reverse(
+                "main:jury_review_submit",
+                args=[self.application.public_id],
+            ),
+            {"score": "90"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:jury_application_list", args=[self.form.pk]),
+        )
+        self.assertTrue(
+            Review.objects.filter(
+                application=self.application,
+                juror=self.jury,
+            ).exists()
+        )
+
     def test_submit_review_requires_score(self):
         response = self.client.post(
             reverse("main:jury_review_submit", args=[self.application.public_id]),
