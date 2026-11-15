@@ -1057,6 +1057,7 @@ class AdminTests(TestCase):
             "description": "",
             "status": FormDefinition.Status.OPEN,
             "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "submission_limit": 1,
             "opens_at_0": "2030-01-02",
             "opens_at_1": "",
             "closes_at_0": "2030-01-03",
