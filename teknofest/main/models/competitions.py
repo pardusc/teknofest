@@ -181,14 +181,6 @@ class FormDefinition(models.Model):
         default=AttachmentPolicy.OPTIONAL,
         verbose_name=_("Attachment policy"),
     )
-    submission_override = models.BooleanField(
-        default=False,
-        verbose_name=_("Submission override"),
-        help_text=_(
-            "Allow submissions even when the global application period is closed. "
-            "The form's own dates still apply."
-        ),
-    )
     opens_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Opens at"))
     closes_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Closes at"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
@@ -225,7 +217,7 @@ class FormDefinition(models.Model):
         settings = SiteSettings.load()
         if self.year.year != settings.current_year:
             return False
-        if not settings.is_application_open and not self.submission_override:
+        if not settings.is_application_open:
             return False
 
         now = timezone.now()

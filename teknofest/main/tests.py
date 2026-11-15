@@ -3238,23 +3238,8 @@ class SiteSettingsTests(TestCase):
         self.settings.save()
         self.assertFalse(form.is_accepting_submissions)
 
-    def test_override_ignores_only_global_period(self):
-        self.settings.application_status = SiteSettings.ApplicationStatus.CLOSED
-        self.settings.save()
-        form = self.make_form(submission_override=True)
-
-        self.assertTrue(form.is_accepting_submissions)
-
-        form.closes_at = timezone.now() - timedelta(days=1)
-        form.save()
-        form.refresh_from_db()
-        self.assertFalse(form.is_accepting_submissions)
-
-    def test_closed_form_status_beats_override(self):
-        form = self.make_form(
-            status=FormDefinition.Status.CLOSED,
-            submission_override=True,
-        )
+    def test_closed_form_status_blocks_submissions(self):
+        form = self.make_form(status=FormDefinition.Status.CLOSED)
 
         self.assertFalse(form.is_accepting_submissions)
 
@@ -3262,7 +3247,7 @@ class SiteSettingsTests(TestCase):
         other_year = CompetitionYear.objects.create(
             year=timezone.localdate().year + 1
         )
-        form = self.make_form(year=other_year, submission_override=True)
+        form = self.make_form(year=other_year)
 
         self.assertFalse(form.is_accepting_submissions)
 
@@ -3312,11 +3297,6 @@ class SiteSettingsTests(TestCase):
             _("This form is not accepting applications."),
         ):
             submit_application(user, form, {"title": "Blocked"})
-
-        form.submission_override = True
-        form.save()
-        application = submit_application(user, form, {"title": "Allowed"})
-        self.assertEqual(application.status, Application.Status.SUBMITTED)
 
     def test_home_uses_settings(self):
         self.settings.hero_title = "Custom hero title"

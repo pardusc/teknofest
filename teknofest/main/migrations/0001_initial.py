@@ -263,7 +263,6 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(choices=[('open', 'Open'), ('in_review', 'In review'), ('closed', 'Closed')], default='open', max_length=16)),
                 ('mask_applicant_identity', models.BooleanField(default=False, help_text="Hide the applicant's name and e-mail from the jury.")),
                 ('attachment_policy', models.CharField(choices=[('none', 'No attachments'), ('optional', 'Optional'), ('required', 'Required')], default='optional', max_length=16)),
-                ('submission_override', models.BooleanField(default=False, help_text="Allow submissions even when the global application period is closed. The form's own dates still apply.")),
                 ('opens_at', models.DateTimeField(blank=True, null=True)),
                 ('closes_at', models.DateTimeField(blank=True, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
@@ -732,11 +731,6 @@ class Migration(migrations.Migration):
             model_name='formdefinition',
             name='status',
             field=models.CharField(choices=[('open', 'Açık'), ('in_review', 'İncelemede'), ('closed', 'Kapalı')], default='open', max_length=16, verbose_name='Durum'),
-        ),
-        migrations.AlterField(
-            model_name='formdefinition',
-            name='submission_override',
-            field=models.BooleanField(default=False, help_text="Allow submissions even when the global application period is closed. The form's own dates still apply.", verbose_name='Gönderim istisnası'),
         ),
         migrations.AlterField(
             model_name='formdefinition',
@@ -1317,11 +1311,6 @@ class Migration(migrations.Migration):
             model_name='formdefinition',
             name='status',
             field=models.CharField(choices=[('open', 'Open'), ('in_review', 'In review'), ('closed', 'Closed')], default='open', max_length=16, verbose_name='Status'),
-        ),
-        migrations.AlterField(
-            model_name='formdefinition',
-            name='submission_override',
-            field=models.BooleanField(default=False, help_text="Allow submissions even when the global application period is closed. The form's own dates still apply.", verbose_name='Submission override'),
         ),
         migrations.AlterField(
             model_name='formdefinition',
