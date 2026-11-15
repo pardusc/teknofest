@@ -1,0 +1,40 @@
+{% load i18n %}
+<div class="actions ba-actions">
+  {% block actions %}
+    <div class="ba-actions-fields">
+      {% block actions-form %}
+        {% for field in action_form %}
+          {% if field.label %}
+            <label class="ba-action-label">
+              <span>{{ field.label }}</span>
+              {{ field }}
+            </label>
+          {% else %}
+            {{ field }}
+          {% endif %}
+        {% endfor %}
+      {% endblock %}
+      {% block actions-submit %}
+        <button type="submit" class="btn btn-solid theme-primary btn-sm" name="index" value="{{ action_index|default:0 }}">
+          <svg class="ba-icon" aria-hidden="true"><use href="#ba-check"></use></svg>
+          {% translate "Run" %}
+        </button>
+      {% endblock %}
+    </div>
+
+    <div class="ba-actions-selection">
+      {% block actions-counter %}
+        {% if actions_selection_counter %}
+          <span class="action-counter" data-actions-icnt="{{ cl.result_list|length }}" aria-live="polite" aria-atomic="true">{{ selection_note }}</span>
+          {% if cl.result_count != cl.result_list|length %}
+            <span class="all hidden">{{ selection_note_all }}</span>
+            <span class="question hidden">
+              <a role="button" href="#">{% blocktranslate with cl.result_count as total_count %}Select all {{ total_count }} {{ module_name }}{% endblocktranslate %}</a>
+            </span>
+            <span class="clear hidden"><a role="button" href="#">{% translate "Clear selection" %}</a></span>
+          {% endif %}
+        {% endif %}
+      {% endblock %}
+    </div>
+  {% endblock %}
+</div>

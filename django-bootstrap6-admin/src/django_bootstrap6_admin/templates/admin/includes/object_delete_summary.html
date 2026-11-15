@@ -1,0 +1,7 @@
+{% load i18n %}
+<h2>{% translate "Summary" %}</h2>
+<ul class="ba-object-list">
+  {% for model_name, object_count in model_count %}
+    <li>{{ model_name|capfirst }}: <strong>{{ object_count }}</strong></li>
+  {% endfor %}
+</ul>
