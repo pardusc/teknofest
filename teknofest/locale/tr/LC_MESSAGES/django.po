@@ -987,3 +987,11 @@ msgstr "Değerlendirme gönderildi."
 #: main/views.py:655
 msgid "This field is hidden from jury review."
 msgstr "Bu alan jüri değerlendirmesinde gizlenmiştir."
+
+#: main/forms.py
+msgid "Optional. The global application deadline applies when this is empty."
+msgstr "İsteğe bağlı. Boş bırakılırsa genel başvuru bitiş tarihi uygulanır."
+
+#: main/forms.py
+msgid "Required because no global application deadline is configured."
+msgstr "Genel başvuru bitiş tarihi tanımlı olmadığı için zorunludur."

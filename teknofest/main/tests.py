@@ -44,7 +44,13 @@ from .services.applications import (
     update_application,
 )
 from .services.reviews import submit_review
-from .admin import ApplicationAdmin, AuditEventAdmin, SiteSettingsAdmin
+from .admin import (
+    ApplicationAdmin,
+    AuditEventAdmin,
+    FormDefinitionAdmin,
+    SiteSettingsAdmin,
+)
+from .forms import FormDefinitionAdminForm
 from .views import (
     MASKED_FIELD_MESSAGE,
     ApplicationDetailView,
@@ -581,6 +587,82 @@ class AdminTests(TestCase):
         for url in urls:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_admin_form_definition_requires_deadline(self):
+        self.assertIs(FormDefinitionAdmin.form, FormDefinitionAdminForm)
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        self.assertTrue(response.context["adminform"].form.fields["closes_at"].required)
+        category = Category.objects.create(slug="deadline", name="Deadline")
+        data = {
+            "year": self.year.pk,
+            "category": category.pk,
+            "title": "Deadline required",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "",
+            "opens_at_1": "",
+            "closes_at_0": "",
+            "closes_at_1": "",
+            f"{prefix}-TOTAL_FORMS": "0",
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+            "_save": "Save",
+        }
+
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("closes_at", response.context["adminform"].form.errors)
+        self.assertFalse(
+            FormDefinition.objects.filter(title="Deadline required").exists()
+        )
+
+        closes_at = timezone.localtime() + timedelta(days=5)
+        data["closes_at_0"] = closes_at.strftime("%d/%m/%Y")
+        data["closes_at_1"] = closes_at.strftime("%H:%M")
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 302)
+        form = FormDefinition.objects.get(title="Deadline required")
+        self.assertIsNotNone(form.closes_at)
+
+    def test_admin_form_definition_deadline_optional_with_global_deadline(self):
+        settings = SiteSettings.load()
+        settings.application_closes_at = timezone.now() + timedelta(days=30)
+        settings.save(update_fields=["application_closes_at"])
+
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        self.assertFalse(
+            response.context["adminform"].form.fields["closes_at"].required
+        )
+
+        category = Category.objects.create(slug="global-deadline", name="Global")
+        data = {
+            "year": self.year.pk,
+            "category": category.pk,
+            "title": "Deadline optional",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "",
+            "opens_at_1": "",
+            "closes_at_0": "",
+            "closes_at_1": "",
+            f"{prefix}-TOTAL_FORMS": "0",
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+            "_save": "Save",
+        }
+
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 302)
+        form = FormDefinition.objects.get(title="Deadline optional")
+        self.assertIsNone(form.closes_at)
 
     def test_admin_can_create_select_field_with_choices(self):
         response = self.client.post(

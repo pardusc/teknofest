@@ -4,7 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from .models import FormField, Profile
+from .models import FormDefinition, FormField, Profile, SiteSettings
 
 MAX_PHOTO_SIZE = 1 * 1024 * 1024
 ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png"}
@@ -48,6 +48,27 @@ class ProfileForm(forms.ModelForm):
         if photo.content_type not in ALLOWED_PHOTO_TYPES:
             raise ValidationError(_("Upload a JPG or PNG image."))
         return photo
+
+
+class FormDefinitionAdminForm(forms.ModelForm):
+    """Admin form that requires a deadline only when no global deadline exists."""
+
+    class Meta:
+        model = FormDefinition
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        global_deadline = SiteSettings.load().application_closes_at
+        self.fields["closes_at"].required = global_deadline is None
+        if global_deadline:
+            self.fields["closes_at"].help_text = _(
+                "Optional. The global application deadline applies when this is empty."
+            )
+        else:
+            self.fields["closes_at"].help_text = _(
+                "Required because no global application deadline is configured."
+            )
 
 
 class FormFieldAdminForm(forms.ModelForm):

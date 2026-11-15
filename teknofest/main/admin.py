@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .forms import FormFieldAdminForm
+from .forms import FormDefinitionAdminForm, FormFieldAdminForm
 from .models import (
     Application,
     ApplicationAnswer,
@@ -113,6 +113,7 @@ class FormFieldInline(admin.StackedInline):
 
 @admin.register(FormDefinition)
 class FormDefinitionAdmin(admin.ModelAdmin):
+    form = FormDefinitionAdminForm
     inlines = (FormFieldInline,)
     list_display = (
         "year",
