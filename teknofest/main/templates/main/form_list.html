@@ -1,0 +1,43 @@
+{% extends "main/base.html" %}
+
+{% block title %}Başvuru formları · Pardus Teknofest{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="mb-4">
+    <span class="eyebrow fg-primary">Yarışma başvuruları</span>
+    <h1 class="h2 fw-bold mt-2 mb-1">Başvuru formları</h1>
+    <p class="fg-secondary mb-0">Yarışma dönemi ve kategoriye uygun formu seçerek başvurunuzu hazırlayın.</p>
+  </div>
+  {% if forms %}
+    <div class="row g-4">
+      {% for form_definition in forms %}
+        <div class="md:col-6">
+          <article class="card category-card h-100">
+            <div class="card-body p-4 p-lg-5 d-flex flex-column">
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <span class="badge rounded-pill badge-profile-complete">{{ form_definition.year.year }}</span>
+                {% if form_definition.is_accepting_submissions %}
+                  <span class="badge rounded-pill theme-success">Başvuruya açık</span>
+                {% else %}
+                  <span class="badge rounded-pill theme-warning">Başvuruya kapalı</span>
+                {% endif %}
+              </div>
+              <h2 class="h4 fw-bold">{{ form_definition.title }}</h2>
+              <p class="small fw-semibold fg-secondary mb-2">{{ form_definition.category.name }}</p>
+              {% if form_definition.description %}<p class="fg-secondary">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary">{{ form_definition.category.description|default:"Bu kategori için yarışma başvurusu." }}</p>{% endif %}
+              {% if form_definition.closes_at %}<p class="small fg-secondary mt-auto mb-3">Son başvuru: {{ form_definition.closes_at|date:"d.m.Y H:i" }}</p>{% else %}<div class="mt-auto"></div>{% endif %}
+              <a class="btn-outline theme-primary align-self-start" href="{% url 'main:form_detail' form_definition.pk %}">Form ayrıntıları</a>
+            </div>
+          </article>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="card empty-state text-center"><div class="card-body p-4 p-lg-5">
+      <h2 class="h4 fw-bold">Şu anda yayımlanmış form yok</h2>
+      <p class="fg-secondary mb-0">Yeni bir başvuru formu yayımlandığında burada görüntülenecektir.</p>
+    </div></section>
+  {% endif %}
+</section>
+{% endblock %}

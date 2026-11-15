@@ -28,6 +28,8 @@
         <div class="navbar-nav ms-auto lg:align-items-center lg:gap-2 py-3 lg:py-0">
           <a class="nav-link" href="{% url 'main:home' %}">Ana sayfa</a>
           {% if user.is_authenticated %}
+            <a class="nav-link" href="{% url 'main:application_list' %}">Başvurularım</a>
+            <a class="nav-link" href="{% url 'main:form_list' %}">Başvuru formları</a>
             <a class="nav-link" href="{% url 'main:profile' %}">Profilim</a>
             <form method="post" action="{% url 'logout' %}" class="m-0">
               {% csrf_token %}

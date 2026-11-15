@@ -1,0 +1,47 @@
+{% extends "main/base.html" %}
+
+{% block title %}Başvurularım · Pardus Teknofest{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="d-flex flex-column sm:flex-row justify-content-between sm:align-items-end gap-3 mb-4">
+    <div>
+      <span class="eyebrow fg-primary">Hesap alanı</span>
+      <h1 class="h2 fw-bold mt-2 mb-1">Başvurularım</h1>
+      <p class="fg-secondary mb-0">Oluşturduğunuz başvuruları buradan düzenleyebilir ve durumlarını takip edebilirsiniz.</p>
+    </div>
+    <a class="btn-solid theme-primary" href="{% url 'main:form_list' %}">Başvuru formlarını görüntüle</a>
+  </div>
+
+  {% if applications %}
+    <div class="application-list d-grid gap-3">
+      {% for application in applications %}
+        <article class="card application-card">
+          <div class="card-body p-4 d-flex flex-column md:flex-row justify-content-between md:align-items-center gap-3">
+            <div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="badge rounded-pill {% if application.status == 'draft' %}theme-warning{% else %}badge-profile-complete{% endif %}">
+                  {% if application.status == 'draft' %}Taslak{% elif application.status == 'submitted' %}Gönderildi{% elif application.status == 'in_review' %}Değerlendiriliyor{% elif application.status == 'evaluated' %}Değerlendirildi{% else %}{{ application.get_status_display }}{% endif %}
+                </span>
+                {% if application.code %}<span class="small fw-semibold fg-secondary">{{ application.code }}</span>{% endif %}
+              </div>
+              <h2 class="h5 fw-bold mb-1">{{ application.form.title }}</h2>
+              <p class="fg-secondary mb-0">{{ application.year.year }} · {{ application.category.name }} · Son güncelleme {{ application.updated_at|date:"d.m.Y H:i" }}</p>
+            </div>
+            <a class="btn-outline theme-primary flex-shrink-0" href="{% url 'main:application_detail' application.public_id %}">Başvuruyu görüntüle</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="card empty-state text-center">
+      <div class="card-body p-4 p-lg-5">
+        <span class="empty-state-mark" aria-hidden="true">01</span>
+        <h2 class="h4 fw-bold mt-3">Henüz başvurunuz yok</h2>
+        <p class="fg-secondary mx-auto mb-4" style="max-width: 34rem">Açık başvuru formlarını inceleyerek yeni bir başvuru oluşturabilirsiniz. Taslaklarınız da bu sayfada listelenir.</p>
+        <a class="btn-solid theme-primary" href="{% url 'main:form_list' %}">Başvuru formlarını incele</a>
+      </div>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

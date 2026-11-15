@@ -190,6 +190,16 @@ class ApplicationUpdateView(LoginRequiredMixin, View):
             )
 
         try:
+            if request.POST.get("action") == "submit":
+                result = application_service.submit(application, request.POST)
+                messages.success(
+                    request,
+                    f"Başvurunuz alındı. Başvuru kodunuz: {result.code}",
+                )
+                return redirect(
+                    "main:application_detail",
+                    public_id=result.public_id,
+                )
             application_service.save_draft(application, request.POST)
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
@@ -336,10 +346,19 @@ def _field_answers(application):
         answer.field_id: answer.value
         for answer in application.answers.select_related("field")
     }
-    return [
-        {"field": field, "value": answers.get(field.pk, "")}
-        for field in application.form.fields.filter(is_active=True)
-    ]
+    result = []
+    for field in application.form.fields.filter(is_active=True):
+        value = answers.get(field.pk, "")
+        result.append(
+            {
+                "field": field,
+                "value": value,
+                "display_value": ", ".join(map(str, value))
+                if isinstance(value, list)
+                else value,
+            }
+        )
+    return result
 
 
 def _initial_answers(application):
@@ -354,6 +373,10 @@ def _edit_context(application, application_form):
     return {
         "application": application,
         "application_form": application_form,
+        "required_keys": set(
+            application.form.fields.filter(is_active=True, is_required=True)
+            .values_list("key", flat=True)
+        ),
         "attachments": application.attachments.all(),
         "attachment_policy": application.category.attachment_policy,
         "can_add_attachment": (
@@ -365,9 +388,21 @@ def _edit_context(application, application_form):
 
 
 def _validation_message(error):
+    translations = {
+        "This form is not accepting applications.": "Bu form şu anda başvuru kabul etmiyor.",
+        "This application can no longer be edited.": "Bu başvuru artık düzenlenemez.",
+        "Complete your profile before submitting.": "Başvuruyu göndermeden önce profil bilgilerinizi tamamlayın.",
+        "At least one attachment is required for this category.": "Bu kategori için en az bir ek dosya yükleyin.",
+        "This category does not accept attachments.": "Bu kategori ek dosya kabul etmiyor.",
+        "Upload a JPG or PNG image.": "JPG veya PNG biçiminde bir görsel yükleyin.",
+        "Each file must be 2 MB or smaller.": "Her dosya en fazla 2 MB olabilir.",
+        "Total attachment size must be 10 MB or smaller.": "Ek dosyaların toplam boyutu en fazla 10 MB olabilir.",
+    }
     if hasattr(error, "message_dict"):
         texts = []
         for field_messages in error.message_dict.values():
-            texts.extend(field_messages)
-        return " ".join(texts)
-    return " ".join(error.messages)
+            texts.extend(str(message) for message in field_messages)
+        return " ".join(translations.get(text, text) for text in texts)
+    return " ".join(
+        translations.get(str(message), str(message)) for message in error.messages
+    )

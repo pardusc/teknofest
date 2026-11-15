@@ -1,0 +1,12 @@
+{% extends "main/base.html" %}
+
+{% block title %}Başvuru önizlemesi · Pardus Teknofest{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:application_edit' application.public_id %}">Düzenlemeye dön</a><p class="eyebrow fg-primary mt-4 mb-2">Göndermeden önce kontrol edin</p><h1 class="h2 fw-bold mb-1">Başvuru önizlemesi</h1><p class="fg-secondary mb-0">{{ application.year.year }} · {{ application.category.name }} · {{ application.form.title }}</p></div>
+  <div class="row g-4"><div class="lg:col-8"><section class="card"><div class="card-body p-4 p-lg-5">
+    {% for answer in field_answers %}<div class="application-answer"><p class="detail-label">{{ answer.field.label }}</p><p class="detail-value">{% if answer.display_value == "" %}<span class="fg-secondary fw-normal">Yanıtlanmadı</span>{% else %}{{ answer.display_value|linebreaksbr }}{% endif %}</p></div>{% empty %}<p class="fg-secondary mb-0">Yanıt bulunmuyor.</p>{% endfor %}
+  </div></section></div><div class="lg:col-4"><section class="card"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">Ek dosyalar</h2>{% if attachments %}<ul class="list-unstyled attachment-list mb-0">{% for attachment in attachments %}<li><a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a><span class="small fg-secondary">{{ attachment.size|filesizeformat }}</span></li>{% endfor %}</ul>{% else %}<p class="small fg-secondary mb-0">Ek dosya eklenmedi.</p>{% endif %}</div></section><a class="btn-solid theme-primary w-100 mt-3" href="{% url 'main:application_edit' application.public_id %}">Yanıtları düzenle</a></div></div>
+</section>
+{% endblock %}
