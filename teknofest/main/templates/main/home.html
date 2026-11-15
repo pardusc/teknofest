@@ -34,7 +34,6 @@
             </div>
             <dl>
               <dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd>
-              <dt>{% translate "Application category" %}</dt><dd>{% blocktranslate count counter=home_category_count %}{{ counter }} category{% plural %}{{ counter }} categories{% endblocktranslate %}</dd>
               {% if home_text.calendar_note %}<dt>{% translate "Calendar" %}</dt><dd>{{ home_text.calendar_note|linebreaksbr }}</dd>{% endif %}
             </dl>
           </aside>

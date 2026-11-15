@@ -51,7 +51,6 @@ def home(request):
         "main/home.html",
         {
             "home_categories": categories,
-            "home_category_count": categories.count(),
         },
     )
 

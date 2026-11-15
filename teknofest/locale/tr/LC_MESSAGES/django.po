@@ -1037,17 +1037,6 @@ msgstr "Başvuru kategorileri"
 msgid "Open"
 msgstr "Açık"
 
-#: main/templates/main/home.html:145
-msgid "Application category"
-msgstr "Başvuru kategorisi"
-
-#: main/templates/main/home.html:145
-#, python-format
-msgid "%(counter)s category"
-msgid_plural "%(counter)s categories"
-msgstr[0] "%(counter)s kategori"
-msgstr[1] "%(counter)s kategori"
-
 #: main/templates/main/home.html:156
 msgid "Categories"
 msgstr "Kategoriler"
