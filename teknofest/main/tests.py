@@ -778,7 +778,7 @@ class AdminTests(TestCase):
                 "key": "level",
                 "label": "Level",
                 "field_type": FormField.FieldType.SELECT,
-                "help_text": "",
+                "short_description": "",
                 "is_required": "on",
                 "min_length": "",
                 "max_length": "",

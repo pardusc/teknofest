@@ -106,7 +106,7 @@ class FormFieldAdminForm(forms.ModelForm):
             "key",
             "label",
             "field_type",
-            "help_text",
+            "short_description",
             "is_required",
             "min_length",
             "max_length",

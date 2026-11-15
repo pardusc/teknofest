@@ -103,7 +103,7 @@ class FormFieldInline(admin.StackedInline):
         "key",
         "label",
         "field_type",
-        "help_text",
+        "short_description",
         "is_required",
         ("min_length", "max_length"),
         "regex",

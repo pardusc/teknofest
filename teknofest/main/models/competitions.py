@@ -242,7 +242,12 @@ class FormField(models.Model):
     )
     label = models.CharField(max_length=255)
     field_type = models.CharField(max_length=16, choices=FieldType.choices)
-    help_text = models.CharField(max_length=255, blank=True)
+    short_description = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Short description",
+        help_text="Shown under the question title.",
+    )
     is_required = models.BooleanField(default=True)
     min_length = models.PositiveIntegerField(null=True, blank=True)
     max_length = models.PositiveIntegerField(null=True, blank=True)

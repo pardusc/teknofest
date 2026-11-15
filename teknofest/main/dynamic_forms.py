@@ -8,7 +8,7 @@ def to_django_field(field: FormField, required: bool | None = None) -> forms.Fie
     """Build the Django form field for a stored ``FormField`` definition."""
     common = {
         "label": field.label,
-        "help_text": field.help_text,
+        "help_text": field.short_description,
         "required": field.is_required if required is None else required,
     }
     text_kwargs = dict(common)
