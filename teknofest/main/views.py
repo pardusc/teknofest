@@ -218,50 +218,9 @@ class ApplicationListView(ApplicantOnlyMixin, ListView):
     context_object_name = "applications"
 
     def get_queryset(self):
-        queryset = Application.objects.select_related(
-            "form", "year", "category"
-        ).filter(applicant=self.request.user)
-        status = self.request.GET.get("status")
-        if status in Application.Status.values:
-            queryset = queryset.filter(status=status)
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        base = Application.objects.filter(applicant=self.request.user)
-        counts = {
-            row["status"]: row["count"]
-            for row in base.values("status").annotate(count=Count("id"))
-        }
-        active = self.request.GET.get("status", "")
-        tabs = [
-            {
-                "key": "",
-                "label": _("All"),
-                "count": base.count(),
-                "active": active == "",
-            },
-            {
-                "key": Application.Status.SUBMITTED,
-                "label": _("Submitted"),
-                "count": counts.get(Application.Status.SUBMITTED, 0),
-                "active": active == Application.Status.SUBMITTED,
-            },
-            {
-                "key": Application.Status.IN_REVIEW,
-                "label": _("In review"),
-                "count": counts.get(Application.Status.IN_REVIEW, 0),
-                "active": active == Application.Status.IN_REVIEW,
-            },
-            {
-                "key": Application.Status.EVALUATED,
-                "label": _("Evaluated"),
-                "count": counts.get(Application.Status.EVALUATED, 0),
-                "active": active == Application.Status.EVALUATED,
-            },
-        ]
-        context["status_tabs"] = tabs
-        return context
+        return Application.objects.select_related("form", "year", "category").filter(
+            applicant=self.request.user
+        )
 
 
 class ApplicationDetailView(ApplicantOnlyMixin, DetailView):

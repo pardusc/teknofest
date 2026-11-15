@@ -451,44 +451,6 @@ input[type="file"].form-control::file-selector-button:hover {
   color: var(--p-accent-text);
 }
 
-/* Status tabs */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--p-border);
-}
-.tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0.8rem;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--p-muted);
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-.tab:hover { color: var(--p-ink); text-decoration: none; }
-.tab.active { color: var(--p-ink); border-bottom-color: var(--p-accent); }
-.tab .tab-count {
-  display: inline-grid;
-  min-width: 1.25rem;
-  min-height: 1.25rem;
-  padding: 0 0.3rem;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--p-surface-alt);
-  border: 1px solid var(--p-border);
-  color: var(--p-muted);
-  font-size: 0.7rem;
-}
-.tab.active .tab-count { background: var(--p-accent-soft); border-color: var(--p-accent); color: var(--p-accent-text); }
-
 /* Closed-period banner */
 .period-banner {
   padding: 0.55rem 0;

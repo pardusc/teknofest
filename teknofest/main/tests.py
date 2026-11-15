@@ -1055,6 +1055,33 @@ class ApplicationViewTests(MediaTestCase):
             "A bug report",
         )
 
+    def test_applicant_pages_do_not_expose_internal_status(self):
+        application = self.make_application()
+
+        for status in Application.Status.values:
+            application.status = status
+            application.save(update_fields=["status"])
+
+            urls = [
+                reverse("main:home"),
+                reverse("main:form_list"),
+                reverse("main:application_list"),
+                reverse("main:application_detail", args=[application.public_id]),
+            ]
+            if application.is_editable:
+                urls.append(
+                    reverse("main:application_edit", args=[application.public_id])
+                )
+
+            for url in urls:
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200, f"{status} {url}")
+                content = response.content.decode()
+                for label in ("Submitted", "In review", "Evaluated"):
+                    self.assertNotIn(
+                        label, content, f"{label} leaked on {url} ({status})"
+                    )
+
     def test_other_user_cannot_access_application(self):
         application = self.make_application(user=self.other_user)
 

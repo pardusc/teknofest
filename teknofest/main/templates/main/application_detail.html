@@ -16,7 +16,6 @@
       <span class="eyebrow">{{ application.year.year }} · {{ application.category.display_name }}</span>
       <h1>{{ application.form.title }}</h1>
       <p class="d-flex flex-wrap align-items-center gap-2">
-        <span class="chip {{ application.status_tone }}">{{ application.status_label }}</span>
         <span class="small fg-secondary">{% blocktranslate with code=application.code %}Application code: {{ code }}{% endblocktranslate %}</span>
       </p>
     </div>
@@ -75,7 +74,6 @@
           <dl class="facts">
             <dt>{% translate "Created" %}</dt><dd>{{ application.created_at|date:"d.m.Y H:i" }}</dd>
             <dt>{% translate "Last updated" %}</dt><dd>{{ application.updated_at|date:"d.m.Y H:i" }}</dd>
-            {% if application.submitted_at %}<dt>{% translate "Submitted" %}</dt><dd>{{ application.submitted_at|date:"d.m.Y H:i" }}</dd>{% endif %}
           </dl>
         </div>
       </section>

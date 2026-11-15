@@ -16,7 +16,7 @@
       <span class="eyebrow">{{ form_definition.year.year }} · {{ form_definition.category.display_name }}</span>
       <h1>{{ form_definition.title }}</h1>
       {% if application %}
-        <p><span class="chip {{ application.status_tone }}">{{ application.status_label }}</span>{% if application.code %} <span class="small fg-secondary">{{ application.code }}</span>{% endif %}</p>
+        <p>{% if application.code %}<span class="small fg-secondary">{{ application.code }}</span>{% endif %}</p>
       {% elif form_definition.description %}
         <p>{{ form_definition.description|linebreaksbr }}</p>
       {% endif %}

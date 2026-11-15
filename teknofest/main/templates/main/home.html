@@ -39,12 +39,11 @@
           {% if my_applications %}
             <div class="table-responsive">
               <table class="data-table">
-                <thead><tr><th>{% translate "Application" %}</th><th>{% translate "Status" %}</th><th>{% translate "Last updated" %}</th><th class="text-end">{% translate "Action" %}</th></tr></thead>
+                <thead><tr><th>{% translate "Application" %}</th><th>{% translate "Last updated" %}</th><th class="text-end">{% translate "Action" %}</th></tr></thead>
                 <tbody>
                   {% for application in my_applications %}
                     <tr>
                       <td><a class="row-link" href="{% url 'main:application_detail' application.public_id %}"><span class="row-title">{{ application.form.title }}</span><span class="row-meta">{{ application.year.year }} · {{ application.category.display_name }} · {{ application.code }}</span></a></td>
-                      <td><span class="chip {{ application.status_tone }}">{{ application.status_label }}</span></td>
                       <td class="small fg-secondary">{{ application.updated_at|date:"d.m.Y H:i" }}</td>
                       <td class="text-end"><a class="btn-outline btn-sm" href="{% url 'main:application_detail' application.public_id %}">{% translate "Open" %}</a></td>
                     </tr>

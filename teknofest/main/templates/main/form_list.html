@@ -47,7 +47,7 @@
                 <td class="small fg-secondary">{% if row.form.closes_at %}{{ row.form.closes_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
                 <td>
                   {% if row.application %}
-                    <span class="chip {{ row.application.status_tone }}">{{ row.application.status_label }}</span>
+                    <span class="chip chip-neutral">{% translate "Application received" %}</span>
                   {% elif row.form.is_accepting_submissions %}
                     <span class="chip chip-success">{% translate "Open for applications" %}</span>
                   {% else %}
