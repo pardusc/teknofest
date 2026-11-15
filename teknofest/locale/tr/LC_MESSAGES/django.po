@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Pardus Teknofest\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-15 09:52+0300\n"
+"POT-Creation-Date: 2026-11-15 10:14+0300\n"
 "PO-Revision-Date: 2026-11-15 04:00+0300\n"
 "Last-Translator: Pardus Teknofest <no-reply@example.com>\n"
 "Language-Team: Turkish\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: main/dynamic_forms.py:12
+#: main/dynamic_forms.py:12 main/tests.py:606
 msgid "Type your answer"
 msgstr "Yanıtınızı yazın"
 
@@ -31,7 +31,7 @@ msgstr "Örn. 3"
 msgid "name@example.com"
 msgstr "ornek@eposta.com"
 
-#: main/dynamic_forms.py:20
+#: main/dynamic_forms.py:20 main/tests.py:610
 msgid "https://example.com"
 msgstr "https://ornek.com"
 
@@ -40,11 +40,11 @@ msgstr "https://ornek.com"
 msgid "This field must be at least %(min)s characters."
 msgstr "Bu alan en az %(min)s karakter olmalı."
 
-#: main/dynamic_forms.py:111 main/tests.py:649
+#: main/dynamic_forms.py:117 main/tests.py:649
 msgid "Yes"
 msgstr "Evet"
 
-#: main/dynamic_forms.py:111 main/tests.py:649
+#: main/dynamic_forms.py:117 main/tests.py:649
 msgid "No"
 msgstr "Hayır"
 
@@ -120,53 +120,53 @@ msgstr "Tekli ve çoklu seçim alanları en az bir seçenek gerektirir."
 msgid "Jury accounts cannot apply."
 msgstr "Jüri hesapları başvuru yapamaz."
 
-#: main/services/applications.py:40 main/tests.py:2087 main/tests.py:2098
-#: main/tests.py:2655 main/views.py:150 main/views.py:163
+#: main/services/applications.py:40 main/tests.py:2098 main/tests.py:2109
+#: main/tests.py:2666 main/views.py:150 main/views.py:163
 msgid "This form is not accepting applications."
 msgstr "Bu form şu anda başvuru kabul etmiyor."
 
-#: main/services/applications.py:42 main/tests.py:1031
+#: main/services/applications.py:42 main/tests.py:1042
 msgid "You already have an application for this form."
 msgstr "Bu form için zaten bir başvurunuz var."
 
 #: main/services/applications.py:162 main/services/applications.py:228
-#: main/tests.py:1005 main/tests.py:1124
+#: main/tests.py:1016 main/tests.py:1135
 msgid "At least one attachment is required for this form."
 msgstr "Bu form için en az bir ek dosya yükleyin."
 
-#: main/services/applications.py:179 main/tests.py:1990 main/tests.py:1992
-#: main/tests.py:2109
+#: main/services/applications.py:179 main/tests.py:2001 main/tests.py:2003
+#: main/tests.py:2120
 msgid "Jury accounts cannot submit applications."
 msgstr "Jüri hesapları başvuru gönderemez."
 
-#: main/services/applications.py:184 main/tests.py:1042 main/tests.py:1044
+#: main/services/applications.py:184 main/tests.py:1053 main/tests.py:1055
 #: main/views.py:257 main/views.py:276
 msgid "This application can no longer be edited."
 msgstr "Bu başvuru artık düzenlenemez."
 
-#: main/services/applications.py:190 main/tests.py:998
+#: main/services/applications.py:190 main/tests.py:1009
 msgid "Complete your profile before submitting."
 msgstr "Başvuruyu göndermeden önce profil bilgilerinizi tamamlayın."
 
-#: main/services/applications.py:225 main/tests.py:1015
+#: main/services/applications.py:225 main/tests.py:1026
 msgid "This form does not accept attachments."
 msgstr "Bu form ek dosya kabul etmiyor."
 
-#: main/services/applications.py:235 main/tests.py:1105
+#: main/services/applications.py:235 main/tests.py:1116
 #, python-format
 msgid "At most %(limit)s files can be uploaded per application."
 msgstr "Başvuru başına en fazla %(limit)s dosya yüklenebilir."
 
-#: main/services/applications.py:244 main/tests.py:1095
+#: main/services/applications.py:244 main/tests.py:1106
 msgid "Each file must be 2 MB or smaller."
 msgstr "Her dosya en fazla 2 MB olabilir."
 
-#: main/services/applications.py:250 main/tests.py:1100
+#: main/services/applications.py:250 main/tests.py:1111
 msgid "Total attachment size must be 10 MB or smaller."
 msgstr "Ek dosyaların toplam boyutu en fazla 10 MB olabilir."
 
 #: main/services/applications.py:301 main/services/applications.py:306
-#: main/tests.py:265 main/tests.py:280 main/tests.py:1088 main/validators.py:15
+#: main/tests.py:265 main/tests.py:280 main/tests.py:1099 main/validators.py:15
 #: main/validators.py:20
 msgid "Upload a JPG or PNG image."
 msgstr "JPG veya PNG biçiminde bir görsel yükleyin."
@@ -554,6 +554,30 @@ msgstr "Henüz değerlendirilecek form yok"
 msgid "Forms linked to active competition years and categories are listed here."
 msgstr "Aktif yarışma yılı ve kategorilere bağlı formlar burada listelenir."
 
+#: main/templates/main/_date_picker.html:2
+msgid "Choose a date"
+msgstr "Tarih seçin"
+
+#: main/templates/main/_date_picker.html:5
+msgid "Previous month"
+msgstr "Önceki ay"
+
+#: main/templates/main/_date_picker.html:9
+msgid "Next month"
+msgstr "Sonraki ay"
+
+#: main/templates/main/_date_picker.html:16
+msgid "Today"
+msgstr "Bugün"
+
+#: main/templates/main/_date_picker.html:17
+msgid "Clear"
+msgstr "Temizle"
+
+#: main/templates/main/_date_picker.html:18 main/templates/main/base.html:139
+msgid "Close"
+msgstr "Kapat"
+
 #: main/templates/main/_dynamic_field.html:5
 #: main/templates/main/_dynamic_field.html:25
 #: main/templates/main/profile.html:78
@@ -797,10 +821,6 @@ msgstr "Menüyü kapat"
 msgid "Closed for applications"
 msgstr "Başvuruya kapalı"
 
-#: main/templates/main/base.html:139
-msgid "Close"
-msgstr "Kapat"
-
 #: main/templates/main/base.html:148
 msgid "A better Pardus with open source"
 msgstr "Açık kaynakla daha iyi bir Pardus"
@@ -994,6 +1014,10 @@ msgstr "JPG veya PNG · en fazla 1 MB"
 msgid "Information is stored in the profile record linked to your account."
 msgstr "Bilgiler hesabınıza bağlı profil kaydında saklanır."
 
+#: main/templates/main/widgets/date_input.html:4
+msgid "Open calendar"
+msgstr "Takvimi aç"
+
 #: main/templates/registration/login.html:14
 msgid "Sign in"
 msgstr "Hesaba giriş"
@@ -1022,7 +1046,7 @@ msgstr "Giriş sorunu yaşıyorsanız yarışma koordinasyon ekibiyle iletişime
 msgid "This field is required."
 msgstr "Bu alan zorunludur."
 
-#: main/tests.py:2010 main/views.py:634
+#: main/tests.py:2021 main/views.py:630
 msgid "Hidden applicant"
 msgstr "Gizli başvuru sahibi"
 
@@ -1055,14 +1079,14 @@ msgstr "Dosya yüklendi."
 msgid "File deleted."
 msgstr "Dosya silindi."
 
-#: main/views.py:679
+#: main/views.py:675
 msgid "Review submitted."
 msgstr "Değerlendirme gönderildi."
 
-#: main/views.py:692
+#: main/views.py:688
 msgid "No more applications in this queue."
 msgstr "Bu kuyrukta başka başvuru yok."
 
-#: main/views.py:717
+#: main/views.py:713
 msgid "This field is hidden from jury review."
 msgstr "Bu alan jüri değerlendirmesinde gizlenmiştir."

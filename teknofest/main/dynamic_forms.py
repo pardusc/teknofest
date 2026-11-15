@@ -45,6 +45,12 @@ class YesNoRadioSelect(forms.RadioSelect):
     yes_no = True
 
 
+class ThemedDateInput(forms.DateInput):
+    """Date input with a themed calendar trigger next to it."""
+
+    template_name = "main/widgets/date_input.html"
+
+
 def to_django_field(field: FormField, required: bool | None = None) -> forms.Field:
     """Build the Django form field for a stored ``FormField`` definition."""
     common = {
@@ -115,7 +121,7 @@ def to_django_field(field: FormField, required: bool | None = None) -> forms.Fie
             )
         case FormField.FieldType.DATE:
             return forms.DateField(
-                widget=forms.DateInput(
+                widget=ThemedDateInput(
                     attrs={
                         "type": "date",
                         "class": "form-control",

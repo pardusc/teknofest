@@ -1,0 +1,10 @@
+{% load i18n %}
+<div class="date-input-wrap">
+  {% include "django/forms/widgets/input.html" %}
+  <button type="button" class="date-input-toggle" data-date-open hidden aria-label="{% translate 'Open calendar' %}" aria-haspopup="dialog" aria-controls="site-datepicker">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="16" rx="3"/>
+      <path d="M8 3v4M16 3v4M3 10h18"/>
+    </svg>
+  </button>
+</div>

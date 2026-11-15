@@ -699,6 +699,13 @@ class FormPreviewTests(TestCase):
             choices=[{"value": "low", "label": "Low"}],
             order=1,
         )
+        FormField.objects.create(
+            form=self.form,
+            key="date",
+            label="Date",
+            field_type=FormField.FieldType.DATE,
+            order=2,
+        )
 
     def test_preview_requires_staff(self):
         response = self.client.get(
@@ -731,6 +738,10 @@ class FormPreviewTests(TestCase):
         self.assertContains(response, "data-maxlength-counter")
         self.assertContains(response, "data-minlength-warning")
         self.assertContains(response, "form_fields.js")
+        self.assertContains(response, "date-input-wrap")
+        self.assertContains(response, "data-date-open")
+        self.assertContains(response, 'id="site-datepicker"')
+        self.assertContains(response, "date_picker.js")
 
 
 class AdminTests(TestCase):
