@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#172033">
+  <meta name="theme-color" content="#172b4a">
   <title>{% block title %}Pardus Teknofest{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'main/vendor/bootstrap/css/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'main/css/site.css' %}">
@@ -14,7 +14,7 @@
     <div class="container">
       <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'main:home' %}">
         <span class="brand-mark" aria-hidden="true">P</span>
-        <span>Pardus <span class="fw-normal on-dark-muted">Teknofest</span></span>
+        <span class="brand-name">Pardus <span>Teknofest</span></span>
       </a>
       <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="Menüyü aç">
         <span class="navbar-toggler-icon" aria-hidden="true"></span>
@@ -26,11 +26,11 @@
         </div>
         <div class="drawer-body">
         <div class="navbar-nav ms-auto lg:align-items-center lg:gap-2 py-3 lg:py-0">
-          <a class="nav-link" href="{% url 'main:home' %}">Ana sayfa</a>
+          <a class="nav-link site-nav-link" href="{% url 'main:home' %}">Ana sayfa</a>
           {% if user.is_authenticated %}
-            <a class="nav-link" href="{% url 'main:application_list' %}">Başvurularım</a>
-            <a class="nav-link" href="{% url 'main:form_list' %}">Başvuru formları</a>
-            <a class="nav-link" href="{% url 'main:profile' %}">Profilim</a>
+            <a class="nav-link site-nav-link" href="{% url 'main:application_list' %}">Başvurularım</a>
+            <a class="nav-link site-nav-link" href="{% url 'main:form_list' %}">Başvuru formları</a>
+            <a class="nav-link site-nav-link" href="{% url 'main:profile' %}">Profilim</a>
             <form method="post" action="{% url 'logout' %}" class="m-0">
               {% csrf_token %}
               <button type="submit" class="btn-outline theme-inverse btn-sm lg:ms-2 navbar-logout">Çıkış yap</button>
@@ -48,7 +48,7 @@
     {% if messages %}
       <div class="container pt-3" aria-live="polite">
         {% for message in messages %}
-          <div class="alert theme-success mb-2" role="status">
+          <div class="alert site-alert mb-2" role="status">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
           </div>
@@ -58,10 +58,10 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="site-footer mt-5">
+  <footer class="site-footer">
     <div class="container py-4 d-flex flex-column md:flex-row justify-content-between gap-2">
-      <span><strong>Pardus Teknofest</strong> <span class="fg-secondary">· Açık kaynakla daha iyi bir Pardus</span></span>
-      <span class="fg-secondary">Yarışma başvuruları ve değerlendirme platformu</span>
+      <span><strong>Pardus Teknofest</strong> <span>· Açık kaynakla daha iyi bir Pardus</span></span>
+      <span>Yarışma başvuruları ve değerlendirme platformu</span>
     </div>
   </footer>
   <script type="module" src="{% static 'main/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>

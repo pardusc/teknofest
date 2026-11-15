@@ -1,33 +1,28 @@
 {% extends "main/base.html" %}
 
-{% block title %}{{ definition.title }} · Preview{% endblock %}
+{% block title %}{{ definition.title }} · Form önizlemesi{% endblock %}
 
 {% block content %}
-  <h1>{{ definition.title }}</h1>
-  <p class="muted">
-    {{ definition.year }} · {{ definition.category.name }} · {{ definition.get_status_display }}
-  </p>
-
-  {% if definition.description %}
-    <p>{{ definition.description }}</p>
-  {% endif %}
-
-  <div class="card form">
-    {% if form.fields %}
-      {% for field in form %}
-        <p>
-          {{ field.label_tag }}
-          {% if field.field.required %}<span class="muted">*</span>{% endif %}
-          {{ field }}
-          {% if field.help_text %}
-            <span class="helptext">{{ field.help_text }}</span>
-          {% endif %}
-          {{ field.errors }}
-        </p>
-      {% endfor %}
-      <p class="muted">This is a preview of the form definition.</p>
-    {% else %}
-      <p class="muted">This form has no active fields yet.</p>
-    {% endif %}
-  </div>
+  <section class="container py-5">
+    <div class="form-preview-heading mb-4">
+      <p class="eyebrow mb-2">{{ definition.year.year }} · {{ definition.category.name }}</p>
+      <h1 class="mb-2">{{ definition.title }}</h1>
+      {% if definition.description %}<p class="mb-0">{{ definition.description|linebreaksbr }}</p>{% endif %}
+    </div>
+    <div class="card application-form"><div class="card-body p-4 p-lg-5">
+      <p class="small fg-secondary">Bu sayfa form tanımının önizlemesidir; gönderilen yanıtlar kaydedilmez.</p>
+      {% if form.fields %}
+        {% for field in form %}
+          <div class="mb-4">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="fg-danger ms-1">*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="mb-0">Bu formda henüz alan tanımlanmamış.</p>
+      {% endif %}
+    </div></div>
+  </section>
 {% endblock %}

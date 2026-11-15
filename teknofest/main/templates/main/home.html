@@ -7,9 +7,10 @@
     <div class="container py-5 py-lg-6">
       <div class="row align-items-center g-5">
         <div class="lg:col-7">
+          <div class="hero-content">
           <span class="eyebrow">Pardus Teknofest · 2026</span>
-          <h1 class="fs-5xl fw-bold mt-3 mb-4">Pardus Hata Yakalama ve Öneri Yarışması</h1>
-          <p class="fs-lg fw-light fg-secondary mb-4">Yarışma başvurularınızı bu platform üzerinden hazırlayabilir, gerekli bilgileri iletebilir ve değerlendirme sürecini takip edebilirsiniz.</p>
+          <h1 class="hero-title mt-3 mb-3">Pardus Hata Yakalama ve Öneri Yarışması</h1>
+          <p class="hero-lead mb-4">Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı yarışma başvurusu olarak iletin.</p>
           <div class="d-flex flex-wrap gap-3">
             {% if user.is_authenticated %}
               <a class="btn-solid theme-primary btn-lg" href="{% url 'main:application_list' %}">Başvurularım</a>
@@ -19,80 +20,50 @@
               <a class="btn-outline theme-secondary btn-lg" href="#kategoriler">Başvuru kategorileri</a>
             {% endif %}
           </div>
+          </div>
         </div>
         <div class="lg:col-5">
           <aside class="hero-card p-4 p-lg-5" aria-labelledby="competition-info-title">
-            <p class="small text-uppercase on-dark-muted fw-semibold mb-2">Yarışma bilgileri</p>
-            <h2 class="h3 fg-white mb-4" id="competition-info-title">Başvuru ve değerlendirme</h2>
+            <p class="small text-uppercase fw-semibold mb-2">Yarışma bilgileri</p>
+            <h2 class="h3 mb-4" id="competition-info-title">Başvuru dönemi</h2>
             <dl class="competition-facts mb-0">
               <div><dt>Yarışma dönemi</dt><dd>2026</dd></div>
               <div><dt>Başvuru kategorisi</dt><dd>İki kategori</dd></div>
-              <div><dt>Takvim ve koşullar</dt><dd>Resmî duyurularla paylaşılacaktır</dd></div>
+              <div><dt>Takvim ve koşullar</dt><dd>Form ayrıntılarında yer alır</dd></div>
             </dl>
           </aside>
-        </div>
       </div>
     </div>
   </section>
 
   <section class="container py-5" id="kategoriler">
-    <div class="row align-items-end mb-4 g-3">
-      <div class="md:col-8">
-        <span class="eyebrow fg-primary">Yarışma başvuruları</span>
-        <h2 class="h1 fw-bold mt-2 mb-0">Başvuru kategorileri</h2>
-      </div>
-      <div class="md:col-4 md:text-end"><span class="fg-secondary">Başvurunuzu uygun kategori üzerinden oluşturun.</span></div>
-    </div>
+    <h2 class="section-title mb-4">Başvuru kategorileri</h2>
     <div class="row g-4">
       <div class="md:col-6">
         <article class="card category-card h-100">
           <div class="card-body p-4 p-lg-5">
-            <span class="category-number" aria-hidden="true">01</span>
-            <p class="small text-uppercase fw-semibold fg-secondary mt-4 mb-2">Birinci kategori</p>
-            <h3 class="h3 fw-bold">Hata bildirimi ve öneri</h3>
+            <h3 class="category-title">Hata bildirimi ve öneri</h3>
             <p class="fg-secondary">Pardus bileşenlerinde karşılaşılan hataları veya kullanılabilirlik önerilerini açıklama ve gerekli eklerle iletin.</p>
             <ul class="list-unstyled category-list mb-4">
               <li>Hata ve yeniden oluşturma adımları</li>
               <li>Kullanılabilirlik veya özellik önerileri</li>
             </ul>
-            <a class="link-primary fw-semibold text-decoration-none" href="{% if user.is_authenticated %}{% url 'main:form_list' %}{% else %}{% url 'login' %}{% endif %}">Başvuru formlarını incele</a>
           </div>
         </article>
       </div>
       <div class="md:col-6">
         <article class="card category-card h-100">
           <div class="card-body p-4 p-lg-5">
-            <span class="category-number" aria-hidden="true">02</span>
-            <p class="small text-uppercase fw-semibold fg-secondary mt-4 mb-2">İkinci kategori</p>
-            <h3 class="h3 fw-bold">Yazılım geliştirme</h3>
+            <h3 class="category-title">Yazılım geliştirme</h3>
             <p class="fg-secondary">Pardus için geliştirilen yazılım, araç veya teknik iyileştirme çalışmalarınızı proje bilgileriyle birlikte sunun.</p>
             <ul class="list-unstyled category-list mb-4">
               <li>Proje ve teknik çözüm açıklaması</li>
               <li>İlgili çalışma çıktıları</li>
             </ul>
-            <a class="link-primary fw-semibold text-decoration-none" href="{% if user.is_authenticated %}{% url 'main:form_list' %}{% else %}{% url 'login' %}{% endif %}">Başvuru formlarını incele</a>
           </div>
         </article>
       </div>
     </div>
   </section>
 
-  <section class="container pb-5">
-    <div class="how-card p-4 p-lg-5">
-      <div class="row g-4 align-items-center">
-        <div class="lg:col-5">
-          <span class="eyebrow fg-primary">Başvuru süreci</span>
-          <h2 class="h2 fw-bold mt-2">Başvuru adımları</h2>
-          <p class="fg-secondary mb-0">Başvurunuzu tamamlamak için hesabınıza giriş yapın, profil bilgilerinizi güncelleyin ve ilgili başvuru formunu doldurun.</p>
-        </div>
-        <div class="lg:col-7">
-          <div class="row g-3">
-            <div class="sm:col-4"><div class="step-number">01</div><h3 class="h6 fw-bold mt-3">Hesaba giriş</h3><p class="small fg-secondary mb-0">Hesabınızla platforma giriş yapın.</p></div>
-            <div class="sm:col-4"><div class="step-number">02</div><h3 class="h6 fw-bold mt-3">Profil bilgileri</h3><p class="small fg-secondary mb-0">İletişim ve eğitim bilgilerinizi tamamlayın.</p></div>
-            <div class="sm:col-4"><div class="step-number">03</div><h3 class="h6 fw-bold mt-3">Başvuru formu</h3><p class="small fg-secondary mb-0">Form açıldığında proje bilgilerinizi iletin.</p></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 {% endblock %}
