@@ -82,19 +82,18 @@ be hidden from reviewers. Staff members can preview a form before opening it.
 
 ## Applications
 
-Applicants work on a draft and submit it while the form is open. On submission the
-application receives a readable code such as `BUG-2026-00001` or
-`DEVELOPMENT-2026-00001`. Drafts may be incomplete; submission validates all required
-fields and requires a complete profile.
+Applications are submitted in one step: there is no draft state. A submission is
+validated completely, receives a readable code such as `BUG-2026-00001` or
+`DEVELOPMENT-2026-00001`, and can be edited or deleted until the form closes.
 
-Attachments are category-specific:
+Attachment rules are configured per form in the admin:
 
-- **Bug / Suggestion** requires at least one attachment.
-- **Development** does not accept attachments.
+- `none` — the form does not accept attachments
+- `optional` — files may be uploaded
+- `required` — at least one file must be present
 
 Limits are 10 files maximum, 2 MB per file and 10 MB in total. Only real JPG and PNG
 images are accepted, verified from their content rather than their extension.
-Applications can be edited or deleted until the form closes.
 
 ## Applicant flow
 
@@ -105,18 +104,19 @@ redirected to the jury dashboard instead of using applicant or profile pages.
 | --- | --- | --- |
 | `/forms/` | `main/form_list.html` | Available forms |
 | `/forms/<pk>/` | `main/form_detail.html` | Form details and apply action |
-| `/forms/<pk>/apply/` | — | Start or reuse a draft (POST) |
+| `/forms/<pk>/apply/` | `main/application_form.html` | Fill and submit a new application (GET/POST) |
 | `/applications/` | `main/application_list.html` | My applications |
 | `/applications/<uuid>/` | `main/application_detail.html` | Application detail |
-| `/applications/<uuid>/edit/` | `main/application_edit.html` | Dynamic form and draft saving |
+| `/applications/<uuid>/edit/` | `main/application_edit.html` | Update a submitted application |
 | `/applications/<uuid>/preview/` | `main/application_preview.html` | Submission preview |
-| `/applications/<uuid>/submit/` | — | Submit (POST) |
 | `/applications/<uuid>/delete/` | — | Delete (POST) |
 | `/applications/<uuid>/attachments/upload/` | — | Upload an attachment (POST) |
 | `/applications/<uuid>/attachments/<pk>/delete/` | — | Delete an attachment (POST) |
 
 The frontend team owns the templates; empty placeholders are committed so the views
-render while the interface is being built.
+render while the interface is being built. New attachments are sent with the form in the
+multipart field `files`; submitted applications can still add or remove individual files
+through the attachment endpoints.
 
 ## Jury
 
@@ -188,10 +188,10 @@ Settings are read from environment variables with development-friendly defaults:
 
 The Django project skeleton, the custom user model and the applicant profile are in
 place, including login/logout and profile editing. Competition years, categories and
-dynamic form definitions can be managed from the admin. Application drafts, submission,
-attachment rules and readable application codes are implemented in the service layer.
-The applicant flow and the jury review flow, including blind scoring, are wired up.
-Authentication currently uses Django's local login; Keycloak integration is planned.
+dynamic form definitions can be managed from the admin. Applications are created only
+when submitted, with readable codes and per-form attachment rules. The applicant flow and
+the jury review flow, including blind scoring, are wired up. Authentication currently
+uses Django's local login; Keycloak integration is planned.
 
 Planned work includes KVKK consent, KVKK onboarding, admin review workflows and Keycloak
 roles.

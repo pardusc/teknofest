@@ -5,7 +5,7 @@ from pathlib import Path
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.core.mail import send_mail
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 from PIL import Image
@@ -16,7 +16,6 @@ from ..models import (
     ApplicationAnswer,
     ApplicationSequence,
     Attachment,
-    Category,
     FormDefinition,
 )
 from ..permissions import is_jury
@@ -31,79 +30,69 @@ ALLOWED_IMAGE_FORMATS = {
 }
 
 
-def start_application(applicant, form: FormDefinition) -> Application:
-    """Return the applicant's existing application, or start a new draft."""
+def submit_application(applicant, form: FormDefinition, data, files=None) -> Application:
+    """Create and submit a complete application in one step."""
     _ensure_applicant(applicant)
     if not form.is_accepting_submissions:
         raise ValidationError("This form is not accepting applications.")
+    if Application.objects.filter(applicant=applicant, form=form).exists():
+        raise ValidationError("You already have an application for this form.")
 
-    existing = Application.objects.filter(applicant=applicant, form=form).first()
-    if existing:
-        return existing
+    dynamic_form = build_form(form, data=data)
+    if not dynamic_form.is_valid():
+        raise ValidationError(dynamic_form.errors)
 
-    try:
-        return Application.objects.create(
+    _ensure_profile_complete(applicant)
+
+    uploads = list(files or [])
+    _check_attachment_policy(form, len(uploads))
+    prepared = _prepare_uploads(uploads)
+
+    with transaction.atomic():
+        application = Application.objects.create(
             applicant=applicant,
             form=form,
             year=form.year,
             category=form.category,
+            status=Application.Status.SUBMITTED,
+            submitted_at=timezone.now(),
         )
-    except IntegrityError:
-        return Application.objects.get(applicant=applicant, form=form)
+        application.code = _next_code(application)
+        application.save(update_fields=["code"])
 
+        _write_answers(application, dynamic_form, _active_fields(form))
+        for upload, image_format, size in prepared:
+            _create_attachment(application, upload, image_format, size)
 
-def save_draft(application: Application, data: dict) -> Application:
-    """Validate and store partial answers. Required fields may stay empty."""
-    _ensure_applicant(application.applicant)
-    _ensure_editable(application)
-    fields = _active_fields(application)
+        _send_confirmation(application)
 
-    form = build_form(application.form, data=data, enforce_required=False)
-    if not form.is_valid():
-        raise ValidationError(form.errors)
-
-    _write_answers(application, form, fields, data.keys())
-    application.save(update_fields=["updated_at"])
     return application
 
 
-def submit(application: Application, data: dict | None = None) -> Application:
-    """Validate everything and finalize the application with a readable code."""
+def update_application(application: Application, data, files=None) -> Application:
+    """Update a submitted application with full validation."""
+    _ensure_applicant(application.applicant)
+    _ensure_editable(application)
+
+    dynamic_form = build_form(application.form, data=data)
+    if not dynamic_form.is_valid():
+        raise ValidationError(dynamic_form.errors)
+
+    uploads = list(files or [])
+    existing_count = application.attachments.count()
+    existing_total = _attachment_total(application)
+    _check_attachment_policy(application.form, existing_count + len(uploads))
+    prepared = _prepare_uploads(
+        uploads,
+        existing_count=existing_count,
+        existing_total=existing_total,
+    )
+
     with transaction.atomic():
-        application = Application.objects.select_for_update().get(pk=application.pk)
-        _ensure_applicant(application.applicant)
-        _ensure_editable(application)
-
-        if data is not None:
-            save_draft(application, data)
-
-        fields = _active_fields(application)
-        answers = {
-            answer.field.key: answer.value
-            for answer in application.answers.select_related("field")
-            if answer.field.is_active
-        }
-
-        form = build_form(application.form, data=answers)
-        if not form.is_valid():
-            raise ValidationError(form.errors)
-
-        profile = getattr(application.applicant, "profile", None)
-        if profile is None or not profile.is_complete:
-            raise ValidationError("Complete your profile before submitting.")
-
-        _check_attachments(application)
-
-        if not application.code:
-            application.code = _next_code(application)
-
-        application.status = Application.Status.SUBMITTED
-        application.submitted_at = timezone.now()
-        application.save(
-            update_fields=["code", "status", "submitted_at", "updated_at"]
-        )
-
-        _send_confirmation(application)
+        _write_answers(application, dynamic_form, _active_fields(application.form))
+        for upload, image_format, size in prepared:
+            _create_attachment(application, upload, image_format, size)
+        application.save(update_fields=["updated_at"])
 
     return application
 
@@ -117,46 +106,34 @@ def delete_application(application: Application) -> None:
         application.delete()
 
 
-def add_attachment(
-    application: Application,
-    upload: UploadedFile,
-) -> Attachment:
+def add_attachment(application: Application, upload: UploadedFile) -> Attachment:
     _ensure_applicant(application.applicant)
     _ensure_editable(application)
 
-    if application.category.attachment_policy == Category.AttachmentPolicy.NONE:
-        raise ValidationError("This category does not accept attachments.")
-
-    if application.attachments.count() >= MAX_ATTACHMENTS:
-        raise ValidationError(
-            f"At most {MAX_ATTACHMENTS} files can be uploaded per application."
-        )
-
-    current_total = application.attachments.aggregate(total=Sum("size"))["total"] or 0
-    size = upload.size or 0
-    if size > MAX_FILE_SIZE:
-        raise ValidationError("Each file must be 2 MB or smaller.")
-    if current_total + size > MAX_TOTAL_SIZE:
-        raise ValidationError("Total attachment size must be 10 MB or smaller.")
-
-    image_format = _verify_image(upload)
-    content_type, extension = ALLOWED_IMAGE_FORMATS[image_format]
-
-    original_name = Path(upload.name).name
-    upload.name = f"{uuid.uuid4().hex}{extension}"
-
-    return Attachment.objects.create(
-        application=application,
-        file=upload,
-        original_name=original_name,
-        content_type=content_type,
-        size=size,
+    existing_count = application.attachments.count()
+    _check_attachment_policy(application.form, existing_count + 1)
+    prepared = _prepare_uploads(
+        [upload],
+        existing_count=existing_count,
+        existing_total=_attachment_total(application),
     )
+    upload, image_format, size = prepared[0]
+    return _create_attachment(application, upload, image_format, size)
 
 
 def delete_attachment(attachment: Attachment) -> None:
-    _ensure_applicant(attachment.application.applicant)
-    _ensure_editable(attachment.application)
+    application = attachment.application
+    _ensure_applicant(application.applicant)
+    _ensure_editable(application)
+
+    if (
+        application.form.attachment_policy == FormDefinition.AttachmentPolicy.REQUIRED
+        and application.attachments.count() <= 1
+    ):
+        raise ValidationError(
+            "At least one attachment is required for this form."
+        )
+
     attachment.delete()
 
 
@@ -170,25 +147,31 @@ def _ensure_editable(application: Application) -> None:
         raise ValidationError("This application can no longer be edited.")
 
 
-def _active_fields(application: Application) -> dict:
+def _ensure_profile_complete(user) -> None:
+    profile = getattr(user, "profile", None)
+    if profile is None or not profile.is_complete:
+        raise ValidationError("Complete your profile before submitting.")
+
+
+def _active_fields(form: FormDefinition) -> dict:
     return {
         field.key: field
-        for field in application.form.fields.filter(is_active=True)
+        for field in form.fields.filter(is_active=True)
     }
 
 
-def _write_answers(application, form, fields, submitted_keys) -> None:
-    for key in set(submitted_keys) & set(fields):
-        value = form.cleaned_data.get(key)
+def _write_answers(application, dynamic_form, fields) -> None:
+    for key, field in fields.items():
+        value = dynamic_form.cleaned_data.get(key)
         if value in (None, "", []):
             ApplicationAnswer.objects.filter(
                 application=application,
-                field=fields[key],
+                field=field,
             ).delete()
             continue
         ApplicationAnswer.objects.update_or_create(
             application=application,
-            field=fields[key],
+            field=field,
             defaults={"value": _json_value(value)},
         )
 
@@ -199,16 +182,54 @@ def _json_value(value):
     return value
 
 
-def _check_attachments(application: Application) -> None:
-    policy = application.category.attachment_policy
-    if policy == Category.AttachmentPolicy.NONE:
-        if application.attachments.exists():
-            raise ValidationError("This category does not accept attachments.")
-    elif policy == Category.AttachmentPolicy.REQUIRED:
-        if not application.attachments.exists():
-            raise ValidationError(
-                "At least one attachment is required for this category."
-            )
+def _check_attachment_policy(form: FormDefinition, total_count: int) -> None:
+    policy = form.attachment_policy
+    if policy == FormDefinition.AttachmentPolicy.NONE and total_count:
+        raise ValidationError("This form does not accept attachments.")
+    if policy == FormDefinition.AttachmentPolicy.REQUIRED and total_count == 0:
+        raise ValidationError(
+            "At least one attachment is required for this form."
+        )
+
+
+def _prepare_uploads(uploads, existing_count=0, existing_total=0):
+    if existing_count + len(uploads) > MAX_ATTACHMENTS:
+        raise ValidationError(
+            f"At most {MAX_ATTACHMENTS} files can be uploaded per application."
+        )
+
+    prepared = []
+    total = existing_total
+    for upload in uploads:
+        size = upload.size or 0
+        if size > MAX_FILE_SIZE:
+            raise ValidationError("Each file must be 2 MB or smaller.")
+        total += size
+        image_format = _verify_image(upload)
+        prepared.append((upload, image_format, size))
+
+    if total > MAX_TOTAL_SIZE:
+        raise ValidationError("Total attachment size must be 10 MB or smaller.")
+
+    return prepared
+
+
+def _attachment_total(application: Application) -> int:
+    return application.attachments.aggregate(total=Sum("size"))["total"] or 0
+
+
+def _create_attachment(application, upload, image_format, size) -> Attachment:
+    content_type, extension = ALLOWED_IMAGE_FORMATS[image_format]
+    original_name = Path(upload.name).name
+    upload.name = f"{uuid.uuid4().hex}{extension}"
+
+    return Attachment.objects.create(
+        application=application,
+        file=upload,
+        original_name=original_name,
+        content_type=content_type,
+        size=size,
+    )
 
 
 def _next_code(application: Application) -> str:

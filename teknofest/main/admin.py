@@ -70,9 +70,9 @@ class CompetitionYearAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "code_prefix", "attachment_policy", "order", "is_active")
+    list_display = ("name", "slug", "code_prefix", "order", "is_active")
     list_editable = ("order", "is_active")
-    list_filter = ("is_active", "attachment_policy")
+    list_filter = ("is_active",)
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name", "slug")
 
@@ -103,6 +103,7 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "year",
         "category",
         "status",
+        "attachment_policy",
         "opens_at",
         "closes_at",
         "preview_link",

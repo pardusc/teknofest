@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Avg
 from django.utils import timezone
 
-from ..models import Application, FormDefinition, Review
+from ..models import FormDefinition, Review
 
 
 def save_review(application, juror, score=None, note="") -> Review:
@@ -52,8 +52,6 @@ def review_stats(application, juror) -> dict:
 
 
 def _ensure_reviewable(application) -> None:
-    if application.status == Application.Status.DRAFT:
-        raise ValidationError("Draft applications cannot be reviewed.")
     if application.form.status != FormDefinition.Status.IN_REVIEW:
         raise ValidationError(
             "Reviews can only be edited while the form is in review."

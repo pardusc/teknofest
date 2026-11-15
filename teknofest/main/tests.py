@@ -34,9 +34,8 @@ from .services.applications import (
     add_attachment,
     delete_application,
     delete_attachment,
-    save_draft,
-    start_application,
-    submit,
+    submit_application,
+    update_application,
 )
 from .services.reviews import save_review, submit_review
 from .views import (
@@ -629,6 +628,7 @@ class ApplicationServiceTests(MediaTestCase):
             year=self.year,
             category=self.bug,
             title="Bug form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
         )
         self.title_field = FormField.objects.create(
             form=self.form,
@@ -662,11 +662,12 @@ class ApplicationServiceTests(MediaTestCase):
         )
         return user
 
-    def make_dev_form(self):
+    def make_form(self, category=None, policy=None):
         form = FormDefinition.objects.create(
             year=self.year,
-            category=self.development,
-            title="Development form",
+            category=category or self.development,
+            title="Other form",
+            attachment_policy=policy or FormDefinition.AttachmentPolicy.OPTIONAL,
         )
         FormField.objects.create(
             form=form,
@@ -676,153 +677,136 @@ class ApplicationServiceTests(MediaTestCase):
         )
         return form
 
-    def ready_draft(self, form=None):
-        application = start_application(self.user, form or self.form)
-        save_draft(application, {"title": "A bug report"})
-        return application
+    def valid_data(self, **overrides):
+        data = {"title": "A bug report"}
+        data.update(overrides)
+        return data
 
-    def test_start_application_creates_draft_and_reuses_it(self):
-        application = start_application(self.user, self.form)
-
-        self.assertEqual(application.status, Application.Status.DRAFT)
-        self.assertEqual(application.year_id, self.year.pk)
-        self.assertEqual(application.category_id, self.bug.pk)
-        self.assertIsNone(application.code)
-        self.assertEqual(start_application(self.user, self.form).pk, application.pk)
-
-    def test_start_application_rejects_closed_form(self):
-        self.form.status = FormDefinition.Status.IN_REVIEW
-        self.form.save()
-
-        with self.assertRaises(ValidationError):
-            start_application(self.user, self.form)
-
-    def test_draft_allows_partial_answers(self):
-        application = start_application(self.user, self.form)
-
-        save_draft(application, {"title": "Hello"})
-        answer = ApplicationAnswer.objects.get(
-            application=application,
-            field=self.title_field,
+    def submit_application(self, data=None, files=None, form=None, user=None):
+        return submit_application(
+            user or self.user,
+            form or self.form,
+            self.valid_data() if data is None else data,
+            files=files,
         )
-        self.assertEqual(answer.value, "Hello")
 
-        save_draft(application, {})
-        self.assertEqual(application.answers.count(), 1)
+    def test_submission_creates_application_code_and_email(self):
+        application = self.submit_application()
 
-    def test_draft_rejects_invalid_choice(self):
-        application = start_application(self.user, self.form)
-
-        with self.assertRaises(ValidationError) as context:
-            save_draft(application, {"level": "unknown"})
-
-        self.assertIn("level", context.exception.message_dict)
-
-    def test_submit_requires_required_answers(self):
-        application = start_application(self.user, self.form)
-
-        with self.assertRaises(ValidationError) as context:
-            submit(application)
-
-        self.assertIn("title", context.exception.message_dict)
-        application.refresh_from_db()
-        self.assertEqual(application.status, Application.Status.DRAFT)
-        self.assertIsNone(application.code)
-        self.assertEqual(len(mail.outbox), 0)
-
-    def test_submit_requires_complete_profile(self):
-        self.user.profile.city = ""
-        self.user.profile.save()
-        application = self.ready_draft()
-        add_attachment(application, make_image())
-
-        with self.assertRaisesMessage(ValidationError, "Complete your profile"):
-            submit(application)
-
-    def test_bug_submission_requires_attachment_and_sends_email(self):
-        application = self.ready_draft()
-
-        with self.assertRaisesMessage(ValidationError, "At least one attachment"):
-            submit(application)
-
-        add_attachment(application, make_image())
-        result = submit(application)
-
-        self.assertEqual(result.status, Application.Status.SUBMITTED)
-        self.assertEqual(result.code, "BUG-2026-00001")
-        self.assertIsNotNone(result.submitted_at)
+        self.assertEqual(application.status, Application.Status.SUBMITTED)
+        self.assertEqual(application.code, "BUG-2026-00001")
+        self.assertIsNotNone(application.submitted_at)
+        self.assertEqual(
+            ApplicationAnswer.objects.get(
+                application=application,
+                field=self.title_field,
+            ).value,
+            "A bug report",
+        )
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [self.user.email])
-        self.assertIn(result.code, mail.outbox[0].body)
+        self.assertIn(application.code, mail.outbox[0].body)
 
-    def test_development_submission_needs_no_attachment(self):
-        form = self.make_dev_form()
-        application = start_application(self.user, form)
-        save_draft(application, {"title": "A development project"})
+    def test_submission_rejects_missing_required_fields(self):
+        with self.assertRaises(ValidationError) as context:
+            self.submit_application(data={})
+
+        self.assertIn("title", context.exception.message_dict)
+        self.assertFalse(Application.objects.exists())
+
+    def test_submission_rejects_invalid_choice(self):
+        with self.assertRaises(ValidationError) as context:
+            self.submit_application(data=self.valid_data(level="unknown"))
+
+        self.assertIn("level", context.exception.message_dict)
+        self.assertFalse(Application.objects.exists())
+
+    def test_submission_requires_complete_profile(self):
+        self.user.profile.city = ""
+        self.user.profile.save()
+
+        with self.assertRaisesMessage(ValidationError, "Complete your profile"):
+            self.submit_application()
+
+    def test_required_attachment_policy(self):
+        self.form.attachment_policy = FormDefinition.AttachmentPolicy.REQUIRED
+        self.form.save()
+
+        with self.assertRaisesMessage(ValidationError, "At least one attachment"):
+            self.submit_application()
+
+        application = self.submit_application(files=[make_image()])
+        self.assertEqual(application.attachments.count(), 1)
+
+    def test_no_attachment_policy(self):
+        self.form.attachment_policy = FormDefinition.AttachmentPolicy.NONE
+        self.form.save()
 
         with self.assertRaisesMessage(ValidationError, "does not accept attachments"):
-            add_attachment(application, make_image())
+            self.submit_application(files=[make_image()])
 
-        result = submit(application)
-
-        self.assertEqual(result.status, Application.Status.SUBMITTED)
-        self.assertTrue(result.code.startswith("DEVELOPMENT-2026-"))
+        application = self.submit_application()
+        self.assertEqual(application.attachments.count(), 0)
 
     def test_application_codes_increment_per_year_and_category(self):
         other_user = self.make_user()
-        codes = []
-        for user in (self.user, other_user):
-            application = start_application(user, self.form)
-            save_draft(application, {"title": "A bug report"})
-            add_attachment(application, make_image())
-            codes.append(submit(application).code)
+        first = self.submit_application()
+        second = self.submit_application(user=other_user)
 
-        self.assertEqual(codes, ["BUG-2026-00001", "BUG-2026-00002"])
+        self.assertEqual([first.code, second.code], ["BUG-2026-00001", "BUG-2026-00002"])
 
-    def test_application_is_unique_per_applicant_and_form(self):
-        application = self.ready_draft()
-        add_attachment(application, make_image())
-        submit(application)
+    def test_duplicate_application_per_form_is_rejected(self):
+        self.submit_application()
 
-        self.assertEqual(start_application(self.user, self.form).pk, application.pk)
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            Application.objects.create(
-                applicant=self.user,
-                form=self.form,
-                year=self.year,
-                category=self.bug,
-            )
+        with self.assertRaisesMessage(ValidationError, "already have an application"):
+            self.submit_application()
 
-    def test_submit_accepts_final_answers(self):
-        application = start_application(self.user, self.form)
-        add_attachment(application, make_image())
+        self.assertEqual(Application.objects.count(), 1)
 
-        result = submit(application, {"title": "Final title"})
+    def test_application_is_editable_only_while_form_accepts(self):
+        application = self.submit_application()
+        self.form.status = FormDefinition.Status.IN_REVIEW
+        self.form.save()
+        application.refresh_from_db()
+
+        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
+            update_application(application, self.valid_data())
+        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
+            delete_application(application)
+
+    def test_update_replaces_answers_and_adds_files(self):
+        application = self.submit_application()
+
+        update_application(
+            application,
+            self.valid_data(title="Updated title"),
+            files=[make_image()],
+        )
 
         self.assertEqual(
             ApplicationAnswer.objects.get(
-                application=result,
+                application=application,
                 field=self.title_field,
             ).value,
-            "Final title",
+            "Updated title",
+        )
+        self.assertEqual(application.attachments.count(), 1)
+
+    def test_update_requires_complete_data(self):
+        application = self.submit_application()
+
+        with self.assertRaises(ValidationError):
+            update_application(application, {})
+
+        self.assertEqual(
+            ApplicationAnswer.objects.get(
+                application=application,
+                field=self.title_field,
+            ).value,
+            "A bug report",
         )
 
-    def test_png_and_jpeg_are_accepted(self):
-        application = start_application(self.user, self.form)
-
-        png = add_attachment(application, make_image())
-        jpeg = add_attachment(
-            application,
-            make_image(name="photo.jpg", image_format="JPEG"),
-        )
-
-        self.assertEqual(png.content_type, "image/png")
-        self.assertTrue(png.file.name.endswith(".png"))
-        self.assertEqual(jpeg.content_type, "image/jpeg")
-        self.assertTrue(jpeg.file.name.endswith(".jpg"))
-
-    def test_other_file_types_are_rejected(self):
-        application = start_application(self.user, self.form)
+    def test_file_types_are_validated(self):
         uploads = (
             make_image(name="animation.gif", image_format="GIF"),
             SimpleUploadedFile("document.pdf", b"%PDF-1.4", content_type="application/pdf"),
@@ -831,73 +815,49 @@ class ApplicationServiceTests(MediaTestCase):
 
         for upload in uploads:
             with self.subTest(name=upload.name):
-                with self.assertRaisesMessage(
-                    ValidationError,
-                    "Upload a JPG or PNG image.",
-                ):
-                    add_attachment(application, upload)
+                with self.assertRaisesMessage(ValidationError, "Upload a JPG or PNG"):
+                    self.submit_application(files=[upload])
+
+        self.assertFalse(Application.objects.exists())
 
     @patch("main.services.applications.MAX_FILE_SIZE", 10)
     def test_per_file_size_limit(self):
-        application = start_application(self.user, self.form)
-
         with self.assertRaisesMessage(ValidationError, "2 MB or smaller"):
-            add_attachment(application, make_image())
+            self.submit_application(files=[make_image()])
 
+    @patch("main.services.applications.MAX_TOTAL_SIZE", 1)
     def test_total_size_limit(self):
-        application = start_application(self.user, self.form)
-        add_attachment(application, make_image())
-        current_total = application.attachments.aggregate(total=Sum("size"))["total"]
-
-        with patch(
-            "main.services.applications.MAX_TOTAL_SIZE",
-            current_total + 1,
-        ):
-            with self.assertRaisesMessage(ValidationError, "10 MB or smaller"):
-                add_attachment(application, make_image())
+        with self.assertRaisesMessage(ValidationError, "10 MB or smaller"):
+            self.submit_application(files=[make_image()])
 
     @patch("main.services.applications.MAX_ATTACHMENTS", 1)
     def test_attachment_count_limit(self):
-        application = start_application(self.user, self.form)
-        add_attachment(application, make_image())
-
         with self.assertRaisesMessage(ValidationError, "At most 1"):
-            add_attachment(application, make_image())
+            self.submit_application(files=[make_image(), make_image()])
 
-    def test_delete_attachment_removes_the_file(self):
-        application = start_application(self.user, self.form)
-        attachment = add_attachment(application, make_image())
+    def test_delete_application_removes_files(self):
+        application = self.submit_application(files=[make_image()])
+        attachment = application.attachments.get()
         path = Path(attachment.file.path)
         self.assertTrue(path.exists())
-
-        delete_attachment(attachment)
-
-        self.assertFalse(Attachment.objects.filter(pk=attachment.pk).exists())
-        self.assertFalse(path.exists())
-
-    def test_delete_application_removes_answers_and_files(self):
-        application = self.ready_draft()
-        attachment = add_attachment(application, make_image())
-        path = Path(attachment.file.path)
 
         delete_application(application)
 
         self.assertFalse(Application.objects.filter(pk=application.pk).exists())
         self.assertFalse(path.exists())
-        self.assertEqual(ApplicationAnswer.objects.count(), 0)
 
-    def test_closed_form_blocks_editing_and_deletion(self):
-        application = self.ready_draft()
-        self.form.status = FormDefinition.Status.IN_REVIEW
+    def test_required_attachment_cannot_be_removed(self):
+        self.form.attachment_policy = FormDefinition.AttachmentPolicy.REQUIRED
         self.form.save()
-        application.refresh_from_db()
+        application = self.submit_application(files=[make_image()])
 
-        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
-            save_draft(application, {"title": "Changed"})
-        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
-            add_attachment(application, make_image())
-        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
-            delete_application(application)
+        with self.assertRaisesMessage(ValidationError, "At least one attachment"):
+            delete_attachment(application.attachments.get())
+
+        add_attachment(application, make_image())
+        delete_attachment(application.attachments.first())
+
+        self.assertEqual(application.attachments.count(), 1)
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -933,6 +893,7 @@ class ApplicationViewTests(MediaTestCase):
             year=self.year,
             category=self.bug,
             title="Bug form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
         )
         self.title_field = FormField.objects.create(
             form=self.form,
@@ -952,23 +913,27 @@ class ApplicationViewTests(MediaTestCase):
         )
         self.client.force_login(self.user)
 
-    def get_view(self, view_class, url, **kwargs):
-        request = RequestFactory().get(url)
-        request.user = self.user
-        return view_class.as_view()(request, **kwargs)
+    def valid_data(self, **overrides):
+        data = {"title": "A bug report"}
+        data.update(overrides)
+        return data
 
-    def make_draft(self):
-        application = start_application(self.user, self.form)
-        save_draft(application, {"title": "A bug report"})
-        return application
+    def make_application(self, user=None, files=None, data=None):
+        return submit_application(
+            user or self.user,
+            self.form,
+            self.valid_data() if data is None else data,
+            files=files,
+        )
 
     def test_application_routes_require_login(self):
         self.client.logout()
         urls = (
             reverse("main:form_list"),
             reverse("main:form_detail", args=[self.form.pk]),
-            reverse("main:application_list"),
             reverse("main:application_start", args=[self.form.pk]),
+            reverse("main:application_list"),
+            reverse("main:profile"),
         )
 
         for url in urls:
@@ -976,50 +941,87 @@ class ApplicationViewTests(MediaTestCase):
                 self.assertEqual(self.client.get(url).status_code, 302)
 
     def test_form_list_context(self):
-        response = self.get_view(FormListView, reverse("main:form_list"))
+        response = self.client.get(reverse("main:form_list"))
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(self.form, response.context_data["forms"])
+        self.assertIn(self.form, response.context["forms"])
 
     def test_form_detail_context_allows_applying(self):
-        response = self.get_view(
-            FormDetailView,
-            reverse("main:form_detail", args=[self.form.pk]),
-            pk=self.form.pk,
+        response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
+
+        self.assertTrue(response.context["can_apply"])
+        self.assertIn(self.title_field, response.context["fields"])
+
+    def test_form_detail_disables_applying_when_application_exists(self):
+        application = self.make_application()
+
+        response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
+
+        self.assertFalse(response.context["can_apply"])
+        self.assertEqual(response.context["existing_application"], application)
+
+    def test_apply_page_renders_empty_form(self):
+        response = self.client.get(
+            reverse("main:application_start", args=[self.form.pk])
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context_data["can_apply"])
-        self.assertIn(self.title_field, response.context_data["fields"])
+        self.assertIn("application_form", response.context)
+        self.assertFalse(Application.objects.exists())
 
-    def test_form_detail_disables_applying_when_draft_exists(self):
-        application = self.make_draft()
-
-        response = self.get_view(
-            FormDetailView,
-            reverse("main:form_detail", args=[self.form.pk]),
-            pk=self.form.pk,
-        )
-
-        self.assertFalse(response.context_data["can_apply"])
-        self.assertEqual(response.context_data["existing_application"], application)
-
-    def test_start_application_redirects_to_edit(self):
+    def test_apply_post_creates_submitted_application(self):
         response = self.client.post(
-            reverse("main:application_start", args=[self.form.pk])
+            reverse("main:application_start", args=[self.form.pk]),
+            self.valid_data(),
         )
         application = Application.objects.get(applicant=self.user, form=self.form)
 
+        self.assertEqual(application.status, Application.Status.SUBMITTED)
+        self.assertEqual(application.code, "BUG-2026-00001")
         self.assertRedirects(
             response,
-            reverse("main:application_edit", args=[application.public_id]),
+            reverse("main:application_detail", args=[application.public_id]),
         )
 
-    def test_start_application_rejects_closed_form(self):
+    def test_apply_post_with_file(self):
+        response = self.client.post(
+            reverse("main:application_start", args=[self.form.pk]),
+            {**self.valid_data(), "files": make_image()},
+        )
+        application = Application.objects.get(applicant=self.user, form=self.form)
+
+        self.assertEqual(application.attachments.count(), 1)
+        self.assertRedirects(
+            response,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
+
+    def test_apply_post_with_invalid_data_rerenders(self):
+        response = self.client.post(
+            reverse("main:application_start", args=[self.form.pk]),
+            {},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("title", response.context["application_form"].errors)
+        self.assertFalse(Application.objects.exists())
+
+    def test_apply_redirects_to_existing_application(self):
+        application = self.make_application()
+
+        response = self.client.get(
+            reverse("main:application_start", args=[self.form.pk])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
+
+    def test_apply_redirects_when_form_is_closed(self):
         self.form.status = FormDefinition.Status.IN_REVIEW
         self.form.save()
 
-        response = self.client.post(
+        response = self.client.get(
             reverse("main:application_start", args=[self.form.pk])
         )
 
@@ -1027,34 +1029,24 @@ class ApplicationViewTests(MediaTestCase):
             response,
             reverse("main:form_detail", args=[self.form.pk]),
         )
-        self.assertFalse(Application.objects.exists())
 
-    def test_application_list_context(self):
-        application = self.make_draft()
+    def test_application_list_and_detail_context(self):
+        application = self.make_application()
 
-        response = self.get_view(ApplicationListView, reverse("main:application_list"))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(application, response.context_data["applications"])
-
-    def test_application_detail_context(self):
-        application = self.make_draft()
-
-        response = self.get_view(
-            ApplicationDetailView,
-            reverse("main:application_detail", args=[application.public_id]),
-            public_id=application.public_id,
+        listing = self.client.get(reverse("main:application_list"))
+        detail = self.client.get(
+            reverse("main:application_detail", args=[application.public_id])
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context_data["can_edit"])
+        self.assertIn(application, listing.context["applications"])
+        self.assertTrue(detail.context["can_edit"])
         self.assertEqual(
-            response.context_data["field_answers"][0]["value"],
+            detail.context["field_answers"][0]["value"],
             "A bug report",
         )
 
     def test_other_user_cannot_access_application(self):
-        application = start_application(self.other_user, self.form)
+        application = self.make_application(user=self.other_user)
 
         response = self.client.get(
             reverse("main:application_detail", args=[application.public_id])
@@ -1063,25 +1055,25 @@ class ApplicationViewTests(MediaTestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_edit_get_exposes_stored_answers(self):
-        application = self.make_draft()
+        application = self.make_application()
 
-        response = self.get_view(
-            ApplicationUpdateView,
-            reverse("main:application_edit", args=[application.public_id]),
-            public_id=application.public_id,
+        response = self.client.get(
+            reverse("main:application_edit", args=[application.public_id])
         )
 
         self.assertEqual(response.status_code, 200)
-        dynamic_form = response.context_data["application_form"]
-        self.assertEqual(dynamic_form["title"].value(), "A bug report")
-        self.assertTrue(response.context_data["can_add_attachment"])
+        self.assertEqual(
+            response.context["application_form"]["title"].value(),
+            "A bug report",
+        )
+        self.assertTrue(response.context["can_add_attachment"])
 
-    def test_edit_post_saves_draft(self):
-        application = self.make_draft()
+    def test_edit_post_updates_application(self):
+        application = self.make_application()
 
         response = self.client.post(
             reverse("main:application_edit", args=[application.public_id]),
-            {"title": "Updated title"},
+            self.valid_data(title="Updated title"),
         )
 
         self.assertRedirects(
@@ -1096,65 +1088,63 @@ class ApplicationViewTests(MediaTestCase):
             "Updated title",
         )
 
-    def test_edit_post_with_invalid_choice_rerenders(self):
-        application = self.make_draft()
+    def test_edit_post_with_file_adds_attachment(self):
+        application = self.make_application()
 
         response = self.client.post(
             reverse("main:application_edit", args=[application.public_id]),
-            {"title": "Updated", "level": "unknown"},
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("level", response.context["application_form"].errors)
-
-    def test_closed_form_blocks_edit(self):
-        application = self.make_draft()
-        self.form.status = FormDefinition.Status.IN_REVIEW
-        self.form.save()
-
-        response = self.client.get(
-            reverse("main:application_edit", args=[application.public_id])
+            {**self.valid_data(), "files": make_image()},
         )
 
         self.assertRedirects(
             response,
             reverse("main:application_detail", args=[application.public_id]),
         )
+        self.assertEqual(application.attachments.count(), 1)
 
-    def test_upload_attachment(self):
-        application = start_application(self.user, self.form)
+    def test_edit_post_with_invalid_choice_rerenders(self):
+        application = self.make_application()
 
         response = self.client.post(
+            reverse("main:application_edit", args=[application.public_id]),
+            self.valid_data(level="unknown"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("level", response.context["application_form"].errors)
+
+    def test_closed_form_blocks_edit_and_delete(self):
+        application = self.make_application()
+        self.form.status = FormDefinition.Status.IN_REVIEW
+        self.form.save()
+
+        edit = self.client.get(
+            reverse("main:application_edit", args=[application.public_id])
+        )
+        delete = self.client.post(
+            reverse("main:application_delete", args=[application.public_id])
+        )
+
+        self.assertRedirects(
+            edit,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
+        self.assertRedirects(
+            delete,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
+        self.assertTrue(Application.objects.filter(pk=application.pk).exists())
+
+    def test_upload_and_delete_attachment(self):
+        application = self.make_application()
+        upload = self.client.post(
             reverse("main:attachment_upload", args=[application.public_id]),
             {"file": make_image()},
         )
-
-        self.assertRedirects(
-            response,
-            reverse("main:application_edit", args=[application.public_id]),
-        )
-        self.assertEqual(application.attachments.count(), 1)
-
-    def test_upload_rejects_invalid_file_type(self):
-        application = start_application(self.user, self.form)
-
-        response = self.client.post(
-            reverse("main:attachment_upload", args=[application.public_id]),
-            {"file": make_image(name="animation.gif", image_format="GIF")},
-        )
-
-        self.assertRedirects(
-            response,
-            reverse("main:application_edit", args=[application.public_id]),
-        )
-        self.assertEqual(application.attachments.count(), 0)
-
-    def test_delete_attachment_removes_file(self):
-        application = start_application(self.user, self.form)
-        attachment = add_attachment(application, make_image())
+        attachment = application.attachments.get()
         path = Path(attachment.file.path)
 
-        response = self.client.post(
+        delete = self.client.post(
             reverse(
                 "main:attachment_delete",
                 args=[application.public_id, attachment.pk],
@@ -1162,45 +1152,18 @@ class ApplicationViewTests(MediaTestCase):
         )
 
         self.assertRedirects(
-            response,
+            upload,
+            reverse("main:application_edit", args=[application.public_id]),
+        )
+        self.assertRedirects(
+            delete,
             reverse("main:application_edit", args=[application.public_id]),
         )
         self.assertFalse(path.exists())
 
-    def test_submit_requires_attachment_for_bug_category(self):
-        application = self.make_draft()
-
-        response = self.client.post(
-            reverse("main:application_submit", args=[application.public_id])
-        )
-
-        self.assertRedirects(
-            response,
-            reverse("main:application_edit", args=[application.public_id]),
-        )
-        application.refresh_from_db()
-        self.assertEqual(application.status, Application.Status.DRAFT)
-
-    def test_submit_succeeds_with_attachment(self):
-        application = self.make_draft()
-        add_attachment(application, make_image())
-
-        response = self.client.post(
-            reverse("main:application_submit", args=[application.public_id])
-        )
-
-        application.refresh_from_db()
-        self.assertEqual(application.status, Application.Status.SUBMITTED)
-        self.assertEqual(application.code, "BUG-2026-00001")
-        self.assertRedirects(
-            response,
-            reverse("main:application_detail", args=[application.public_id]),
-        )
-        self.assertEqual(len(mail.outbox), 1)
-
     def test_delete_application(self):
-        application = self.make_draft()
-        attachment = add_attachment(application, make_image())
+        application = self.make_application(files=[make_image()])
+        attachment = application.attachments.get()
         path = Path(attachment.file.path)
 
         response = self.client.post(
@@ -1212,17 +1175,14 @@ class ApplicationViewTests(MediaTestCase):
         self.assertFalse(path.exists())
 
     def test_preview_context(self):
-        application = self.make_draft()
+        application = self.make_application()
 
-        response = self.get_view(
-            ApplicationPreviewView,
-            reverse("main:application_preview", args=[application.public_id]),
-            public_id=application.public_id,
+        response = self.client.get(
+            reverse("main:application_preview", args=[application.public_id])
         )
 
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.context_data["field_answers"][0]["value"],
+            response.context["field_answers"][0]["value"],
             "A bug report",
         )
 
@@ -1298,7 +1258,7 @@ class JuryTests(MediaTestCase):
         )
         self.client.force_login(self.jury)
 
-    def make_application(self, status=Application.Status.SUBMITTED, code=None):
+    def make_application(self, code=None):
         user = get_user_model().objects.create_user(
             username=f"applicant-{Application.objects.count() + 1}",
             email=f"applicant{Application.objects.count() + 1}@example.com",
@@ -1309,9 +1269,9 @@ class JuryTests(MediaTestCase):
             form=self.form,
             year=self.year,
             category=self.category,
-            status=status,
+            status=Application.Status.SUBMITTED,
             code=code,
-            submitted_at=timezone.now() if status != Application.Status.DRAFT else None,
+            submitted_at=timezone.now(),
         )
 
     def add_attachment(self):
@@ -1403,15 +1363,6 @@ class JuryTests(MediaTestCase):
         )
 
         self.assertEqual(form.my_completed_count, 1)
-
-    def test_list_excludes_drafts(self):
-        self.make_application(status=Application.Status.DRAFT)
-
-        response = self.client.get(
-            reverse("main:jury_application_list", args=[self.form.pk])
-        )
-
-        self.assertEqual([row["application"] for row in response.context["rows"]], [self.application])
 
     def test_list_mine_filter(self):
         url = reverse("main:jury_application_list", args=[self.form.pk])
@@ -1648,9 +1599,9 @@ class JuryTests(MediaTestCase):
 
     def test_application_services_reject_jury_accounts(self):
         with self.assertRaisesMessage(ValidationError, "Jury accounts"):
-            start_application(self.jury, self.form)
+            submit_application(self.jury, self.form, {"title": "Nope"})
         with self.assertRaisesMessage(ValidationError, "Jury accounts"):
-            start_application(self.admin, self.form)
+            submit_application(self.admin, self.form, {"title": "Nope"})
 
     def test_detail_masks_applicant_identity_when_enabled(self):
         self.applicant.first_name = "Ada"

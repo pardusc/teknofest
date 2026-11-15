@@ -10,7 +10,7 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from .dynamic_forms import build_form
 from .forms import ProfileForm
-from .models import Application, Category, FormDefinition, FormField, Profile, Review
+from .models import Application, FormDefinition, FormField, Profile, Review
 from .permissions import ApplicantOnlyMixin, JuryRequiredMixin
 from .services import applications as application_service
 from .services import reviews as review_service
@@ -91,6 +91,34 @@ class FormDetailView(ApplicantOnlyMixin, DetailView):
 
 
 class ApplicationStartView(ApplicantOnlyMixin, View):
+    template_name = "main/application_form.html"
+
+    def get(self, request, pk):
+        form_definition = get_object_or_404(
+            FormDefinition.objects.select_related("year", "category"),
+            pk=pk,
+        )
+        if not form_definition.is_accepting_submissions:
+            messages.error(request, "Bu form şu anda başvuru kabul etmiyor.")
+            return redirect("main:form_detail", pk=form_definition.pk)
+
+        existing = Application.objects.filter(
+            applicant=request.user,
+            form=form_definition,
+        ).first()
+        if existing:
+            return redirect(
+                "main:application_detail",
+                public_id=existing.public_id,
+            )
+
+        dynamic_form = build_form(form_definition)
+        return TemplateResponse(
+            request,
+            self.template_name,
+            _application_form_context(form_definition, dynamic_form),
+        )
+
     def post(self, request, pk):
         form_definition = get_object_or_404(
             FormDefinition.objects.select_related("year", "category"),
@@ -98,17 +126,27 @@ class ApplicationStartView(ApplicantOnlyMixin, View):
         )
 
         try:
-            application = application_service.start_application(
+            application = application_service.submit_application(
                 request.user,
                 form_definition,
+                request.POST,
+                files=request.FILES.getlist("files"),
             )
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
-            return redirect("main:form_detail", pk=form_definition.pk)
+            dynamic_form = build_form(form_definition, data=request.POST)
+            return TemplateResponse(
+                request,
+                self.template_name,
+                _application_form_context(form_definition, dynamic_form),
+            )
 
-        messages.success(request, "Başvuru taslağı hazır.")
+        messages.success(
+            request,
+            f"Başvurunuz alındı. Başvuru kodunuz: {application.code}",
+        )
         return redirect(
-            "main:application_edit",
+            "main:application_detail",
             public_id=application.public_id,
         )
 
@@ -163,7 +201,6 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
         form = build_form(
             application.form,
             initial=_initial_answers(application),
-            enforce_required=False,
         )
         return TemplateResponse(
             request,
@@ -180,11 +217,7 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
                 public_id=application.public_id,
             )
 
-        form = build_form(
-            application.form,
-            data=request.POST,
-            enforce_required=False,
-        )
+        form = build_form(application.form, data=request.POST)
         if not form.is_valid():
             return TemplateResponse(
                 request,
@@ -193,25 +226,20 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
             )
 
         try:
-            if request.POST.get("action") == "submit":
-                result = application_service.submit(application, request.POST)
-                messages.success(
-                    request,
-                    f"Başvurunuz alındı. Başvuru kodunuz: {result.code}",
-                )
-                return redirect(
-                    "main:application_detail",
-                    public_id=result.public_id,
-                )
-            application_service.save_draft(application, request.POST)
+            application_service.update_application(
+                application,
+                request.POST,
+                files=request.FILES.getlist("files"),
+            )
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
-            return redirect(
-                "main:application_edit",
-                public_id=application.public_id,
+            return TemplateResponse(
+                request,
+                self.template_name,
+                _edit_context(application, form),
             )
 
-        messages.success(request, "Taslak kaydedildi.")
+        messages.success(request, "Başvurunuz güncellendi.")
         return redirect(
             "main:application_detail",
             public_id=application.public_id,
@@ -240,29 +268,6 @@ class ApplicationPreviewView(ApplicantOnlyMixin, DetailView):
             }
         )
         return context
-
-
-class ApplicationSubmitView(ApplicantOnlyMixin, View):
-    def post(self, request, public_id):
-        application = _get_owned_application(request, public_id)
-
-        try:
-            result = application_service.submit(application)
-        except ValidationError as exc:
-            messages.error(request, _validation_message(exc))
-            return redirect(
-                "main:application_edit",
-                public_id=application.public_id,
-            )
-
-        messages.success(
-            request,
-            f"Başvurunuz alındı. Başvuru kodunuz: {result.code}",
-        )
-        return redirect(
-            "main:application_detail",
-            public_id=result.public_id,
-        )
 
 
 class ApplicationDeleteView(ApplicantOnlyMixin, View):
@@ -373,6 +378,7 @@ def _initial_answers(application):
 
 
 def _edit_context(application, application_form):
+    policy = application.form.attachment_policy
     return {
         "application": application,
         "application_form": application_form,
@@ -381,12 +387,28 @@ def _edit_context(application, application_form):
             .values_list("key", flat=True)
         ),
         "attachments": application.attachments.all(),
-        "attachment_policy": application.category.attachment_policy,
+        "attachment_policy": policy,
+        "accepts_files": policy != FormDefinition.AttachmentPolicy.NONE,
         "can_add_attachment": (
             application.is_editable
-            and application.category.attachment_policy
-            != Category.AttachmentPolicy.NONE
+            and policy != FormDefinition.AttachmentPolicy.NONE
         ),
+    }
+
+
+def _application_form_context(form_definition, application_form):
+    policy = form_definition.attachment_policy
+    return {
+        "form_definition": form_definition,
+        "application_form": application_form,
+        "required_keys": set(
+            form_definition.fields.filter(is_active=True, is_required=True)
+            .values_list("key", flat=True)
+        ),
+        "attachments": [],
+        "attachment_policy": policy,
+        "accepts_files": policy != FormDefinition.AttachmentPolicy.NONE,
+        "can_add_attachment": False,
     }
 
 
@@ -394,9 +416,10 @@ def _validation_message(error):
     translations = {
         "This form is not accepting applications.": "Bu form şu anda başvuru kabul etmiyor.",
         "This application can no longer be edited.": "Bu başvuru artık düzenlenemez.",
+        "You already have an application for this form.": "Bu form için zaten bir başvurunuz var.",
         "Complete your profile before submitting.": "Başvuruyu göndermeden önce profil bilgilerinizi tamamlayın.",
-        "At least one attachment is required for this category.": "Bu kategori için en az bir ek dosya yükleyin.",
-        "This category does not accept attachments.": "Bu kategori ek dosya kabul etmiyor.",
+        "At least one attachment is required for this form.": "Bu form için en az bir ek dosya yükleyin.",
+        "This form does not accept attachments.": "Bu form ek dosya kabul etmiyor.",
         "Upload a JPG or PNG image.": "JPG veya PNG biçiminde bir görsel yükleyin.",
         "Each file must be 2 MB or smaller.": "Her dosya en fazla 2 MB olabilir.",
         "Total attachment size must be 10 MB or smaller.": "Ek dosyaların toplam boyutu en fazla 10 MB olabilir.",
@@ -541,8 +564,8 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
     context_object_name = "application"
 
     def get_queryset(self):
-        return Application.objects.select_related("form", "year", "category", "applicant").exclude(
-            status=Application.Status.DRAFT
+        return Application.objects.select_related("form", "year", "category", "applicant").filter(
+            status__in=REVIEWABLE_APPLICATION_STATUSES
         )
 
     def get_object(self, queryset=None):
@@ -624,8 +647,8 @@ class JuryReviewSubmitView(JuryRequiredMixin, View):
 
 def _get_reviewable_application(request, public_id):
     return get_object_or_404(
-        Application.objects.select_related("form", "year", "category", "applicant").exclude(
-            status=Application.Status.DRAFT
+        Application.objects.select_related("form", "year", "category", "applicant").filter(
+            status__in=REVIEWABLE_APPLICATION_STATUSES
         ),
         public_id=public_id,
     )

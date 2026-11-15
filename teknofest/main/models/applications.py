@@ -18,7 +18,6 @@ class Application(models.Model):
     """An applicant's submission for one form (year + category)."""
 
     class Status(models.TextChoices):
-        DRAFT = "draft", "Draft"
         SUBMITTED = "submitted", "Submitted"
         IN_REVIEW = "in_review", "In review"
         EVALUATED = "evaluated", "Evaluated"
@@ -54,7 +53,7 @@ class Application(models.Model):
     status = models.CharField(
         max_length=16,
         choices=Status.choices,
-        default=Status.DRAFT,
+        default=Status.SUBMITTED,
     )
     submitted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -75,7 +74,7 @@ class Application(models.Model):
     @property
     def is_editable(self) -> bool:
         return (
-            self.status in {self.Status.DRAFT, self.Status.SUBMITTED}
+            self.status == self.Status.SUBMITTED
             and self.form.is_accepting_submissions
         )
 

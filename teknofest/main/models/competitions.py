@@ -22,11 +22,6 @@ class CompetitionYear(models.Model):
 class Category(models.Model):
     """A competition category, for example bug/suggestion or development."""
 
-    class AttachmentPolicy(models.TextChoices):
-        NONE = "none", "No attachments"
-        OPTIONAL = "optional", "Optional"
-        REQUIRED = "required", "Required"
-
     slug = models.SlugField(max_length=64, unique=True)
     name = models.CharField(max_length=128)
     description = models.TextField(blank=True)
@@ -34,11 +29,6 @@ class Category(models.Model):
         max_length=16,
         blank=True,
         help_text="Prefix used in application codes, for example BUG.",
-    )
-    attachment_policy = models.CharField(
-        max_length=16,
-        choices=AttachmentPolicy.choices,
-        default=AttachmentPolicy.OPTIONAL,
     )
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -58,6 +48,11 @@ class FormDefinition(models.Model):
         OPEN = "open", "Open"
         IN_REVIEW = "in_review", "In review"
         CLOSED = "closed", "Closed"
+
+    class AttachmentPolicy(models.TextChoices):
+        NONE = "none", "No attachments"
+        OPTIONAL = "optional", "Optional"
+        REQUIRED = "required", "Required"
 
     year = models.ForeignKey(
         CompetitionYear,
@@ -79,6 +74,11 @@ class FormDefinition(models.Model):
     mask_applicant_identity = models.BooleanField(
         default=False,
         help_text="Hide the applicant's name and e-mail from the jury.",
+    )
+    attachment_policy = models.CharField(
+        max_length=16,
+        choices=AttachmentPolicy.choices,
+        default=AttachmentPolicy.OPTIONAL,
     )
     opens_at = models.DateTimeField(null=True, blank=True)
     closes_at = models.DateTimeField(null=True, blank=True)

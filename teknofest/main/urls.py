@@ -36,11 +36,6 @@ urlpatterns = [
         name="application_preview",
     ),
     path(
-        "applications/<uuid:public_id>/submit/",
-        views.ApplicationSubmitView.as_view(),
-        name="application_submit",
-    ),
-    path(
         "applications/<uuid:public_id>/delete/",
         views.ApplicationDeleteView.as_view(),
         name="application_delete",
