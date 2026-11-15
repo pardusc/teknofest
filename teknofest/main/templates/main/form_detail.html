@@ -32,7 +32,7 @@
           <p class="small fg-secondary">{% translate "You have already created an application for this form." %}</p>
           <a class="btn-solid theme-primary w-100" href="{% url 'main:application_detail' existing_application.public_id %}">{% translate "Go to my application" %}</a>
         {% elif can_apply %}
-          <form method="post" action="{% url 'main:application_start' form_definition.pk %}">{% csrf_token %}<button class="btn-solid theme-primary w-100" type="submit">{% translate "Start application" %}</button></form>
+          <a class="btn-solid theme-primary w-100" href="{% url 'main:application_start' form_definition.pk %}">{% translate "Start application" %}</a>
           <p class="small fg-secondary mt-3 mb-0">{% translate "You can edit your application until the deadline after submitting it." %}</p>
         {% else %}<button class="btn-solid theme-primary w-100" type="button" disabled>{% translate "Closed for applications" %}</button>{% endif %}
       </div></aside>

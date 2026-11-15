@@ -968,6 +968,7 @@ class ApplicationViewTests(MediaTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("application_form", response.context)
+        self.assertContains(response, self.title_field.label)
         self.assertFalse(Application.objects.exists())
 
     def test_apply_post_creates_submitted_application(self):

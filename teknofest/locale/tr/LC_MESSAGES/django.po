@@ -1106,3 +1106,15 @@ msgstr "Değerlendirme gönderildi."
 #: main/views.py:650
 msgid "This field is hidden from jury review."
 msgstr "Bu alan jüri değerlendirmesinde gizlenmiştir."
+
+#: main/templates/main/application_form.html:9
+msgid "Fill in the form and submit your application."
+msgstr "Formu doldurun ve başvurunuzu gönderin."
+
+#: main/templates/main/application_form.html:24
+msgid "Choose files"
+msgstr "Dosyaları seçin"
+
+#: main/templates/main/application_form.html:27
+msgid "Submit application"
+msgstr "Başvuruyu gönder"

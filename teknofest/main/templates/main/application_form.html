@@ -1,0 +1,30 @@
+{% extends "main/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ form_definition.title }} · {% translate "Application form" %}{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:form_list' %}">{% translate "Back to application forms" %}</a><p class="eyebrow fg-primary mt-4 mb-2">{{ form_definition.year.year }} · {{ form_definition.category.name }}</p><h1 class="h2 fw-bold mb-2">{{ form_definition.title }}</h1>{% if form_definition.description %}<p class="fg-secondary mb-0">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary mb-0">{% translate "Fill in the form and submit your application." %}</p>{% endif %}</div>
+  <div class="row g-4"><div class="lg:col-8">
+    <form method="post" action="{% url 'main:application_start' form_definition.pk %}" class="card application-form" enctype="multipart/form-data">
+      {% csrf_token %}<div class="card-body p-4 p-lg-5">
+        {% if application_form.non_field_errors %}<div class="alert theme-danger" role="alert">{{ application_form.non_field_errors }}</div>{% endif %}
+        {% if application_form %}{% for field in application_form %}
+          <div class="mb-4 application-field">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.name in required_keys %}<span class="fg-danger ms-1">*</span>{% else %}<span class="small fg-secondary ms-1">({% translate "optional" %})</span>{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>{% endif %}
+          </div>
+        {% endfor %}{% else %}<p class="fg-secondary">{% translate "There are no fields to fill in this form." %}</p>{% endif %}
+      </div>
+      {% if accepts_files %}<div class="card-body border-top px-4 px-lg-5">
+        <h2 class="h5 fw-bold">{% translate "Attachments" %}</h2><p class="small fg-secondary">{% translate "JPG or PNG · max 2 MB per file · max 10 MB total" %}{% if attachment_policy == 'required' %} · {% translate "at least one file required" %}{% endif %}</p>
+        <div><label class="form-label" for="application-files">{% translate "Choose files" %}</label><input id="application-files" class="form-control" type="file" name="files" accept="image/jpeg,image/png" multiple{% if attachment_policy == 'required' %} required{% endif %}></div>
+      </div>{% endif %}
+      <div class="card-footer px-4 px-lg-5 py-3 d-flex flex-column sm:flex-row justify-content-between sm:align-items-center gap-3"><span class="small fg-secondary">{% translate "Required fields are marked with an asterisk." %}</span><div class="d-flex flex-wrap gap-2"><a class="btn-outline theme-secondary" href="{% url 'main:form_list' %}">{% translate "Cancel" %}</a><button class="btn-solid theme-primary" type="submit">{% translate "Submit application" %}</button></div></div>
+    </form>
+  </div><div class="lg:col-4"><aside class="card application-side-card"><div class="card-body p-4"><h2 class="h5 fw-bold">{% translate "Before submitting" %}</h2><ul class="small fg-secondary ps-3 mb-0"><li>{% translate "Fill in the required fields." %}</li><li>{% translate "Check your contact and profile information." %}</li>{% if attachment_policy == 'required' %}<li>{% translate "Upload the required attachment." %}</li>{% endif %}</ul></div></aside></div></div>
+</section>
+{% endblock %}
