@@ -1,11 +1,25 @@
 {% load static %}<!doctype html>
-<html lang="tr">
+<html lang="tr" data-bs-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#172b4a">
   <title>{% block title %}Pardus Teknofest{% endblock %}</title>
+  <script>
+    (() => {
+      const preference = window.matchMedia("(prefers-color-scheme: dark)");
+      const applyTheme = () => {
+        document.documentElement.dataset.bsTheme = preference.matches ? "dark" : "light";
+      };
+      applyTheme();
+      if (preference.addEventListener) {
+        preference.addEventListener("change", applyTheme);
+      } else {
+        preference.addListener(applyTheme);
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="{% static 'main/vendor/bootstrap/css/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'main/css/site.css' %}">
   {% block extra_head %}{% endblock %}
