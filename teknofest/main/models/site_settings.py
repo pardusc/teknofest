@@ -3,69 +3,70 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import get_language
+from django.utils.translation import gettext_lazy as _
 
 
 class SiteSettings(models.Model):
     """Singleton with competition-wide and home-page settings."""
 
     class ApplicationStatus(models.TextChoices):
-        UPCOMING = "upcoming", "Yaklaşan"
-        OPEN = "open", "Açık"
-        IN_REVIEW = "in_review", "İncelemede"
-        CLOSED = "closed", "Kapalı"
+        UPCOMING = "upcoming", _("Upcoming")
+        OPEN = "open", _("Open")
+        IN_REVIEW = "in_review", _("In review")
+        CLOSED = "closed", _("Closed")
 
     site_title = models.CharField(
         max_length=128,
         default="Pardus Teknofest",
-        verbose_name="Site başlığı",
+        verbose_name=_("Site title"),
     )
     competition_name = models.CharField(
         max_length=255,
         default="Pardus Hata Yakalama ve Geliştirme Yarışması",
-        verbose_name="Yarışma adı",
+        verbose_name=_("Competition name"),
     )
     application_status = models.CharField(
         max_length=16,
         choices=ApplicationStatus.choices,
         default=ApplicationStatus.OPEN,
-        verbose_name="Başvuru durumu",
+        verbose_name=_("Application status"),
     )
     application_opens_at = models.DateTimeField(
         null=True,
         blank=True,
-        verbose_name="Başvuru açılışı",
+        verbose_name=_("Application opens at"),
     )
     application_closes_at = models.DateTimeField(
         null=True,
         blank=True,
-        verbose_name="Başvuru kapanışı",
+        verbose_name=_("Application closes at"),
     )
 
     hero_eyebrow = models.CharField(
         max_length=255,
         blank=True,
-        verbose_name="Hero üst etiketi",
+        verbose_name=_("Hero eyebrow"),
     )
     hero_title = models.CharField(
         max_length=255,
         blank=True,
-        verbose_name="Hero başlığı",
+        verbose_name=_("Hero title"),
     )
-    hero_lead = models.TextField(blank=True, verbose_name="Hero açıklaması")
-    announcement = models.TextField(blank=True, verbose_name="Duyuru")
-    announcement_active = models.BooleanField(default=False, verbose_name="Duyuru etkin")
-    calendar_note = models.TextField(blank=True, verbose_name="Takvim notu")
-    contact_email = models.EmailField(blank=True, verbose_name="İletişim e-postası")
+    hero_lead = models.TextField(blank=True, verbose_name=_("Hero lead"))
+    announcement = models.TextField(blank=True, verbose_name=_("Announcement"))
+    announcement_active = models.BooleanField(default=False, verbose_name=_("Announcement active"))
+    calendar_note = models.TextField(blank=True, verbose_name=_("Calendar note"))
+    contact_email = models.EmailField(blank=True, verbose_name=_("Contact email"))
     footer_tagline = models.CharField(
         max_length=255,
         blank=True,
-        verbose_name="Alt bilgi sloganı",
+        verbose_name=_("Footer tagline"),
     )
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Son güncelleme")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
 
     class Meta:
-        verbose_name = "Site ayarları"
-        verbose_name_plural = "Site ayarları"
+        verbose_name = _("Site settings")
+        verbose_name_plural = _("Site settings")
 
     def __str__(self) -> str:
         return self.site_title
@@ -132,21 +133,35 @@ class SiteSettingsTranslation(models.Model):
         SiteSettings,
         on_delete=models.CASCADE,
         related_name="translations",
+        verbose_name=_("Settings"),
     )
     language = models.CharField(
         max_length=8,
         choices=django_settings.LANGUAGES,
+        verbose_name=_("Language"),
     )
-    hero_eyebrow = models.CharField(max_length=255, blank=True)
-    hero_title = models.CharField(max_length=255, blank=True)
-    hero_lead = models.TextField(blank=True)
-    announcement = models.TextField(blank=True)
-    calendar_note = models.TextField(blank=True)
-    footer_tagline = models.CharField(max_length=255, blank=True)
+    hero_eyebrow = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("Hero eyebrow"),
+    )
+    hero_title = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("Hero title"),
+    )
+    hero_lead = models.TextField(blank=True, verbose_name=_("Hero lead"))
+    announcement = models.TextField(blank=True, verbose_name=_("Announcement"))
+    calendar_note = models.TextField(blank=True, verbose_name=_("Calendar note"))
+    footer_tagline = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("Footer tagline"),
+    )
 
     class Meta:
-        verbose_name = "Site ayarları çevirisi"
-        verbose_name_plural = "Site ayarları çevirileri"
+        verbose_name = _("Site settings translation")
+        verbose_name_plural = _("Site settings translations")
         constraints = [
             models.UniqueConstraint(
                 fields=("settings", "language"),

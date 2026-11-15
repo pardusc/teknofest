@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class User(AbstractUser):
@@ -15,7 +16,7 @@ class User(AbstractUser):
         unique=True,
         null=True,
         blank=True,
-        verbose_name="Keycloak ID",
+        verbose_name=_("Keycloak ID"),
     )
     email = models.EmailField(unique=True)
 
@@ -27,32 +28,32 @@ class Profile(models.Model):
     """Personal information an applicant completes after signing in."""
 
     class EducationLevel(models.TextChoices):
-        PRIMARY = "primary", "İlkokul"
-        MIDDLE = "middle", "Ortaokul"
-        HIGH = "high", "Lise"
-        ASSOCIATE = "associate", "Ön lisans"
-        BACHELOR = "bachelor", "Lisans"
-        MASTER = "master", "Yüksek lisans"
-        DOCTORATE = "doctorate", "Doktora"
+        PRIMARY = "primary", _("Primary school")
+        MIDDLE = "middle", _("Middle school")
+        HIGH = "high", _("High school")
+        ASSOCIATE = "associate", _("Associate degree")
+        BACHELOR = "bachelor", _("Bachelor's degree")
+        MASTER = "master", _("Master's degree")
+        DOCTORATE = "doctorate", _("Doctorate")
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="profile",
-        verbose_name="Kullanıcı",
+        verbose_name=_("User"),
     )
-    phone = models.CharField(max_length=20, blank=True, verbose_name="Telefon")
-    city = models.CharField(max_length=64, blank=True, verbose_name="Şehir")
-    institution = models.CharField(max_length=255, blank=True, verbose_name="Kurum")
+    phone = models.CharField(max_length=20, blank=True, verbose_name=_("Phone"))
+    city = models.CharField(max_length=64, blank=True, verbose_name=_("City"))
+    institution = models.CharField(max_length=255, blank=True, verbose_name=_("Institution"))
     education_level = models.CharField(
         max_length=16,
         choices=EducationLevel.choices,
         blank=True,
-        verbose_name="Eğitim seviyesi",
+        verbose_name=_("Education level"),
     )
-    photo = models.ImageField(upload_to="profiles/%Y/", blank=True, verbose_name="Fotoğraf")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Son güncelleme")
+    photo = models.ImageField(upload_to="profiles/%Y/", blank=True, verbose_name=_("Photo"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
 
     REQUIRED_FIELDS = ("phone", "city", "institution", "education_level")
 
@@ -60,8 +61,8 @@ class Profile(models.Model):
         return f"{self.user} profile"
 
     class Meta:
-        verbose_name = "Profil"
-        verbose_name_plural = "Profiller"
+        verbose_name = _("Profile")
+        verbose_name_plural = _("Profiles")
 
     @property
     def is_complete(self) -> bool:

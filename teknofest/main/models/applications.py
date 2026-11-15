@@ -19,62 +19,62 @@ class Application(models.Model):
     """An applicant's submission for one form (year + category)."""
 
     class Status(models.TextChoices):
-        SUBMITTED = "submitted", "Gönderildi"
-        IN_REVIEW = "in_review", "İncelemede"
-        EVALUATED = "evaluated", "Değerlendirildi"
+        SUBMITTED = "submitted", _("Submitted")
+        IN_REVIEW = "in_review", _("In review")
+        EVALUATED = "evaluated", _("Evaluated")
 
     public_id = models.UUIDField(
         default=uuid.uuid4,
         unique=True,
         editable=False,
-        verbose_name="Genel kimlik",
+        verbose_name=_("Public ID"),
     )
     code = models.CharField(
         max_length=32,
         unique=True,
         null=True,
         blank=True,
-        verbose_name="Kod",
-        help_text="Assigned when the application is submitted.",
+        verbose_name=_("Code"),
+        help_text=_("Assigned when the application is submitted."),
     )
     applicant = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="applications",
-        verbose_name="Başvuru sahibi",
+        verbose_name=_("Applicant"),
     )
     form = models.ForeignKey(
         "FormDefinition",
         on_delete=models.PROTECT,
         related_name="applications",
-        verbose_name="Form",
+        verbose_name=_("Form"),
     )
     year = models.ForeignKey(
         "CompetitionYear",
         on_delete=models.PROTECT,
         related_name="applications",
-        verbose_name="Yıl",
+        verbose_name=_("Year"),
     )
     category = models.ForeignKey(
         "Category",
         on_delete=models.PROTECT,
         related_name="applications",
-        verbose_name="Kategori",
+        verbose_name=_("Category"),
     )
     status = models.CharField(
         max_length=16,
         choices=Status.choices,
         default=Status.SUBMITTED,
-        verbose_name="Durum",
+        verbose_name=_("Status"),
     )
-    submitted_at = models.DateTimeField(null=True, blank=True, verbose_name="Gönderilme")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Son güncelleme")
+    submitted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Submitted at"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
 
     class Meta:
         ordering = ("-created_at",)
-        verbose_name = "Başvuru"
-        verbose_name_plural = "Başvurular"
+        verbose_name = _("Application")
+        verbose_name_plural = _("Applications")
         constraints = [
             models.UniqueConstraint(
                 fields=("applicant", "form"),
@@ -114,20 +114,20 @@ class ApplicationAnswer(models.Model):
         Application,
         on_delete=models.CASCADE,
         related_name="answers",
-        verbose_name="Başvuru",
+        verbose_name=_("Application"),
     )
     field = models.ForeignKey(
         "FormField",
         on_delete=models.PROTECT,
         related_name="answers",
-        verbose_name="Alan",
+        verbose_name=_("Field"),
     )
-    value = models.JSONField(verbose_name="Değer")
+    value = models.JSONField(verbose_name=_("Value"))
 
     class Meta:
         ordering = ("field__order", "id")
-        verbose_name = "Başvuru yanıtı"
-        verbose_name_plural = "Başvuru yanıtları"
+        verbose_name = _("Application answer")
+        verbose_name_plural = _("Application answers")
         constraints = [
             models.UniqueConstraint(
                 fields=("application", "field"),
@@ -144,18 +144,18 @@ class Attachment(models.Model):
         Application,
         on_delete=models.CASCADE,
         related_name="attachments",
-        verbose_name="Başvuru",
+        verbose_name=_("Application"),
     )
-    file = models.FileField(upload_to=attachment_upload_to, verbose_name="Dosya")
-    original_name = models.CharField(max_length=255, verbose_name="Özgün ad")
-    content_type = models.CharField(max_length=64, verbose_name="İçerik türü")
-    size = models.PositiveIntegerField(verbose_name="Boyut")
-    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Yüklenme")
+    file = models.FileField(upload_to=attachment_upload_to, verbose_name=_("File"))
+    original_name = models.CharField(max_length=255, verbose_name=_("Original name"))
+    content_type = models.CharField(max_length=64, verbose_name=_("Content type"))
+    size = models.PositiveIntegerField(verbose_name=_("Size"))
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Uploaded at"))
 
     class Meta:
         ordering = ("uploaded_at", "id")
-        verbose_name = "Ek dosya"
-        verbose_name_plural = "Ek dosyalar"
+        verbose_name = _("Attachment")
+        verbose_name_plural = _("Attachments")
 
     def __str__(self) -> str:
         return self.original_name
@@ -177,8 +177,8 @@ class ApplicationSequence(models.Model):
     last_number = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name = "Başvuru sırası"
-        verbose_name_plural = "Başvuru sıraları"
+        verbose_name = _("Application sequence")
+        verbose_name_plural = _("Application sequences")
         constraints = [
             models.UniqueConstraint(
                 fields=("year", "category"),

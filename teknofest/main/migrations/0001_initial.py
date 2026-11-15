@@ -1018,5 +1018,620 @@ class Migration(migrations.Migration):
             name='updated_at',
             field=models.DateTimeField(auto_now=True, verbose_name='Son güncelleme'),
         ),
+        migrations.AlterModelOptions(
+            name='application',
+            options={'ordering': ('-created_at',), 'verbose_name': 'Application', 'verbose_name_plural': 'Applications'},
+        ),
+        migrations.AlterModelOptions(
+            name='applicationanswer',
+            options={'ordering': ('field__order', 'id'), 'verbose_name': 'Application answer', 'verbose_name_plural': 'Application answers'},
+        ),
+        migrations.AlterModelOptions(
+            name='applicationsequence',
+            options={'verbose_name': 'Application sequence', 'verbose_name_plural': 'Application sequences'},
+        ),
+        migrations.AlterModelOptions(
+            name='attachment',
+            options={'ordering': ('uploaded_at', 'id'), 'verbose_name': 'Attachment', 'verbose_name_plural': 'Attachments'},
+        ),
+        migrations.AlterModelOptions(
+            name='auditevent',
+            options={'ordering': ('-created_at', '-id'), 'verbose_name': 'Audit event', 'verbose_name_plural': 'Audit events'},
+        ),
+        migrations.AlterModelOptions(
+            name='category',
+            options={'ordering': ('order', 'name'), 'verbose_name': 'Category', 'verbose_name_plural': 'Categories'},
+        ),
+        migrations.AlterModelOptions(
+            name='categorytranslation',
+            options={'verbose_name': 'Category translation', 'verbose_name_plural': 'Category translations'},
+        ),
+        migrations.AlterModelOptions(
+            name='competitionyear',
+            options={'ordering': ('-year',), 'verbose_name': 'Competition year', 'verbose_name_plural': 'Competition years'},
+        ),
+        migrations.AlterModelOptions(
+            name='formdefinition',
+            options={'ordering': ('-year__year', 'category__order'), 'verbose_name': 'Form definition', 'verbose_name_plural': 'Form definitions'},
+        ),
+        migrations.AlterModelOptions(
+            name='formfield',
+            options={'ordering': ('order', 'id'), 'verbose_name': 'Form field', 'verbose_name_plural': 'Form fields'},
+        ),
+        migrations.AlterModelOptions(
+            name='juryapikey',
+            options={'ordering': ('-created_at', '-id'), 'verbose_name': 'Jury API key', 'verbose_name_plural': 'Jury API keys'},
+        ),
+        migrations.AlterModelOptions(
+            name='profile',
+            options={'verbose_name': 'Profile', 'verbose_name_plural': 'Profiles'},
+        ),
+        migrations.AlterModelOptions(
+            name='review',
+            options={'ordering': ('-created_at',), 'verbose_name': 'Review', 'verbose_name_plural': 'Reviews'},
+        ),
+        migrations.AlterModelOptions(
+            name='sitesettings',
+            options={'verbose_name': 'Site settings', 'verbose_name_plural': 'Site settings'},
+        ),
+        migrations.AlterModelOptions(
+            name='sitesettingstranslation',
+            options={'verbose_name': 'Site settings translation', 'verbose_name_plural': 'Site settings translations'},
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='applicant',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='applications', to=settings.AUTH_USER_MODEL, verbose_name='Applicant'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='category',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='applications', to='main.category', verbose_name='Category'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='code',
+            field=models.CharField(blank=True, help_text='Assigned when the application is submitted.', max_length=32, null=True, unique=True, verbose_name='Code'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='public_id',
+            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True, verbose_name='Public ID'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='status',
+            field=models.CharField(choices=[('submitted', 'Submitted'), ('in_review', 'In review'), ('evaluated', 'Evaluated')], default='submitted', max_length=16, verbose_name='Status'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='submitted_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Submitted at'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='updated_at',
+            field=models.DateTimeField(auto_now=True, verbose_name='Updated at'),
+        ),
+        migrations.AlterField(
+            model_name='application',
+            name='year',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='applications', to='main.competitionyear', verbose_name='Year'),
+        ),
+        migrations.AlterField(
+            model_name='applicationanswer',
+            name='application',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='answers', to='main.application', verbose_name='Application'),
+        ),
+        migrations.AlterField(
+            model_name='applicationanswer',
+            name='field',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='answers', to='main.formfield', verbose_name='Field'),
+        ),
+        migrations.AlterField(
+            model_name='applicationanswer',
+            name='value',
+            field=models.JSONField(verbose_name='Value'),
+        ),
+        migrations.AlterField(
+            model_name='attachment',
+            name='application',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='attachments', to='main.application', verbose_name='Application'),
+        ),
+        migrations.AlterField(
+            model_name='attachment',
+            name='content_type',
+            field=models.CharField(max_length=64, verbose_name='Content type'),
+        ),
+        migrations.AlterField(
+            model_name='attachment',
+            name='file',
+            field=models.FileField(upload_to=main.models.applications.attachment_upload_to, verbose_name='File'),
+        ),
+        migrations.AlterField(
+            model_name='attachment',
+            name='original_name',
+            field=models.CharField(max_length=255, verbose_name='Original name'),
+        ),
+        migrations.AlterField(
+            model_name='attachment',
+            name='size',
+            field=models.PositiveIntegerField(verbose_name='Size'),
+        ),
+        migrations.AlterField(
+            model_name='attachment',
+            name='uploaded_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Uploaded at'),
+        ),
+        migrations.AlterField(
+            model_name='auditevent',
+            name='action',
+            field=models.CharField(choices=[('application_submitted', 'Application submitted'), ('application_updated', 'Application updated'), ('application_deleted', 'Application deleted'), ('application_status_changed', 'Application status changed'), ('attachment_added', 'Attachment added'), ('attachment_removed', 'Attachment removed'), ('review_submitted', 'Review submitted'), ('review_updated', 'Review updated'), ('form_status_changed', 'Form status changed'), ('api_key_created', 'API key created'), ('api_key_revoked', 'API key revoked')], max_length=32, verbose_name='Action'),
+        ),
+        migrations.AlterField(
+            model_name='auditevent',
+            name='actor',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='audit_events', to=settings.AUTH_USER_MODEL, verbose_name='Actor'),
+        ),
+        migrations.AlterField(
+            model_name='auditevent',
+            name='application',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='audit_events', to='main.application', verbose_name='Application'),
+        ),
+        migrations.AlterField(
+            model_name='auditevent',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='auditevent',
+            name='metadata',
+            field=models.JSONField(blank=True, default=dict, verbose_name='Metadata'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='code_prefix',
+            field=models.CharField(blank=True, help_text='Prefix used in application codes, for example BUG.', max_length=16, verbose_name='Code prefix'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='description',
+            field=models.TextField(blank=True, verbose_name='Description'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='home_description',
+            field=models.TextField(blank=True, verbose_name='Home description'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='home_highlights',
+            field=models.TextField(blank=True, help_text='One item per line, shown on the home page.', verbose_name='Home highlights'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='is_active',
+            field=models.BooleanField(default=True, verbose_name='Active'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='name',
+            field=models.CharField(max_length=128, verbose_name='Name'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='order',
+            field=models.PositiveIntegerField(default=0, verbose_name='Order'),
+        ),
+        migrations.AlterField(
+            model_name='category',
+            name='slug',
+            field=models.SlugField(max_length=64, unique=True, verbose_name='Slug'),
+        ),
+        migrations.AlterField(
+            model_name='categorytranslation',
+            name='category',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='translations', to='main.category', verbose_name='Category'),
+        ),
+        migrations.AlterField(
+            model_name='categorytranslation',
+            name='description',
+            field=models.TextField(blank=True, verbose_name='Description'),
+        ),
+        migrations.AlterField(
+            model_name='categorytranslation',
+            name='home_description',
+            field=models.TextField(blank=True, verbose_name='Home description'),
+        ),
+        migrations.AlterField(
+            model_name='categorytranslation',
+            name='home_highlights',
+            field=models.TextField(blank=True, verbose_name='Home highlights'),
+        ),
+        migrations.AlterField(
+            model_name='categorytranslation',
+            name='language',
+            field=models.CharField(choices=[('tr', 'Türkçe'), ('en', 'English')], max_length=8, verbose_name='Language'),
+        ),
+        migrations.AlterField(
+            model_name='categorytranslation',
+            name='name',
+            field=models.CharField(blank=True, max_length=128, verbose_name='Name'),
+        ),
+        migrations.AlterField(
+            model_name='competitionyear',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='competitionyear',
+            name='is_active',
+            field=models.BooleanField(default=True, verbose_name='Active'),
+        ),
+        migrations.AlterField(
+            model_name='competitionyear',
+            name='year',
+            field=models.PositiveSmallIntegerField(unique=True, verbose_name='Year'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='attachment_policy',
+            field=models.CharField(choices=[('none', 'No attachments'), ('optional', 'Optional'), ('required', 'Required')], default='optional', max_length=16, verbose_name='Attachment policy'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='category',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='forms', to='main.category', verbose_name='Category'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='closes_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Closes at'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='description',
+            field=models.TextField(blank=True, verbose_name='Description'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='mask_applicant_identity',
+            field=models.BooleanField(default=False, help_text="Hide the applicant's name and e-mail from the jury.", verbose_name='Mask applicant identity'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='opens_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Opens at'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='status',
+            field=models.CharField(choices=[('open', 'Open'), ('in_review', 'In review'), ('closed', 'Closed')], default='open', max_length=16, verbose_name='Status'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='submission_override',
+            field=models.BooleanField(default=False, help_text="Allow submissions even when the global application period is closed. The form's own dates still apply.", verbose_name='Submission override'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='title',
+            field=models.CharField(max_length=255, verbose_name='Title'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='updated_at',
+            field=models.DateTimeField(auto_now=True, verbose_name='Updated at'),
+        ),
+        migrations.AlterField(
+            model_name='formdefinition',
+            name='year',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='forms', to='main.competitionyear', verbose_name='Year'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='choices',
+            field=models.JSONField(blank=True, default=list, help_text='List of objects like {"value": "low", "label": "Low"}.', verbose_name='Choices'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='field_type',
+            field=models.CharField(choices=[('short_text', 'Short text'), ('long_text', 'Long text'), ('markdown', 'Markdown'), ('select', 'Single choice'), ('multi_select', 'Multiple choice'), ('number', 'Number'), ('email', 'E-mail'), ('url', 'URL'), ('boolean', 'Yes / No'), ('date', 'Date')], max_length=16, verbose_name='Field type'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='is_active',
+            field=models.BooleanField(default=True, verbose_name='Active'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='is_required',
+            field=models.BooleanField(default=True, verbose_name='Required'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='key',
+            field=models.SlugField(help_text='Identifier used in submitted data, for example steps_to_reproduce.', max_length=64, verbose_name='Key'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='label',
+            field=models.CharField(max_length=255, verbose_name='Label'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='max_length',
+            field=models.PositiveIntegerField(blank=True, null=True, verbose_name='Maximum length'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='min_length',
+            field=models.PositiveIntegerField(blank=True, null=True, verbose_name='Minimum length'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='order',
+            field=models.PositiveIntegerField(default=0, verbose_name='Order'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='regex',
+            field=models.CharField(blank=True, help_text='Optional regular expression the answer must match.', max_length=255, verbose_name='Regular expression'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='regex_error_message',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Regular expression error message'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='review_visibility',
+            field=models.CharField(choices=[('visible', 'Visible'), ('masked', 'Masked'), ('hidden', 'Hidden')], default='visible', help_text='What the jury can see for this field.', max_length=8, verbose_name='Review visibility'),
+        ),
+        migrations.AlterField(
+            model_name='formfield',
+            name='updated_at',
+            field=models.DateTimeField(auto_now=True, verbose_name='Updated at'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='expires_at',
+            field=models.DateTimeField(verbose_name='Expires at'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='key_hash',
+            field=models.CharField(max_length=64, unique=True, verbose_name='Key hash'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='last_used_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Last used at'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='name',
+            field=models.CharField(max_length=100, verbose_name='Name'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='prefix',
+            field=models.CharField(max_length=16, unique=True, verbose_name='Prefix'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='revoked_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Revoked at'),
+        ),
+        migrations.AlterField(
+            model_name='juryapikey',
+            name='user',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='jury_api_keys', to=settings.AUTH_USER_MODEL, verbose_name='User'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='city',
+            field=models.CharField(blank=True, max_length=64, verbose_name='City'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='education_level',
+            field=models.CharField(blank=True, choices=[('primary', 'Primary school'), ('middle', 'Middle school'), ('high', 'High school'), ('associate', 'Associate degree'), ('bachelor', "Bachelor's degree"), ('master', "Master's degree"), ('doctorate', 'Doctorate')], max_length=16, verbose_name='Education level'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='institution',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Institution'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='phone',
+            field=models.CharField(blank=True, max_length=20, verbose_name='Phone'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='photo',
+            field=models.ImageField(blank=True, upload_to='profiles/%Y/', verbose_name='Photo'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='updated_at',
+            field=models.DateTimeField(auto_now=True, verbose_name='Updated at'),
+        ),
+        migrations.AlterField(
+            model_name='profile',
+            name='user',
+            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL, verbose_name='User'),
+        ),
+        migrations.AlterField(
+            model_name='review',
+            name='application',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to='main.application', verbose_name='Application'),
+        ),
+        migrations.AlterField(
+            model_name='review',
+            name='completed_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Completed at'),
+        ),
+        migrations.AlterField(
+            model_name='review',
+            name='created_at',
+            field=models.DateTimeField(auto_now_add=True, verbose_name='Created at'),
+        ),
+        migrations.AlterField(
+            model_name='review',
+            name='juror',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to=settings.AUTH_USER_MODEL, verbose_name='Juror'),
+        ),
+        migrations.AlterField(
+            model_name='review',
+            name='note',
+            field=models.TextField(blank=True, verbose_name='Note'),
+        ),
+        migrations.AlterField(
+            model_name='review',
+            name='score',
+            field=models.PositiveSmallIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(0), django.core.validators.MaxValueValidator(100)], verbose_name='Score'),
+        ),
+        migrations.AlterField(
+            model_name='review',
+            name='updated_at',
+            field=models.DateTimeField(auto_now=True, verbose_name='Updated at'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='announcement',
+            field=models.TextField(blank=True, verbose_name='Announcement'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='announcement_active',
+            field=models.BooleanField(default=False, verbose_name='Announcement active'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='application_closes_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Application closes at'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='application_opens_at',
+            field=models.DateTimeField(blank=True, null=True, verbose_name='Application opens at'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='application_status',
+            field=models.CharField(choices=[('upcoming', 'Upcoming'), ('open', 'Open'), ('in_review', 'In review'), ('closed', 'Closed')], default='open', max_length=16, verbose_name='Application status'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='calendar_note',
+            field=models.TextField(blank=True, verbose_name='Calendar note'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='competition_name',
+            field=models.CharField(default='Pardus Hata Yakalama ve Geliştirme Yarışması', max_length=255, verbose_name='Competition name'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='contact_email',
+            field=models.EmailField(blank=True, max_length=254, verbose_name='Contact email'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='footer_tagline',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Footer tagline'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='hero_eyebrow',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Hero eyebrow'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='hero_lead',
+            field=models.TextField(blank=True, verbose_name='Hero lead'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='hero_title',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Hero title'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='site_title',
+            field=models.CharField(default='Pardus Teknofest', max_length=128, verbose_name='Site title'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettings',
+            name='updated_at',
+            field=models.DateTimeField(auto_now=True, verbose_name='Updated at'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='announcement',
+            field=models.TextField(blank=True, verbose_name='Announcement'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='calendar_note',
+            field=models.TextField(blank=True, verbose_name='Calendar note'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='footer_tagline',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Footer tagline'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='hero_eyebrow',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Hero eyebrow'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='hero_lead',
+            field=models.TextField(blank=True, verbose_name='Hero lead'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='hero_title',
+            field=models.CharField(blank=True, max_length=255, verbose_name='Hero title'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='language',
+            field=models.CharField(choices=[('tr', 'Türkçe'), ('en', 'English')], max_length=8, verbose_name='Language'),
+        ),
+        migrations.AlterField(
+            model_name='sitesettingstranslation',
+            name='settings',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='translations', to='main.sitesettings', verbose_name='Settings'),
+        ),
         migrations.RunPython(seed_initial_data, remove_initial_data),
     ]

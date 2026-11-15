@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class Review(models.Model):
@@ -10,29 +11,29 @@ class Review(models.Model):
         "Application",
         on_delete=models.CASCADE,
         related_name="reviews",
-        verbose_name="Başvuru",
+        verbose_name=_("Application"),
     )
     juror = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="reviews",
-        verbose_name="Jüri üyesi",
+        verbose_name=_("Juror"),
     )
     score = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        verbose_name="Puan",
+        verbose_name=_("Score"),
     )
-    note = models.TextField(blank=True, verbose_name="Not")
-    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Tamamlanma")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Son güncelleme")
+    note = models.TextField(blank=True, verbose_name=_("Note"))
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Completed at"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
 
     class Meta:
         ordering = ("-created_at",)
-        verbose_name = "Değerlendirme"
-        verbose_name_plural = "Değerlendirmeler"
+        verbose_name = _("Review")
+        verbose_name_plural = _("Reviews")
         constraints = [
             models.UniqueConstraint(
                 fields=("application", "juror"),

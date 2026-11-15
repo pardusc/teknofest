@@ -21,21 +21,21 @@ class JuryAPIKey(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="jury_api_keys",
-        verbose_name="Kullanıcı",
+        verbose_name=_("User"),
     )
-    name = models.CharField(max_length=100, verbose_name="Ad")
-    prefix = models.CharField(max_length=16, unique=True, verbose_name="Ön ek")
-    key_hash = models.CharField(max_length=64, unique=True, verbose_name="Anahtar özeti")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
-    expires_at = models.DateTimeField(verbose_name="Bitiş")
-    revoked_at = models.DateTimeField(null=True, blank=True, verbose_name="İptal edilme")
-    last_used_at = models.DateTimeField(null=True, blank=True, verbose_name="Son kullanım")
+    name = models.CharField(max_length=100, verbose_name=_("Name"))
+    prefix = models.CharField(max_length=16, unique=True, verbose_name=_("Prefix"))
+    key_hash = models.CharField(max_length=64, unique=True, verbose_name=_("Key hash"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    expires_at = models.DateTimeField(verbose_name=_("Expires at"))
+    revoked_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Revoked at"))
+    last_used_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Last used at"))
 
     class Meta:
         ordering = ("-created_at", "-id")
         indexes = [models.Index(fields=("user", "expires_at"))]
-        verbose_name = "Jüri API anahtarı"
-        verbose_name_plural = "Jüri API anahtarları"
+        verbose_name = _("Jury API key")
+        verbose_name_plural = _("Jury API keys")
 
     def __str__(self) -> str:
         return f"{self.user} · {self.name} ({self.prefix}…)"
