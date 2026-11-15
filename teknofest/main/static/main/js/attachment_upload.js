@@ -9,6 +9,10 @@ if (input) {
   const quotaVideos = document.querySelector("[data-quota-videos]");
   const quotaBytes = document.querySelector("[data-quota-bytes]");
   const status = document.querySelector("[data-attachment-status]");
+  const picker = document.querySelector("[data-attachment-picker]");
+  const trigger = picker?.querySelector("[data-attachment-trigger]");
+  const fileLabel = document.querySelector("[data-attachment-file-label]");
+  const nativeLabel = document.querySelector("[data-attachment-native-label]");
   const previewDialog = document.getElementById("attachment-preview-dialog");
   const canPreview = previewDialog && typeof previewDialog.showModal === "function";
   const supportsDataTransfer = typeof DataTransfer !== "undefined";
@@ -24,6 +28,10 @@ if (input) {
     existingFiles: Number(input.dataset.existingFiles || 0),
     existingVideos: Number(input.dataset.existingVideos || 0),
     existingBytes: Number(input.dataset.existingBytes || 0),
+    labels: {
+      one: input.dataset.labelOne || "1 file selected",
+      many: input.dataset.labelMany || "{count} files selected",
+    },
     messages: {
       image: input.dataset.msgImage || "",
       video: input.dataset.msgVideo || "",
@@ -31,6 +39,7 @@ if (input) {
       fileLimit: input.dataset.msgFileLimit || "",
       videoLimit: input.dataset.msgVideoLimit || "",
       totalLimit: input.dataset.msgTotalLimit || "",
+      required: input.dataset.msgRequired || "",
       remove: input.dataset.msgRemove || "Remove",
       preview: input.dataset.msgPreview || "Preview",
     },
@@ -40,6 +49,15 @@ if (input) {
   let objectUrls = [];
   let syncingInput = false;
   let clearTimer = null;
+
+  if (picker) {
+    picker.hidden = false;
+    input.classList.add("visually-hidden");
+    input.required = false;
+    if (nativeLabel) nativeLabel.hidden = true;
+  }
+
+  trigger?.addEventListener("click", () => input.click());
 
   const formatBytes = (bytes) => {
     if (bytes >= 1024 * 1024) {
@@ -146,14 +164,22 @@ if (input) {
   };
 
   const setError = (message) => {
-    input.setCustomValidity(message);
     if (errorElement) {
       errorElement.textContent = message;
       errorElement.hidden = !message;
     }
+    if (message) {
+      input.setAttribute("aria-invalid", "true");
+    } else {
+      input.removeAttribute("aria-invalid");
+    }
   };
 
   const validate = () => {
+    if (picker && requiredOnLoad && selected.length === 0) {
+      setError(config.messages.required);
+      return false;
+    }
     if (config.maxFiles && config.existingFiles + selected.length > config.maxFiles) {
       setError(config.messages.fileLimit);
       return false;
@@ -288,7 +314,6 @@ if (input) {
     cancelInputClear();
     syncInputFiles();
     refresh();
-    updateRequired();
     if (supportsDataTransfer) input.value = "";
   };
 
@@ -315,18 +340,29 @@ if (input) {
   const refresh = () => {
     renderSelection();
     updateQuota();
+    updateFileLabel();
     validate();
   };
 
-  const updateRequired = () => {
-    if (!requiredOnLoad) return;
-    input.required = selected.length === 0;
+  const updateFileLabel = () => {
+    if (!fileLabel) return;
+    if (!selected.length) {
+      fileLabel.hidden = true;
+      fileLabel.textContent = "";
+      return;
+    }
+    fileLabel.hidden = false;
+    fileLabel.textContent =
+      selected.length === 1
+        ? config.labels.one
+        : config.labels.many.replace("{count}", String(selected.length));
   };
 
   const showPreparing = () => {
     if (status) {
       status.hidden = false;
       input.disabled = true;
+      if (trigger) trigger.disabled = true;
     }
   };
 
@@ -334,6 +370,7 @@ if (input) {
     if (status) {
       status.hidden = true;
       input.disabled = false;
+      if (trigger) trigger.disabled = false;
     }
   };
 
@@ -353,7 +390,6 @@ if (input) {
       clearTimer = null;
       input.value = "";
       hidePreparing();
-      updateRequired();
     }, 500);
   };
 
@@ -372,7 +408,6 @@ if (input) {
 
     syncInputFiles();
     refresh();
-    updateRequired();
     scheduleInputClear();
   };
 
@@ -384,7 +419,6 @@ if (input) {
     if (typeof DataTransfer === "undefined") {
       selected = incoming;
       refresh();
-      updateRequired();
       return;
     }
 
@@ -412,7 +446,6 @@ if (input) {
         if (typeof DataTransfer === "undefined") {
           selected = files;
           refresh();
-          updateRequired();
         } else {
           addFiles(files);
         }
@@ -430,8 +463,8 @@ if (input) {
       }
       if (!validate()) {
         event.preventDefault();
-        input.reportValidity();
-        input.focus();
+        if (trigger) trigger.focus();
+        else input.focus();
         if (supportsDataTransfer) input.value = "";
         return;
       }
@@ -442,12 +475,12 @@ if (input) {
       window.setTimeout(() => {
         selected = [];
         refresh();
-        updateRequired();
+        setError("");
         input.value = "";
       }, 0);
     });
   }
 
   updateQuota();
-  updateRequired();
+  updateFileLabel();
 }

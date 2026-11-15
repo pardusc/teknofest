@@ -16,6 +16,7 @@
 {% translate "The selected files would exceed the total size limit." as msg_total_limit %}
 {% translate "Remove" as msg_remove %}
 {% translate "Preview" as msg_preview %}
+{% translate "At least one attachment is required for this form." as msg_required %}
 <div class="container site-main">
   <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
     <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
@@ -75,7 +76,11 @@
             {% endif %}
 
             <div class="file-drop" data-file-drop>
-              <label class="form-label" for="application-files">{% translate "Choose files" %}</label>
+              <label class="form-label" for="application-files" data-attachment-native-label>{% translate "Choose files" %}</label>
+              <div class="d-flex flex-wrap align-items-center justify-content-center gap-2" data-attachment-picker hidden>
+                <button type="button" class="btn-outline btn-sm" data-attachment-trigger>{% translate "Choose files" %}</button>
+                <span class="small fg-secondary" data-attachment-file-label hidden></span>
+              </div>
               <input id="application-files" class="form-control" type="file" name="files"
                      accept="{{ attachment_rules.accept_attribute }}" multiple
                      data-attachment-input
@@ -91,12 +96,15 @@
                      data-remaining-files="{{ attachment_usage.remaining_files }}"
                      data-remaining-videos="{{ attachment_usage.remaining_videos }}"
                      data-remaining-bytes="{{ attachment_usage.remaining_bytes }}"
+                     data-label-one="{% translate '1 file selected' %}"
+                     data-label-many="{% translate '{count} files selected' %}"
                      data-msg-image="{{ msg_image|escapejs }}"
                      data-msg-video="{{ msg_video|escapejs }}"
                      data-msg-size="{{ msg_size|escapejs }}"
                      data-msg-file-limit="{{ msg_file_limit|escapejs }}"
                      data-msg-video-limit="{{ msg_video_limit|escapejs }}"
                      data-msg-total-limit="{{ msg_total_limit|escapejs }}"
+                     data-msg-required="{{ msg_required|escapejs }}"
                      data-msg-remove="{{ msg_remove|escapejs }}"
                      data-msg-preview="{{ msg_preview|escapejs }}"
                      {% if attachment_policy == 'required' and not attachments %}required{% endif %}>
