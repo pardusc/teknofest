@@ -22,7 +22,11 @@
         <h1>{% translate "Overview" %}</h1>
         <p>{% blocktranslate with name=user.first_name|default:user.username %}Welcome back, {{ name }}.{% endblocktranslate %}</p>
       </div>
-      <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+      {% if continue_application %}
+        <a class="btn-solid" href="{% url 'main:application_detail' continue_application.public_id %}">{% translate "Continue application" %}</a>
+      {% else %}
+        <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+      {% endif %}
     </div>
 
     <div class="row g-3">

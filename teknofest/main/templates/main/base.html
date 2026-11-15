@@ -88,6 +88,15 @@
     </div>
   </nav>
 
+  {% if user.is_authenticated and not is_jury_member and not site_settings.is_application_open %}
+    <div class="period-banner">
+      <div class="container">
+        <span>{% translate "Closed for applications" %} · {{ site_settings.current_year }}</span>
+        {% if site_settings.application_closes_at %}<span>{% translate "Deadline" %}: {{ site_settings.application_closes_at|date:"d.m.Y H:i" }}</span>{% endif %}
+      </div>
+    </div>
+  {% endif %}
+
   <main id="main-content">
     {% if messages %}
       <div class="container pt-3">

@@ -14,6 +14,12 @@
     <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "View application forms" %}</a>
   </div>
 
+  <nav class="tabs" aria-label="{% translate 'Application status' %}">
+    {% for tab in status_tabs %}
+      <a class="tab{% if tab.active %} active{% endif %}" href="?{% if tab.key %}status={{ tab.key }}{% endif %}">{{ tab.label }} <span class="tab-count">{{ tab.count }}</span></a>
+    {% endfor %}
+  </nav>
+
   {% if applications %}
     <section class="card section-card">
       <div class="table-responsive">

@@ -83,7 +83,7 @@ class Application(models.Model):
     @property
     def status_tone(self) -> str:
         return {
-            self.Status.SUBMITTED: "chip-accent",
+            self.Status.SUBMITTED: "chip-neutral",
             self.Status.IN_REVIEW: "chip-warning",
             self.Status.EVALUATED: "chip-success",
         }.get(self.status, "chip-neutral")
