@@ -995,3 +995,15 @@ msgstr "İsteğe bağlı. Boş bırakılırsa genel başvuru bitiş tarihi uygul
 #: main/forms.py
 msgid "Required because no global application deadline is configured."
 msgstr "Genel başvuru bitiş tarihi tanımlı olmadığı için zorunludur."
+
+#: main/templates/main/base.html
+msgid "Language"
+msgstr "Dil"
+
+#: main/templates/main/base.html
+msgid "Turkish"
+msgstr "Türkçe"
+
+#: main/templates/main/base.html
+msgid "English"
+msgstr "İngilizce"

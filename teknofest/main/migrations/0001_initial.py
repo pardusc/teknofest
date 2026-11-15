@@ -13,10 +13,12 @@ from django.db import migrations, models
 
 def seed_initial_data(apps, schema_editor):
     Category = apps.get_model("main", "Category")
+    CategoryTranslation = apps.get_model("main", "CategoryTranslation")
     Group = apps.get_model("auth", "Group")
     SiteSettings = apps.get_model("main", "SiteSettings")
+    SiteSettingsTranslation = apps.get_model("main", "SiteSettingsTranslation")
 
-    Category.objects.update_or_create(
+    bug, _ = Category.objects.update_or_create(
         slug="bug",
         defaults={
             "name": "Hata / Öneri",
@@ -33,7 +35,24 @@ def seed_initial_data(apps, schema_editor):
             "order": 1,
         },
     )
-    Category.objects.update_or_create(
+    CategoryTranslation.objects.update_or_create(
+        category=bug,
+        language="en",
+        defaults={
+            "name": "Bug / Suggestion",
+            "description": "Bug reports and suggestions for Pardus applications.",
+            "home_description": (
+                "Describe the bugs or usability suggestions you encounter in Pardus "
+                "components and submit them with the required attachments."
+            ),
+            "home_highlights": (
+                "Bug and reproduction steps\n"
+                "Usability or feature suggestions"
+            ),
+        },
+    )
+
+    development, _ = Category.objects.update_or_create(
         slug="development",
         defaults={
             "name": "Geliştirme",
@@ -50,10 +69,26 @@ def seed_initial_data(apps, schema_editor):
             "order": 2,
         },
     )
+    CategoryTranslation.objects.update_or_create(
+        category=development,
+        language="en",
+        defaults={
+            "name": "Development",
+            "description": "New software or improvements developed for Pardus.",
+            "home_description": (
+                "Present the software, tools or technical improvements you develop "
+                "for Pardus together with project details."
+            ),
+            "home_highlights": (
+                "Project and technical solution description\n"
+                "Related work outputs"
+            ),
+        },
+    )
 
     Group.objects.get_or_create(name="jury")
 
-    SiteSettings.objects.get_or_create(
+    site, _ = SiteSettings.objects.get_or_create(
         pk=1,
         defaults={
             "site_title": "Pardus Teknofest",
@@ -68,6 +103,20 @@ def seed_initial_data(apps, schema_editor):
             ),
             "calendar_note": "Form ayrıntılarında yer alır",
             "footer_tagline": "Açık kaynakla daha iyi bir Pardus",
+        },
+    )
+    SiteSettingsTranslation.objects.update_or_create(
+        settings=site,
+        language="en",
+        defaults={
+            "hero_eyebrow": "Pardus Teknofest",
+            "hero_title": "Pardus Bug Finding and Suggestion Competition",
+            "hero_lead": (
+                "Submit your bug reports, suggestions and development work as a "
+                "competition application."
+            ),
+            "calendar_note": "Included in form details",
+            "footer_tagline": "Better Pardus with open source",
         },
     )
 

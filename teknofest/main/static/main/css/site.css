@@ -88,13 +88,16 @@ hr { border-color: var(--p-border); opacity: 1; }
   background: var(--p-nav-bg);
   border-bottom: 3px solid var(--p-accent);
 }
-.site-navbar > .container { min-height: 64px; gap: 1.25rem; }
+.site-navbar > .container { min-height: 64px; gap: 1.25rem; flex-wrap: nowrap; }
 .brand { display: inline-flex; align-items: center; gap: 0.7rem; text-decoration: none; }
 .brand:hover { text-decoration: none; }
 .brand-logo { height: 28px; width: auto; filter: brightness(0) invert(1); }
 .brand-divider { width: 1px; height: 22px; background: rgb(255 255 255 / 22%); }
 .brand-product { color: #fff; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
-.nav-links { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; }
+.nav-links { align-items: center; gap: 0.25rem; margin-left: auto; }
+@media (min-width: 992px) {
+  .nav-links { display: flex; }
+}
 .nav-links a, .nav-links .nav-button {
   display: inline-flex;
   align-items: center;
@@ -474,8 +477,34 @@ input[type="file"].form-control::file-selector-button:hover {
 .btn-solid:focus-visible { outline-color: var(--p-on-accent); }
 .nav-cta:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
-/* Theme toggle */
+/* Language and theme controls */
 .nav-actions { display: flex; align-items: center; gap: 0.4rem; margin-left: 0.5rem; }
+.language-switcher {
+  display: inline-flex;
+  align-items: stretch;
+  height: 36px;
+  margin: 0;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.lang-option {
+  min-width: 34px;
+  padding: 0 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--p-nav-muted);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.lang-option + .lang-option { border-left: 1px solid rgb(255 255 255 / 18%); }
+.lang-option:hover, .lang-option:focus-visible { background: rgb(255 255 255 / 10%); color: #fff; }
+.lang-option:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.lang-option.active { background: var(--p-accent); color: var(--p-on-accent); }
+.lang-option.active:hover, .lang-option.active:focus-visible { background: var(--p-accent-hover); color: var(--p-on-accent); }
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -498,6 +527,11 @@ input[type="file"].form-control::file-selector-button:hover {
 
 @media (max-width: 991.98px) {
   .nav-actions { margin-left: auto; }
+}
+
+@media (max-width: 575.98px) {
+  .brand-divider, .brand-product { display: none; }
+  .lang-option { min-width: 31px; }
 }
 
 [data-bs-theme="dark"] .auth-brand img { filter: brightness(0) invert(1); }

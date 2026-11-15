@@ -1840,6 +1840,46 @@ class TranslationTests(TestCase):
         self.assertEqual(_validation_message(error), "Plain message")
 
 
+class LanguageSwitcherTests(TestCase):
+    def test_browser_language_is_ignored_by_default(self):
+        response = self.client.get(
+            reverse("main:home"),
+            HTTP_ACCEPT_LANGUAGE="en-US,en;q=0.9",
+        )
+
+        self.assertContains(response, "Ana sayfa")
+        self.assertNotContains(response, "Home")
+        self.assertContains(response, 'class="language-switcher"')
+        self.assertContains(response, 'name="language" value="en"')
+
+    def test_language_switcher_sets_and_persists_language(self):
+        response = self.client.post(
+            reverse("set_language"),
+            {"language": "en", "next": reverse("main:home")},
+        )
+
+        self.assertRedirects(response, reverse("main:home"))
+        self.assertEqual(response.cookies["django_language"].value, "en")
+
+        response = self.client.get(reverse("main:home"))
+        self.assertContains(response, "Home")
+        self.assertContains(response, "Log in")
+
+        self.client.post(
+            reverse("set_language"),
+            {"language": "tr", "next": reverse("main:home")},
+        )
+        response = self.client.get(reverse("main:home"))
+        self.assertContains(response, "Ana sayfa")
+
+    def test_invalid_language_cookie_falls_back_to_turkish(self):
+        self.client.cookies["django_language"] = "xx"
+
+        response = self.client.get(reverse("main:home"))
+
+        self.assertContains(response, "Ana sayfa")
+
+
 class AuditWorkflowTests(MediaTestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
@@ -2410,11 +2450,14 @@ class SiteSettingsTests(TestCase):
     def test_localized_uses_translation_and_falls_back_to_base(self):
         self.settings.hero_lead = "Base lead"
         self.settings.save()
-        SiteSettingsTranslation.objects.create(
+        SiteSettingsTranslation.objects.update_or_create(
             settings=self.settings,
             language="en",
-            hero_title="English hero",
-            hero_lead="",
+            defaults={
+                "hero_eyebrow": "",
+                "hero_title": "English hero",
+                "hero_lead": "",
+            },
         )
 
         localized = self.settings.localized("en")
@@ -2427,31 +2470,35 @@ class SiteSettingsTests(TestCase):
         )
 
     def test_home_uses_english_translation(self):
-        SiteSettingsTranslation.objects.create(
+        SiteSettingsTranslation.objects.update_or_create(
             settings=self.settings,
             language="en",
-            hero_title="English hero",
-            hero_lead="English lead",
+            defaults={
+                "hero_title": "English hero",
+                "hero_lead": "English lead",
+            },
         )
         self.settings.hero_title = "Turkish hero"
         self.settings.hero_lead = "Turkish lead"
         self.settings.save()
 
-        with translation.override("en"):
-            response = self.client.get(reverse("main:home"))
+        self.client.cookies["django_language"] = "en"
+        response = self.client.get(reverse("main:home"))
 
         self.assertContains(response, "English hero")
         self.assertContains(response, "English lead")
         self.assertNotContains(response, "Turkish hero")
 
     def test_category_translation_overrides_display(self):
-        CategoryTranslation.objects.create(
+        CategoryTranslation.objects.update_or_create(
             category=self.category,
             language="en",
-            name="English category",
-            description="English description",
-            home_description="English home",
-            home_highlights="One\nTwo",
+            defaults={
+                "name": "English category",
+                "description": "English description",
+                "home_description": "English home",
+                "home_highlights": "One\nTwo",
+            },
         )
 
         from django.utils import translation
@@ -2469,11 +2516,15 @@ class SiteSettingsTests(TestCase):
             self.assertEqual(self.category.highlight_list, ["One", "Two"])
 
     def test_category_translation_falls_back_to_base(self):
-        CategoryTranslation.objects.create(
+        CategoryTranslation.objects.update_or_create(
             category=self.category,
             language="en",
-            name="",
-            description="",
+            defaults={
+                "name": "",
+                "description": "",
+                "home_description": "",
+                "home_highlights": "",
+            },
         )
 
         from django.utils import translation
@@ -2490,15 +2541,17 @@ class SiteSettingsTests(TestCase):
             )
 
     def test_home_uses_category_translation(self):
-        CategoryTranslation.objects.create(
+        CategoryTranslation.objects.update_or_create(
             category=self.category,
             language="en",
-            name="English category",
-            home_description="English category description",
+            defaults={
+                "name": "English category",
+                "home_description": "English category description",
+            },
         )
 
-        with translation.override("en"):
-            response = self.client.get(reverse("main:home"))
+        self.client.cookies["django_language"] = "en"
+        response = self.client.get(reverse("main:home"))
 
         self.assertContains(response, "English category")
         self.assertContains(response, "English category description")
