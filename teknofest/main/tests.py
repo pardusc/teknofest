@@ -596,6 +596,28 @@ class DynamicFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("title", form.errors)
 
+    def test_text_fields_get_a_default_placeholder(self):
+        form = build_form(self.form)
+
+        self.assertEqual(
+            form.fields["title"].widget.attrs["placeholder"],
+            "Type your answer",
+        )
+        self.assertEqual(
+            form.fields["repo"].widget.attrs["placeholder"],
+            "https://example.com",
+        )
+
+    def test_custom_placeholder_overrides_the_default(self):
+        FormField.objects.filter(key="title").update(placeholder="Project name")
+
+        form = build_form(self.form)
+
+        self.assertEqual(
+            form.fields["title"].widget.attrs["placeholder"],
+            "Project name",
+        )
+
     def test_invalid_select_value_is_rejected(self):
         form = build_form(self.form, data=self.valid_data(level="medium"))
 
@@ -779,6 +801,7 @@ class AdminTests(TestCase):
                 "label": "Level",
                 "field_type": FormField.FieldType.SELECT,
                 "short_description": "",
+                "placeholder": "",
                 "is_required": "on",
                 "min_length": "",
                 "max_length": "",

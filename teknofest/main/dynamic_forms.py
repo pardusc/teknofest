@@ -1,7 +1,28 @@
 from django import forms
 from django.core.validators import RegexValidator
+from django.utils.translation import gettext as _
 
 from .models import FormField
+
+DEFAULT_PLACEHOLDERS = {
+    FormField.FieldType.SHORT_TEXT: "Type your answer",
+    FormField.FieldType.LONG_TEXT: "Type your answer in detail",
+    FormField.FieldType.NUMBER: "e.g. 3",
+    FormField.FieldType.EMAIL: "name@example.com",
+    FormField.FieldType.URL: "https://example.com",
+}
+
+
+def _placeholder(field: FormField) -> str:
+    if field.placeholder:
+        return field.placeholder
+    default = DEFAULT_PLACEHOLDERS.get(field.field_type)
+    return _(default) if default else ""
+
+
+def _text_attrs(field: FormField) -> dict[str, str]:
+    placeholder = _placeholder(field)
+    return {"placeholder": placeholder} if placeholder else {}
 
 
 def to_django_field(field: FormField, required: bool | None = None) -> forms.Field:
@@ -26,9 +47,15 @@ def to_django_field(field: FormField, required: bool | None = None) -> forms.Fie
 
     match field.field_type:
         case FormField.FieldType.SHORT_TEXT:
-            return forms.CharField(widget=forms.TextInput, **text_kwargs)
+            return forms.CharField(
+                widget=forms.TextInput(attrs=_text_attrs(field)),
+                **text_kwargs,
+            )
         case FormField.FieldType.LONG_TEXT:
-            return forms.CharField(widget=forms.Textarea(attrs={"rows": 4}), **text_kwargs)
+            return forms.CharField(
+                widget=forms.Textarea(attrs={"rows": 4, **_text_attrs(field)}),
+                **text_kwargs,
+            )
         case FormField.FieldType.MARKDOWN:
             return forms.CharField(widget=forms.Textarea(attrs={"rows": 10}), **text_kwargs)
         case FormField.FieldType.SELECT:
@@ -40,11 +67,20 @@ def to_django_field(field: FormField, required: bool | None = None) -> forms.Fie
                 **common,
             )
         case FormField.FieldType.NUMBER:
-            return forms.IntegerField(**common)
+            return forms.IntegerField(
+                widget=forms.NumberInput(attrs=_text_attrs(field)),
+                **common,
+            )
         case FormField.FieldType.EMAIL:
-            return forms.EmailField(**common)
+            return forms.EmailField(
+                widget=forms.EmailInput(attrs=_text_attrs(field)),
+                **common,
+            )
         case FormField.FieldType.URL:
-            return forms.URLField(**common)
+            return forms.URLField(
+                widget=forms.URLInput(attrs=_text_attrs(field)),
+                **common,
+            )
         case FormField.FieldType.BOOLEAN:
             return forms.BooleanField(**common)
         case FormField.FieldType.DATE:
