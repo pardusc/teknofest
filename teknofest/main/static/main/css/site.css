@@ -338,6 +338,24 @@ hr { border-color: var(--p-border); opacity: 1; }
 .dynamic-field input[type="date"] { color-scheme: light; }
 [data-bs-theme="dark"] .dynamic-field input[type="date"] { color-scheme: dark; }
 .dynamic-field .field-error { color: var(--p-danger); font-size: 0.8rem; line-height: 1.4; }
+.field-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.field-meta:not(:has(> :not([hidden]))) { display: none; }
+.field-warning { margin: 0; color: var(--p-danger); font-size: 0.78rem; line-height: 1.4; }
+.field-counter {
+  margin-left: auto;
+  color: var(--p-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.field-counter.is-near-limit { color: var(--p-warning); }
+.field-counter.is-at-limit { color: var(--p-danger); font-weight: 600; }
+.field-warning[hidden], .field-counter[hidden] { display: none !important; }
 .dynamic-field.has-error .form-control,
 .dynamic-field.has-error .form-field-card { border-color: var(--p-danger); }
 .dynamic-field.has-error .form-control:focus {

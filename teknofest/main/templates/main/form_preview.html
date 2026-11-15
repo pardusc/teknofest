@@ -1,5 +1,5 @@
 {% extends "main/base.html" %}
-{% load i18n %}
+{% load static i18n %}
 
 {% block title %}{{ definition.title }} · {% translate "Form preview" %}{% endblock %}
 
@@ -28,4 +28,8 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'main/js/form_fields.js' %}"></script>
 {% endblock %}

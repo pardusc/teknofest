@@ -516,6 +516,7 @@ class DynamicFormTests(TestCase):
             key="title",
             label="Title",
             field_type=FormField.FieldType.SHORT_TEXT,
+            min_length=3,
             max_length=10,
             order=1,
         )
@@ -619,6 +620,14 @@ class DynamicFormTests(TestCase):
             "Project name",
         )
 
+    def test_text_fields_expose_length_hint_attributes(self):
+        form = build_form(self.form)
+        attrs = form.fields["title"].widget.attrs
+
+        self.assertEqual(attrs["data-maxlength"], "10")
+        self.assertEqual(attrs["data-minlength"], "3")
+        self.assertIn("3", attrs["data-minlength-message"])
+
     def test_choice_fields_use_bootstrap_6_widgets(self):
         form = build_form(self.form)
 
@@ -680,6 +689,7 @@ class FormPreviewTests(TestCase):
             field_type=FormField.FieldType.SHORT_TEXT,
             short_description="Write the project title.",
             placeholder="e.g. My project",
+            max_length=120,
         )
         FormField.objects.create(
             form=self.form,
@@ -717,6 +727,10 @@ class FormPreviewTests(TestCase):
         self.assertContains(response, "field-description")
         self.assertContains(response, "choice-grid")
         self.assertContains(response, "form-field-card choice-card")
+        self.assertContains(response, 'data-maxlength="120"')
+        self.assertContains(response, "data-maxlength-counter")
+        self.assertContains(response, "data-minlength-warning")
+        self.assertContains(response, "form_fields.js")
 
 
 class AdminTests(TestCase):

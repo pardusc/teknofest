@@ -27,6 +27,14 @@ def _text_attrs(field: FormField) -> dict[str, str]:
         attrs["placeholder"] = placeholder
     if field.short_description:
         attrs["aria-describedby"] = f"id_{field.key}_description"
+    if field.field_type in (FormField.FieldType.SHORT_TEXT, FormField.FieldType.LONG_TEXT):
+        if field.max_length:
+            attrs["data-maxlength"] = str(field.max_length)
+        if field.min_length:
+            attrs["data-minlength"] = str(field.min_length)
+            attrs["data-minlength-message"] = _(
+                "This field must be at least %(min)s characters."
+            ) % {"min": field.min_length}
     return attrs
 
 

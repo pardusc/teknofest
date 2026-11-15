@@ -26,6 +26,10 @@
     </label>
     {% if field.help_text %}<div class="form-text field-description" id="{{ field.auto_id }}_description">{{ field.help_text }}</div>{% endif %}
     {{ field }}
+    <div class="field-meta">
+      <p class="field-warning" data-minlength-warning hidden aria-live="polite"></p>
+      <span class="field-counter" data-maxlength-counter hidden aria-hidden="true"></span>
+    </div>
     {% if field.errors %}<div class="field-error" role="alert">{{ field.errors|join:", " }}</div>{% endif %}
   {% endif %}
 </div>
