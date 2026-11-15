@@ -1034,6 +1034,39 @@ class AdminTests(TestCase):
         form = FormDefinition.objects.get(title="Selected year form")
         self.assertEqual(form.year, selected_year)
 
+    def test_admin_form_definition_date_only_defaults_time_to_midnight(self):
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        category = Category.objects.create(slug="midnight", name="Midnight")
+        data = {
+            "year": self.year.pk,
+            "category": category.pk,
+            "title": "Midnight form",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "2030-01-02",
+            "opens_at_1": "",
+            "closes_at_0": "2030-01-03",
+            "closes_at_1": "",
+            "_save": "Save",
+        }
+        data.update(self.inline_field_data(prefix))
+
+        response = self.client.post(add_url, data)
+
+        self.assertEqual(response.status_code, 302)
+        form = FormDefinition.objects.get(title="Midnight form")
+        self.assertEqual(
+            timezone.localtime(form.opens_at).strftime("%Y-%m-%d %H:%M"),
+            "2030-01-02 00:00",
+        )
+        self.assertEqual(
+            timezone.localtime(form.closes_at).strftime("%Y-%m-%d %H:%M"),
+            "2030-01-03 00:00",
+        )
+
     def test_admin_form_definition_requires_a_title_field(self):
         add_url = reverse("admin:main_formdefinition_add")
         response = self.client.get(add_url)

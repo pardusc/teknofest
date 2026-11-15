@@ -1,6 +1,8 @@
 import re
+from datetime import time
 
 from django import forms
+from django.contrib.admin.widgets import AdminSplitDateTime
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
@@ -97,8 +99,33 @@ class JuryAPIKeyForm(forms.ModelForm):
         return name
 
 
+class MidnightSplitDateTimeField(forms.SplitDateTimeField):
+    """Split date/time field that defaults a missing time to midnight."""
+
+    def compress(self, data_list):
+        if data_list:
+            date_value, time_value = data_list
+            if (
+                date_value not in self.empty_values
+                and time_value in self.empty_values
+            ):
+                data_list = [date_value, time(0, 0)]
+        return super().compress(data_list)
+
+
 class FormDefinitionAdminForm(forms.ModelForm):
     """Admin form for form definitions; the closing date is optional."""
+
+    opens_at = MidnightSplitDateTimeField(
+        required=False,
+        label=_("Opens at"),
+        widget=AdminSplitDateTime,
+    )
+    closes_at = MidnightSplitDateTimeField(
+        required=False,
+        label=_("Closes at"),
+        widget=AdminSplitDateTime,
+    )
 
     class Meta:
         model = FormDefinition
