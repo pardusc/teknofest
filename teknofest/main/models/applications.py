@@ -83,11 +83,8 @@ class Application(models.Model):
         ordering = ("-created_at",)
         verbose_name = _("Application")
         verbose_name_plural = _("Applications")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("applicant", "form"),
-                name="unique_application_per_applicant_and_form",
-            ),
+        indexes = [
+            models.Index(fields=("applicant", "form")),
         ]
 
     def __str__(self) -> str:

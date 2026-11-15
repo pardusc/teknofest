@@ -164,6 +164,7 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "status",
         "mask_applicant_identity",
         "attachment_policy",
+        "submission_limit",
         "opens_at",
         "closes_at",
     )
@@ -172,6 +173,7 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "category",
         "status",
         "attachment_policy",
+        "submission_limit",
         "opens_at",
         "closes_at",
         "preview_link",

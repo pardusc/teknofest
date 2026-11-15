@@ -75,7 +75,7 @@
                           <span class="row-title">{{ row.form.title }}</span>
                           <span class="row-meta">{{ row.form.category.display_name }} · {{ row.application.code }}</span>
                         </a>
-                      {% elif row.form.is_accepting_submissions %}
+                      {% elif row.can_apply %}
                         <a class="row-link" href="{% url 'main:application_start' row.form.pk %}">
                           <span class="row-title">{{ row.form.title }}</span>
                           <span class="row-meta">{{ row.form.category.display_name }}</span>
@@ -87,8 +87,10 @@
                     </td>
                     <td class="small fg-secondary hide-sm">{% if row.form.closes_at %}{{ row.form.closes_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
                     <td>
-                      {% if row.application %}
-                        <span class="chip chip-neutral">{% translate "Application received" %}</span>
+                      {% if row.count %}
+                        <span class="chip chip-neutral">
+                          {% if row.limit %}{{ row.count }} / {{ row.limit }}{% else %}{{ row.count }} / ∞{% endif %}
+                        </span>
                       {% elif row.form.is_accepting_submissions %}
                         <span class="chip chip-success">{% translate "Open for applications" %}</span>
                       {% else %}
@@ -96,12 +98,12 @@
                       {% endif %}
                     </td>
                     <td class="text-end">
-                      {% if row.application %}
-                        <a class="btn-outline btn-sm" href="{% url 'main:application_detail' row.application.public_id %}">{% translate "Open application" %}</a>
-                      {% elif row.form.is_accepting_submissions %}
+                      {% if row.can_apply %}
                         <a class="btn-solid btn-sm" href="{% url 'main:application_start' row.form.pk %}">{% translate "Apply" %}</a>
-                      {% else %}
+                      {% elif not row.form.is_accepting_submissions %}
                         <button class="btn-outline btn-sm" type="button" disabled>{% translate "Closed" %}</button>
+                      {% else %}
+                        <button class="btn-outline btn-sm" type="button" disabled>{% translate "Limit reached" %}</button>
                       {% endif %}
                     </td>
                   </tr>

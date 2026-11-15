@@ -263,6 +263,7 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(choices=[('open', 'Open'), ('in_review', 'In review'), ('closed', 'Closed')], default='open', max_length=16)),
                 ('mask_applicant_identity', models.BooleanField(default=False, help_text="Hide the applicant's name and e-mail from the jury.")),
                 ('attachment_policy', models.CharField(choices=[('none', 'No attachments'), ('optional', 'Optional'), ('required', 'Required')], default='optional', max_length=16)),
+                ('submission_limit', models.PositiveSmallIntegerField(default=1, help_text='How many applications one applicant may submit for this form. 0 means unlimited.', verbose_name='Submission limit')),
                 ('opens_at', models.DateTimeField(blank=True, null=True)),
                 ('closes_at', models.DateTimeField(blank=True, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
@@ -432,9 +433,9 @@ class Migration(migrations.Migration):
             model_name='auditevent',
             index=models.Index(fields=['action', 'created_at'], name='main_audite_action_f0f037_idx'),
         ),
-        migrations.AddConstraint(
+        migrations.AddIndex(
             model_name='application',
-            constraint=models.UniqueConstraint(fields=('applicant', 'form'), name='unique_application_per_applicant_and_form'),
+            index=models.Index(fields=['applicant', 'form'], name='main_applic_applica_2606a5_idx'),
         ),
         migrations.AddConstraint(
             model_name='formfield',

@@ -931,6 +931,7 @@ class AdminTests(TestCase):
             "description": "",
             "status": FormDefinition.Status.OPEN,
             "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "submission_limit": 1,
             "opens_at_0": "",
             "opens_at_1": "",
             "closes_at_0": "",
@@ -949,6 +950,14 @@ class AdminTests(TestCase):
         self.assertIsNone(form.closes_at)
         self.assertEqual(form.year.year, timezone.localdate().year)
 
+    def test_admin_form_definition_exposes_submission_limit(self):
+        response = self.client.get(reverse("admin:main_formdefinition_add"))
+
+        self.assertIn(
+            "submission_limit",
+            response.context["adminform"].form.fields,
+        )
+
     def test_admin_form_definition_requires_at_least_one_field(self):
         add_url = reverse("admin:main_formdefinition_add")
         response = self.client.get(add_url)
@@ -961,6 +970,7 @@ class AdminTests(TestCase):
             "description": "",
             "status": FormDefinition.Status.OPEN,
             "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "submission_limit": 1,
             "opens_at_0": "",
             "opens_at_1": "",
             "closes_at_0": "",
@@ -1020,6 +1030,7 @@ class AdminTests(TestCase):
             "description": "",
             "status": FormDefinition.Status.OPEN,
             "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "submission_limit": 1,
             "opens_at_0": "",
             "opens_at_1": "",
             "closes_at_0": "",
@@ -1079,6 +1090,7 @@ class AdminTests(TestCase):
             "description": "",
             "status": FormDefinition.Status.OPEN,
             "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "submission_limit": 1,
             "opens_at_0": "",
             "opens_at_1": "",
             "closes_at_0": "",
@@ -1120,6 +1132,7 @@ class AdminTests(TestCase):
             "description": "",
             "status": FormDefinition.Status.OPEN,
             "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "submission_limit": 1,
             "opens_at_0": "",
             "opens_at_1": "",
             "closes_at_0": "",
@@ -1320,13 +1333,54 @@ class ApplicationServiceTests(MediaTestCase):
 
         self.assertEqual([first.code, second.code], ["BUG-2026-00001", "BUG-2026-00002"])
 
-    def test_duplicate_application_per_form_is_rejected(self):
+    def test_default_limit_allows_one_application(self):
         self.submit_application()
 
-        with self.assertRaisesMessage(ValidationError, _("You already have an application for this form.")):
+        with self.assertRaisesMessage(
+            ValidationError,
+            _("You have reached the application limit for this form."),
+        ):
             self.submit_application()
 
         self.assertEqual(Application.objects.count(), 1)
+
+    def test_submission_limit_allows_several_applications(self):
+        self.form.submission_limit = 2
+        self.form.save()
+
+        self.submit_application()
+        self.submit_application()
+
+        with self.assertRaisesMessage(
+            ValidationError,
+            _("You have reached the application limit for this form."),
+        ):
+            self.submit_application()
+
+        self.assertEqual(Application.objects.count(), 2)
+
+    def test_zero_submission_limit_is_unlimited(self):
+        self.form.submission_limit = 0
+        self.form.save()
+
+        for _count in range(3):
+            self.submit_application()
+
+        self.assertEqual(Application.objects.count(), 3)
+
+    def test_deleting_an_application_frees_a_slot(self):
+        application = self.submit_application()
+        delete_application(application)
+
+        second = self.submit_application()
+
+        self.assertNotEqual(application.pk, second.pk)
+
+    def test_negative_submission_limit_is_rejected(self):
+        self.form.submission_limit = -1
+
+        with self.assertRaises(ValidationError):
+            self.form.full_clean()
 
     def test_application_is_editable_only_while_form_accepts(self):
         application = self.submit_application()
@@ -1542,15 +1596,14 @@ class ApplicationViewTests(MediaTestCase):
             reverse("main:application_start", args=[self.form.pk]),
         )
 
-    def test_form_detail_redirects_to_existing_application(self):
-        application = self.make_application()
+    def test_form_detail_redirects_to_list_when_limit_is_reached(self):
+        self.make_application()
 
-        response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
-
-        self.assertRedirects(
-            response,
-            reverse("main:application_detail", args=[application.public_id]),
+        response = self.client.get(
+            reverse("main:form_detail", args=[self.form.pk])
         )
+
+        self.assertRedirects(response, reverse("main:application_list"))
 
     def test_apply_page_renders_empty_form(self):
         response = self.client.get(
@@ -1617,16 +1670,77 @@ class ApplicationViewTests(MediaTestCase):
         self.assertIn("title", response.context["application_form"].errors)
         self.assertFalse(Application.objects.exists())
 
-    def test_apply_redirects_to_existing_application(self):
-        application = self.make_application()
+    def test_apply_page_allows_another_application_under_limit(self):
+        self.form.submission_limit = 2
+        self.form.save()
+        self.make_application()
 
         response = self.client.get(
             reverse("main:application_start", args=[self.form.pk])
         )
 
-        self.assertRedirects(
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("application_form", response.context)
+
+    def test_apply_page_blocks_when_limit_is_reached(self):
+        self.make_application()
+
+        response = self.client.get(
+            reverse("main:application_start", args=[self.form.pk]),
+            follow=True,
+        )
+
+        self.assertContains(
             response,
-            reverse("main:application_detail", args=[application.public_id]),
+            _("You have reached the application limit for this form."),
+        )
+        self.assertNotIn("application_form", response.context)
+
+    def form_row(self, response):
+        return next(
+            row for row in response.context["form_rows"] if row["form"] == self.form
+        )
+
+    def test_application_list_shows_progress_towards_limit(self):
+        self.form.submission_limit = 2
+        self.form.save()
+        self.make_application()
+
+        response = self.client.get(reverse("main:application_list"))
+        row = self.form_row(response)
+
+        self.assertEqual(row["count"], 1)
+        self.assertEqual(row["limit"], 2)
+        self.assertTrue(row["can_apply"])
+        self.assertContains(response, "1 / 2")
+        self.assertContains(
+            response,
+            f'href="{reverse("main:application_start", args=[self.form.pk])}"',
+        )
+
+    def test_application_list_marks_unlimited_forms(self):
+        self.form.submission_limit = 0
+        self.form.save()
+        self.make_application()
+
+        response = self.client.get(reverse("main:application_list"))
+        row = self.form_row(response)
+
+        self.assertTrue(row["can_apply"])
+        self.assertContains(response, "1 / ∞")
+
+    def test_application_list_disables_apply_at_limit(self):
+        self.make_application()
+
+        response = self.client.get(reverse("main:application_list"))
+        row = self.form_row(response)
+
+        self.assertEqual(row["count"], 1)
+        self.assertFalse(row["can_apply"])
+        self.assertContains(response, _("Limit reached"))
+        self.assertNotContains(
+            response,
+            f'href="{reverse("main:application_start", args=[self.form.pk])}"',
         )
 
     def test_apply_redirects_when_form_is_closed(self):

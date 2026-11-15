@@ -95,19 +95,16 @@ class FormDetailView(ApplicantOnlyMixin, View):
             category__is_active=True,
         )
 
-        existing = Application.objects.filter(
-            applicant=request.user,
-            form=form_definition,
-        ).first()
-        if existing:
-            return redirect(
-                "main:application_detail",
-                public_id=existing.public_id,
-            )
-        if form_definition.is_accepting_submissions:
+        if form_definition.accepts_submission_from(request.user):
             return redirect("main:application_start", pk=form_definition.pk)
 
-        messages.error(request, _("This form is not accepting applications."))
+        if form_definition.is_accepting_submissions:
+            messages.error(
+                request,
+                _("You have reached the application limit for this form."),
+            )
+        else:
+            messages.error(request, _("This form is not accepting applications."))
         return redirect("main:application_list")
 
 
@@ -123,15 +120,12 @@ class ApplicationStartView(ApplicantOnlyMixin, View):
             messages.error(request, _("This form is not accepting applications."))
             return redirect("main:application_list")
 
-        existing = Application.objects.filter(
-            applicant=request.user,
-            form=form_definition,
-        ).first()
-        if existing:
-            return redirect(
-                "main:application_detail",
-                public_id=existing.public_id,
+        if form_definition.has_reached_submission_limit(request.user):
+            messages.error(
+                request,
+                _("You have reached the application limit for this form."),
             )
+            return redirect("main:application_list")
 
         dynamic_form = build_form(form_definition)
         return TemplateResponse(
@@ -197,20 +191,31 @@ class ApplicationListView(ApplicantOnlyMixin, ListView):
             )
             .order_by("category__order")
         )
-        applications_by_form = {
-            application.form_id: application for application in applications
-        }
+        applications_by_form = {}
+        for application in applications:
+            applications_by_form.setdefault(application.form_id, []).append(
+                application
+            )
+        form_rows = []
+        for form in current_forms:
+            form_applications = applications_by_form.get(form.pk, [])
+            form_rows.append(
+                {
+                    "form": form,
+                    "applications": form_applications,
+                    "application": (
+                        form_applications[0] if form_applications else None
+                    ),
+                    "count": len(form_applications),
+                    "limit": form.submission_limit,
+                    "can_apply": form.accepts_submission_from(self.request.user),
+                }
+            )
         context.update(
             {
                 "profile": profile,
                 "continue_application": applications[0] if applications else None,
-                "form_rows": [
-                    {
-                        "form": form,
-                        "application": applications_by_form.get(form.pk),
-                    }
-                    for form in current_forms
-                ],
+                "form_rows": form_rows,
                 "open_form_count": sum(
                     1 for form in current_forms if form.is_accepting_submissions
                 ),

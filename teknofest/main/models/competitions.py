@@ -181,6 +181,14 @@ class FormDefinition(models.Model):
         default=AttachmentPolicy.OPTIONAL,
         verbose_name=_("Attachment policy"),
     )
+    submission_limit = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name=_("Submission limit"),
+        help_text=_(
+            "How many applications one applicant may submit for this form. "
+            "0 means unlimited."
+        ),
+    )
     opens_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Opens at"))
     closes_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Closes at"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
@@ -226,6 +234,21 @@ class FormDefinition(models.Model):
         if self.closes_at and now > self.closes_at:
             return False
         return True
+
+    def submission_count_for(self, applicant) -> int:
+        """Applications the applicant already submitted for this form."""
+        return self.applications.filter(applicant=applicant).count()
+
+    def has_reached_submission_limit(self, applicant) -> bool:
+        """Whether the applicant used every slot; a limit of 0 is unlimited."""
+        if not self.submission_limit:
+            return False
+        return self.submission_count_for(applicant) >= self.submission_limit
+
+    def accepts_submission_from(self, applicant) -> bool:
+        return self.is_accepting_submissions and not self.has_reached_submission_limit(
+            applicant
+        )
 
 
 class FormField(models.Model):

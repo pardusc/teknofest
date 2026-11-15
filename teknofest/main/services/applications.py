@@ -39,8 +39,10 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
     _ensure_applicant(applicant)
     if not form.is_accepting_submissions:
         raise ValidationError(_("This form is not accepting applications."))
-    if Application.objects.filter(applicant=applicant, form=form).exists():
-        raise ValidationError(_("You already have an application for this form."))
+    if form.has_reached_submission_limit(applicant):
+        raise ValidationError(
+            _("You have reached the application limit for this form.")
+        )
 
     dynamic_form = build_form(form, data=data)
     if not dynamic_form.is_valid():
@@ -54,6 +56,10 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
     prepared = _prepare_uploads(uploads)
 
     with transaction.atomic():
+        if form.has_reached_submission_limit(applicant):
+            raise ValidationError(
+                _("You have reached the application limit for this form.")
+            )
         application = Application.objects.create(
             applicant=applicant,
             form=form,
