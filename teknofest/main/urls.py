@@ -62,11 +62,6 @@ urlpatterns = [
         name="jury_application_detail",
     ),
     path(
-        "jury/applications/<uuid:public_id>/review/save/",
-        views.JuryReviewSaveView.as_view(),
-        name="jury_review_save",
-    ),
-    path(
         "jury/applications/<uuid:public_id>/review/submit/",
         views.JuryReviewSubmitView.as_view(),
         name="jury_review_submit",

@@ -487,10 +487,7 @@ class JuryApplicationListView(JuryRequiredMixin, ListView):
             juror=self.request.user,
         )
         average_reviews = (
-            Review.objects.filter(
-                application=OuterRef("pk"),
-                completed_at__isnull=False,
-            )
+            Review.objects.filter(application=OuterRef("pk"))
             .values("application")
             .annotate(value=Avg("score"))
             .values("value")
@@ -504,9 +501,7 @@ class JuryApplicationListView(JuryRequiredMixin, ListView):
             )
             .annotate(
                 my_score=Subquery(my_reviews.values("score")[:1]),
-                my_completed=Exists(
-                    my_reviews.filter(completed_at__isnull=False)
-                ),
+                my_completed=Exists(my_reviews),
                 average=Subquery(average_reviews, output_field=FloatField()),
                 attachment_count=Count("attachments", distinct=True),
             )
@@ -543,7 +538,7 @@ class JuryApplicationListView(JuryRequiredMixin, ListView):
             {
                 "application": application,
                 "my_score": application.my_score,
-                "average": application.average if application.my_completed else None,
+                "average": application.average,
                 "my_completed": application.my_completed,
                 "attachment_count": application.attachment_count,
             }
@@ -592,28 +587,6 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
             }
         )
         return context
-
-
-class JuryReviewSaveView(JuryRequiredMixin, View):
-    def post(self, request, public_id):
-        application = _get_reviewable_application(request, public_id)
-
-        try:
-            review_service.save_review(
-                application,
-                request.user,
-                score=request.POST.get("score"),
-                note=request.POST.get("note", ""),
-            )
-        except ValidationError as exc:
-            messages.error(request, _validation_message(exc))
-        else:
-            messages.success(request, _("Review draft saved."))
-
-        return redirect(
-            "main:jury_application_detail",
-            public_id=application.public_id,
-        )
 
 
 class JuryReviewSubmitView(JuryRequiredMixin, View):

@@ -262,10 +262,6 @@ msgstr "Puan ve not"
 msgid "Your evaluation has been submitted. You can update your score while the form remains in review."
 msgstr "Değerlendirmeniz gönderildi. Form incelemede kaldığı sürece puanınızı güncelleyebilirsiniz."
 
-#: main/templates/jury/application_detail.html:87
-msgid "You can save a draft and submit it when you finish scoring."
-msgstr "Taslağı kaydedebilir, puan vermeyi tamamladığınızda gönderebilirsiniz."
-
 #: main/templates/jury/application_detail.html:92
 msgid "Score"
 msgstr "Puan"
@@ -282,10 +278,6 @@ msgstr "İsteğe bağlı"
 #: main/templates/jury/application_detail.html:97
 msgid "Write a short justification supporting your score"
 msgstr "Puanınızı destekleyen kısa gerekçeyi yazın"
-
-#: main/templates/jury/application_detail.html:99
-msgid "Save draft"
-msgstr "Taslağı kaydet"
 
 #: main/templates/jury/application_detail.html:100
 msgid "Submit evaluation"
@@ -306,10 +298,6 @@ msgstr "Değerlendirme özeti"
 #: main/templates/jury/application_detail.html:115
 msgid "Other jury scores"
 msgstr "Diğer jüri puanları"
-
-#: main/templates/jury/application_detail.html:117
-msgid "Other scores and the average remain hidden until you submit your own evaluation."
-msgstr "Kendi değerlendirmenizi gönderene kadar diğer puanlar ve ortalama gizli tutulur."
 
 #: main/templates/jury/application_detail.html:119
 msgid "Current average"
@@ -444,10 +432,6 @@ msgstr "Değerlendirme"
 #: main/templates/jury/application_list.html:73
 msgid "Action"
 msgstr "İşlem"
-
-#: main/templates/jury/application_list.html:82
-msgid "Hidden"
-msgstr "Gizli"
 
 #: main/templates/jury/application_list.html:84
 msgid "View"
@@ -1095,10 +1079,6 @@ msgstr "Dosya yüklendi."
 msgid "File deleted."
 msgstr "Dosya silindi."
 
-#: main/views.py:611
-msgid "Review draft saved."
-msgstr "Değerlendirme taslağı kaydedildi."
-
 #: main/views.py:633
 msgid "Review submitted."
 msgstr "Değerlendirme gönderildi."
@@ -1118,3 +1098,7 @@ msgstr "Dosyaları seçin"
 #: main/templates/main/application_form.html:27
 msgid "Submit application"
 msgstr "Başvuruyu gönder"
+
+#: main/templates/jury/application_detail.html:85
+msgid "Submit your score and note. You can update them while the form remains in review."
+msgstr "Puanınızı ve notunuzu gönderin. Form incelemede kaldığı sürece bunları güncelleyebilirsiniz."

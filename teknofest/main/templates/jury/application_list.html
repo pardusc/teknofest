@@ -78,7 +78,7 @@
                 <td>{{ row.application.submitted_at|date:"d.m.Y H:i"|default:"—" }}</td>
                 <td>{{ row.attachment_count }}</td>
                 <td>{% if row.my_score is not None %}<strong>{{ row.my_score }}</strong><span class="jury-row-caption">/ 100</span>{% else %}—{% endif %}</td>
-                <td>{% if row.average is not None %}<strong>{{ row.average|floatformat:1 }}</strong><span class="jury-row-caption">/ 100</span>{% else %}<span class="jury-muted-value">{% translate "Hidden" %}</span>{% endif %}</td>
+                <td>{% if row.average is not None %}<strong>{{ row.average|floatformat:1 }}</strong><span class="jury-row-caption">/ 100</span>{% else %}—{% endif %}</td>
                 <td>{% if row.my_completed %}<span class="jury-status jury-status-complete">{% translate "Completed" %}</span>{% else %}<span class="jury-status">{% translate "Pending" %}</span>{% endif %}</td>
                 <td class="text-end"><a class="btn-outline theme-primary btn-sm" href="{% url 'main:jury_application_detail' row.application.public_id %}">{% translate "View" %}</a></td>
               </tr>

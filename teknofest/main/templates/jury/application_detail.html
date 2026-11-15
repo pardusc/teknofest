@@ -78,12 +78,12 @@
           <p class="eyebrow mb-1">{% translate "Jury evaluation" %}</p>
           <h2 class="h4 mb-2">{% translate "Score and note" %}</h2>
           {% if can_review %}
-            {% if my_review and my_review.completed_at %}
+            {% if my_review %}
               <p class="jury-review-state jury-review-state-done">{% translate "Your evaluation has been submitted. You can update your score while the form remains in review." %}</p>
             {% else %}
-              <p class="jury-review-state">{% translate "You can save a draft and submit it when you finish scoring." %}</p>
+              <p class="jury-review-state">{% translate "Submit your score and note. You can update them while the form remains in review." %}</p>
             {% endif %}
-            <form method="post" action="{% url 'main:jury_review_save' application.public_id %}" class="jury-score-form">
+            <form method="post" action="{% url 'main:jury_review_submit' application.public_id %}" class="jury-score-form">
               {% csrf_token %}
               <div class="mb-3">
                 <label class="form-label" for="jury-score">{% translate "Score" %} <span class="jury-field-note">0–100</span></label>
@@ -93,8 +93,7 @@
                 <label class="form-label" for="jury-note">{% translate "Evaluation note" %} <span class="jury-field-note">{% translate "Optional" %}</span></label>
                 <textarea class="form-control" id="jury-note" name="note" rows="5" placeholder="{% translate 'Write a short justification supporting your score' %}">{% if my_review %}{{ my_review.note }}{% endif %}</textarea>
               </div>
-              <button class="btn-outline theme-primary w-100 mb-2" type="submit">{% translate "Save draft" %}</button>
-              <button class="btn-solid theme-primary w-100" type="submit" formaction="{% url 'main:jury_review_submit' application.public_id %}">{% translate "Submit evaluation" %}</button>
+              <button class="btn-solid theme-primary w-100" type="submit">{% translate "Submit evaluation" %}</button>
             </form>
           {% else %}
             <p class="jury-review-state">{% translate "This form is not accepting reviews right now." %}</p>
@@ -110,20 +109,16 @@
         <div class="card-body p-4">
           <p class="eyebrow mb-1">{% translate "Evaluation summary" %}</p>
           <h2 class="h5 mb-3">{% translate "Other jury scores" %}</h2>
-          {% if is_blind %}
-            <p class="jury-blind-note mb-0">{% translate "Other scores and the average remain hidden until you submit your own evaluation." %}</p>
+          <div class="jury-average"><span>{% translate "Current average" %}</span><strong>{{ average_score|floatformat:1 }}<small> / 100</small></strong></div>
+          <p class="jury-muted-value">{% blocktranslate count counter=completed_count %}{{ counter }} completed review{% plural %}{{ counter }} completed reviews{% endblocktranslate %}</p>
+          {% if other_reviews %}
+            <ul class="jury-other-reviews list-unstyled mb-0">
+              {% for review in other_reviews %}
+                <li><div><strong>{{ review.score }} / 100</strong><span>{{ review.completed_at|date:"d.m.Y" }}</span></div>{% if review.note %}<p>{{ review.note|linebreaksbr }}</p>{% endif %}</li>
+              {% endfor %}
+            </ul>
           {% else %}
-            <div class="jury-average"><span>{% translate "Current average" %}</span><strong>{{ average_score|floatformat:1 }}<small> / 100</small></strong></div>
-            <p class="jury-muted-value">{% blocktranslate count counter=completed_count %}{{ counter }} completed review{% plural %}{{ counter }} completed reviews{% endblocktranslate %}</p>
-            {% if other_reviews %}
-              <ul class="jury-other-reviews list-unstyled mb-0">
-                {% for review in other_reviews %}
-                  <li><div><strong>{{ review.score }} / 100</strong><span>{{ review.completed_at|date:"d.m.Y" }}</span></div>{% if review.note %}<p>{{ review.note|linebreaksbr }}</p>{% endif %}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="jury-muted-value mb-0">{% translate "No other completed reviews yet." %}</p>
-            {% endif %}
+            <p class="jury-muted-value mb-0">{% translate "No other completed reviews yet." %}</p>
           {% endif %}
         </div>
       </section>

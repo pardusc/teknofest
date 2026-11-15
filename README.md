@@ -131,10 +131,10 @@ without joining the group.
 | `/jury/applications/<uuid>/review/save/` | — | Save a draft review (POST) |
 | `/jury/applications/<uuid>/review/submit/` | — | Complete a review (POST) |
 
-Scores are whole numbers from 0 to 100. A review is completed when a score is submitted;
-the note is optional. Until the current juror's review is completed, other jurors'
-scores, notes and the average score stay hidden. Reviews can be edited only while the
-form is in review; closed forms are read-only.
+Scores are whole numbers from 0 to 100. Reviews are submitted in one step; there is no
+review draft. A score is required and the note is optional. Other jurors' scores, notes
+and the average score are always visible. Reviews can be edited only while the form is
+in review; closed forms are read-only.
 
 Jurors and admins cannot apply or manage a profile; those routes redirect to the jury
 dashboard. Every form has a `mask_applicant_identity` setting: when enabled, the jury

@@ -38,7 +38,7 @@ from .services.applications import (
     submit_application,
     update_application,
 )
-from .services.reviews import save_review, submit_review
+from .services.reviews import submit_review
 from .views import (
     MASKED_FIELD_MESSAGE,
     ApplicationDetailView,
@@ -1394,8 +1394,8 @@ class JuryTests(MediaTestCase):
         self.assertEqual(len(without_files.context["rows"]), 0)
         self.assertEqual(len(with_files.context["rows"]), 1)
 
-    def test_list_hides_average_until_my_review_is_completed(self):
-        other_review = Review.objects.create(
+    def test_list_shows_average_before_my_review(self):
+        Review.objects.create(
             application=self.application,
             juror=self.other_jury,
             score=60,
@@ -1403,12 +1403,12 @@ class JuryTests(MediaTestCase):
         )
         url = reverse("main:jury_application_list", args=[self.form.pk])
 
-        blind = self.client.get(url)
-        self.assertIsNone(blind.context["rows"][0]["average"])
+        before = self.client.get(url)
+        self.assertEqual(before.context["rows"][0]["average"], 60.0)
 
         submit_review(self.application, self.jury, score=80)
-        revealed = self.client.get(url)
-        self.assertEqual(revealed.context["rows"][0]["average"], 70.0)
+        after = self.client.get(url)
+        self.assertEqual(after.context["rows"][0]["average"], 70.0)
 
     def test_list_search_by_code(self):
         url = reverse("main:jury_application_list", args=[self.form.pk])
@@ -1419,7 +1419,7 @@ class JuryTests(MediaTestCase):
         self.assertEqual(len(match.context["rows"]), 1)
         self.assertEqual(len(no_match.context["rows"]), 0)
 
-    def test_detail_hides_others_until_review_is_completed(self):
+    def test_detail_shows_other_reviews_and_average_before_my_review(self):
         Review.objects.create(
             application=self.application,
             juror=self.other_jury,
@@ -1432,16 +1432,15 @@ class JuryTests(MediaTestCase):
             args=[self.application.public_id],
         )
 
-        blind = self.client.get(url)
-        self.assertTrue(blind.context["is_blind"])
-        self.assertEqual(blind.context["other_reviews"], [])
-        self.assertIsNone(blind.context["average_score"])
+        before = self.client.get(url)
+        self.assertEqual(len(before.context["other_reviews"]), 1)
+        self.assertEqual(before.context["other_reviews"][0].note, "Other note")
+        self.assertEqual(before.context["average_score"], 60.0)
 
         submit_review(self.application, self.jury, score=80)
-        revealed = self.client.get(url)
-        self.assertFalse(revealed.context["is_blind"])
-        self.assertEqual(len(revealed.context["other_reviews"]), 1)
-        self.assertEqual(revealed.context["average_score"], 70.0)
+        after = self.client.get(url)
+        self.assertEqual(len(after.context["other_reviews"]), 1)
+        self.assertEqual(after.context["average_score"], 70.0)
 
     def test_detail_filters_hidden_fields_and_lists_attachments(self):
         attachment = self.add_attachment()
@@ -1474,17 +1473,6 @@ class JuryTests(MediaTestCase):
         self.form.save()
         self.assertFalse(self.client.get(url).context["can_review"])
 
-    def test_save_review_keeps_blind_view(self):
-        response = self.client.post(
-            reverse("main:jury_review_save", args=[self.application.public_id]),
-            {"score": "75", "note": "Draft note"},
-        )
-
-        self.assertEqual(response.status_code, 302)
-        review = Review.objects.get(application=self.application, juror=self.jury)
-        self.assertEqual(review.score, 75)
-        self.assertIsNone(review.completed_at)
-
     def test_submit_review_requires_score(self):
         response = self.client.post(
             reverse("main:jury_review_submit", args=[self.application.public_id]),
@@ -1508,26 +1496,26 @@ class JuryTests(MediaTestCase):
 
     def test_score_must_be_between_zero_and_hundred(self):
         with self.assertRaises(ValidationError):
-            save_review(self.application, self.jury, score=101)
+            submit_review(self.application, self.jury, score=101)
         with self.assertRaises(ValidationError):
-            save_review(self.application, self.jury, score="abc")
+            submit_review(self.application, self.jury, score="abc")
 
     def test_scoring_requires_in_review_form(self):
         self.form.status = FormDefinition.Status.OPEN
         self.form.save()
 
         with self.assertRaises(ValidationError):
-            save_review(self.application, self.jury, score=80)
+            submit_review(self.application, self.jury, score=80)
 
         self.form.status = FormDefinition.Status.CLOSED
         self.form.save()
 
         with self.assertRaises(ValidationError):
-            save_review(self.application, self.jury, score=80)
+            submit_review(self.application, self.jury, score=80)
 
     def test_review_is_updated_not_duplicated(self):
-        save_review(self.application, self.jury, score=50, note="First")
-        save_review(self.application, self.jury, score=70, note="Second")
+        submit_review(self.application, self.jury, score=50, note="First")
+        submit_review(self.application, self.jury, score=70, note="Second")
 
         self.assertEqual(
             Review.objects.filter(application=self.application, juror=self.jury).count(),
