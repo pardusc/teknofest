@@ -603,11 +603,11 @@ class DynamicFormTests(TestCase):
 
         self.assertEqual(
             form.fields["title"].widget.attrs["placeholder"],
-            "Type your answer",
+            _("Type your answer"),
         )
         self.assertEqual(
             form.fields["repo"].widget.attrs["placeholder"],
-            "https://example.com",
+            _("https://example.com"),
         )
 
     def test_custom_placeholder_overrides_the_default(self):

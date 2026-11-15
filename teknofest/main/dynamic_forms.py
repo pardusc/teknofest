@@ -4,20 +4,21 @@ from django.utils.translation import gettext as _
 
 from .models import FormField
 
-DEFAULT_PLACEHOLDERS = {
-    FormField.FieldType.SHORT_TEXT: "Type your answer",
-    FormField.FieldType.LONG_TEXT: "Type your answer in detail",
-    FormField.FieldType.NUMBER: "e.g. 3",
-    FormField.FieldType.EMAIL: "name@example.com",
-    FormField.FieldType.URL: "https://example.com",
-}
-
-
 def _placeholder(field: FormField) -> str:
     if field.placeholder:
         return field.placeholder
-    default = DEFAULT_PLACEHOLDERS.get(field.field_type)
-    return _(default) if default else ""
+    match field.field_type:
+        case FormField.FieldType.SHORT_TEXT:
+            return _("Type your answer")
+        case FormField.FieldType.LONG_TEXT:
+            return _("Type your answer in detail")
+        case FormField.FieldType.NUMBER:
+            return _("e.g. 3")
+        case FormField.FieldType.EMAIL:
+            return _("name@example.com")
+        case FormField.FieldType.URL:
+            return _("https://example.com")
+    return ""
 
 
 def _text_attrs(field: FormField) -> dict[str, str]:
