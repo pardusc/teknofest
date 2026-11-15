@@ -994,3 +994,7 @@ msgstr "Değerlendirme gönderildi."
 #: main/views.py:696
 msgid "This field is hidden from jury review."
 msgstr "Bu alan jüri değerlendirmesinde gizlenmiştir."
+
+#: main/templates/main/base.html:48
+msgid "Switch theme"
+msgstr "Temayı değiştir"

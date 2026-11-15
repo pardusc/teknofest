@@ -8,16 +8,36 @@
   <title>{% block title %}{{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}</title>
   <script>
     (() => {
-      const preference = window.matchMedia("(prefers-color-scheme: dark)");
-      const applyTheme = () => {
-        document.documentElement.dataset.bsTheme = preference.matches ? "dark" : "light";
+      const key = "pardus-theme";
+      const media = window.matchMedia("(prefers-color-scheme: dark)");
+      let stored = null;
+      try { stored = localStorage.getItem(key); } catch (error) { stored = null; }
+      if (stored !== "light" && stored !== "dark") stored = null;
+      const apply = (theme, persist) => {
+        document.documentElement.dataset.bsTheme = theme;
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+          button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+        });
+        if (persist) {
+          try { localStorage.setItem(key, theme); } catch (error) { /* storage unavailable */ }
+        }
       };
-      applyTheme();
-      if (preference.addEventListener) {
-        preference.addEventListener("change", applyTheme);
-      } else {
-        preference.addListener(applyTheme);
-      }
+      apply(stored || (media.matches ? "dark" : "light"), false);
+      const followSystem = () => {
+        let current = null;
+        try { current = localStorage.getItem(key); } catch (error) { current = null; }
+        if (!current) apply(media.matches ? "dark" : "light", false);
+      };
+      if (media.addEventListener) media.addEventListener("change", followSystem);
+      else media.addListener(followSystem);
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const next = document.documentElement.dataset.bsTheme === "dark" ? "light" : "dark";
+            apply(next, true);
+          });
+        });
+      });
     })();
   </script>
   <link rel="stylesheet" href="{% static 'main/vendor/bootstrap/css/bootstrap.min.css' %}">
@@ -34,10 +54,6 @@
         <span class="brand-divider" aria-hidden="true"></span>
         <span class="brand-product">Teknofest</span>
       </a>
-
-      <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="{% translate 'Open menu' %}">
-        <span class="navbar-toggler-icon" aria-hidden="true"></span>
-      </button>
 
       <div class="nav-links d-none lg:d-flex">
         <a href="{% url 'main:home' %}">{% translate "Home" %}</a>
@@ -57,6 +73,16 @@
         {% else %}
           <a class="nav-cta" href="{% url 'login' %}">{% translate "Log in" %}</a>
         {% endif %}
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="{% translate 'Switch theme' %}" aria-pressed="false" title="{% translate 'Switch theme' %}">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+        <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="{% translate 'Open menu' %}">
+          <span class="navbar-toggler-icon" aria-hidden="true"></span>
+        </button>
       </div>
 
       <dialog class="drawer drawer-end site-drawer" tabindex="-1" id="siteNav" aria-labelledby="siteNavTitle">

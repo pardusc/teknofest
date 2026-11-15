@@ -510,3 +510,29 @@ input[type="file"].form-control::file-selector-button:hover {
 
 .btn-solid:focus-visible { outline-color: var(--p-on-accent); }
 .nav-cta:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* Theme toggle */
+.nav-actions { display: flex; align-items: center; gap: 0.4rem; margin-left: 0.5rem; }
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--p-nav-muted);
+  cursor: pointer;
+}
+.theme-toggle:hover, .theme-toggle:focus-visible { border-color: #fff; color: #fff; background: rgb(255 255 255 / 8%); }
+.theme-toggle svg { width: 17px; height: 17px; }
+.theme-toggle .icon-sun { display: none; }
+[data-bs-theme="dark"] .theme-toggle .icon-sun { display: block; }
+[data-bs-theme="dark"] .theme-toggle .icon-moon { display: none; }
+.navbar-toggler { margin-left: 0; }
+
+@media (max-width: 991.98px) {
+  .nav-actions { margin-left: auto; }
+}
