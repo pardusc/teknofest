@@ -14,9 +14,10 @@
   <div class="page-header">
     <div>
       <span class="eyebrow">{{ application.year.year }} · {{ application.category.display_name }}</span>
-      <h1>{{ application.form.title }}</h1>
+      <h1>{{ application.title }}</h1>
       <p class="d-flex flex-wrap align-items-center gap-2">
-        <span class="small fg-secondary">{% blocktranslate with code=application.code %}Application code: {{ code }}{% endblocktranslate %}</span>
+        <span class="small fg-secondary">{{ application.form.title }}</span>
+        <span class="small fg-secondary">· {% blocktranslate with code=application.code %}Application code: {{ code }}{% endblocktranslate %}</span>
       </p>
     </div>
     <div class="d-flex flex-wrap gap-2">

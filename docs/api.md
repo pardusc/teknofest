@@ -69,7 +69,7 @@ Optional query parameters:
 
 | Parameter | Values | Description |
 | --- | --- | --- |
-| `q` | text | Application code, or applicant e-mail when identity is not masked |
+| `q` | text | Application code, title, or applicant e-mail when identity is not masked |
 | `mine` | `pending`, `completed` | Filter by the current juror's review state |
 | `files` | `1` | Only applications with attachments |
 | `ordering` | `submitted_at`, `-submitted_at`, `my_score`, `-my_score`, `average`, `-average` | Sort order |
@@ -87,6 +87,7 @@ Response:
     {
       "public_id": "107fa2c5-76f0-40e6-8edd-d974ba05f356",
       "code": "BUG-2026-00001",
+      "title": "Login page crashes after update",
       "status": "submitted",
       "submitted_at": "2026-11-15T06:51:00+00:00",
       "updated_at": "2026-11-15T06:51:00+00:00",

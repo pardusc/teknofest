@@ -266,7 +266,7 @@ hr { border-color: var(--p-border); opacity: 1; }
 .data-table td { padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--p-border); color: var(--p-text); vertical-align: middle; }
 .data-table tbody tr:last-child td { border-bottom: 0; }
 .data-table tbody tr:hover { background: var(--p-surface-alt); }
-.data-table .row-title { margin: 0; color: var(--p-ink); font-size: 0.92rem; font-weight: 600; }
+.data-table .row-title { margin: 0; color: var(--p-ink); font-size: 0.92rem; font-weight: 600; overflow-wrap: anywhere; }
 .data-table .row-meta { display: block; margin-top: 0.1rem; color: var(--p-muted); font-size: 0.78rem; }
 .row-link { color: inherit; text-decoration: none; }
 .row-link:hover { color: var(--p-accent-hover); text-decoration: none; }

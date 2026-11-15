@@ -8,13 +8,13 @@
   <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
     <a href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
     <a href="{% url 'main:jury_application_list' form_definition.pk %}">{{ form_definition.title }}</a>
-    <span>{% if application.code %}{{ application.code }}{% else %}{% translate "Application" %}{% endif %}</span>
+    <span>{{ application.title }}</span>
   </nav>
 
   <div class="page-header">
     <div>
-      <span class="eyebrow">{{ application.year.year }} · {{ application.category.display_name }}</span>
-      <h1>{{ form_definition.title }}</h1>
+      <span class="eyebrow">{{ application.year.year }} · {{ application.category.display_name }} · {{ form_definition.title }}</span>
+      <h1>{{ application.title }}</h1>
       <p class="d-flex flex-wrap align-items-center gap-2">
         <span class="chip {% if application.status == 'evaluated' %}chip-success{% else %}chip-accent{% endif %}">{{ application.status_label }}</span>
         {% if application.code %}<span class="small fg-secondary">{{ application.code }}</span>{% endif %}

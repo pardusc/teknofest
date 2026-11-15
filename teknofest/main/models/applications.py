@@ -7,6 +7,8 @@ from django.db.models.signals import post_delete
 from django.utils.translation import gettext_lazy as _
 from django.dispatch import receiver
 
+from ..validators import validate_application_title
+
 
 def attachment_upload_to(instance, filename):
     return (
@@ -36,6 +38,12 @@ class Application(models.Model):
         blank=True,
         verbose_name=_("Code"),
         help_text=_("Assigned when the application is submitted."),
+    )
+    title = models.CharField(
+        max_length=100,
+        verbose_name="Application title",
+        validators=[validate_application_title],
+        help_text="The title entered by the applicant.",
     )
     applicant = models.ForeignKey(
         settings.AUTH_USER_MODEL,

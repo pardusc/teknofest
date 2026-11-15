@@ -7,6 +7,12 @@ from django.utils import timezone
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
+from ..validators import (
+    APPLICATION_TITLE_KEY,
+    APPLICATION_TITLE_MAX_LENGTH,
+    APPLICATION_TITLE_MIN_LENGTH,
+)
+
 
 class CompetitionYear(models.Model):
     """A competition edition. Applications are always tied to one year."""
@@ -354,6 +360,32 @@ class FormField(models.Model):
             )
         if self.key in self.RESERVED_KEYS:
             errors["key"] = _("This key is reserved.")
+
+        if self.key == APPLICATION_TITLE_KEY:
+            if self.field_type != self.FieldType.SHORT_TEXT:
+                errors["field_type"] = _(
+                    "The title field must be a short text field."
+                )
+            if not self.is_required:
+                errors["is_required"] = _("The title field must be required.")
+            if self.review_visibility != self.ReviewVisibility.VISIBLE:
+                errors["review_visibility"] = _(
+                    "The title field must be visible to the jury."
+                )
+            if (
+                self.max_length is not None
+                and self.max_length > APPLICATION_TITLE_MAX_LENGTH
+            ):
+                errors["max_length"] = _(
+                    "The title field can be at most %(max)s characters."
+                ) % {"max": APPLICATION_TITLE_MAX_LENGTH}
+            if (
+                self.min_length is not None
+                and self.min_length < APPLICATION_TITLE_MIN_LENGTH
+            ):
+                errors["min_length"] = _(
+                    "The title field must be at least %(min)s characters."
+                ) % {"min": APPLICATION_TITLE_MIN_LENGTH}
 
         if (
             self.min_length is not None

@@ -21,6 +21,7 @@ from ..models import (
     FormDefinition,
 )
 from ..permissions import is_jury
+from ..validators import APPLICATION_TITLE_KEY
 from .audit import record
 
 MAX_ATTACHMENTS = 10
@@ -45,6 +46,7 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
     if not dynamic_form.is_valid():
         raise ValidationError(dynamic_form.errors)
 
+    title = _application_title(dynamic_form)
     _ensure_profile_complete(applicant)
 
     uploads = list(files or [])
@@ -57,6 +59,7 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
             form=form,
             year=form.year,
             category=form.category,
+            title=title,
             status=Application.Status.SUBMITTED,
             submitted_at=timezone.now(),
         )
@@ -90,6 +93,8 @@ def update_application(application: Application, data, files=None) -> Applicatio
     if not dynamic_form.is_valid():
         raise ValidationError(dynamic_form.errors)
 
+    title = _application_title(dynamic_form)
+
     uploads = list(files or [])
     existing_count = application.attachments.count()
     existing_total = _attachment_total(application)
@@ -104,7 +109,8 @@ def update_application(application: Application, data, files=None) -> Applicatio
         _write_answers(application, dynamic_form, _active_fields(application.form))
         for upload, image_format, size in prepared:
             _create_attachment(application, upload, image_format, size)
-        application.save(update_fields=["updated_at"])
+        application.title = title
+        application.save(update_fields=["title", "updated_at"])
         record(
             AuditEvent.Action.APPLICATION_UPDATED,
             actor=application.applicant,
@@ -195,6 +201,15 @@ def _active_fields(form: FormDefinition) -> dict:
         field.key: field
         for field in form.fields.filter(is_active=True)
     }
+
+
+def _application_title(dynamic_form) -> str:
+    title = dynamic_form.cleaned_data.get(APPLICATION_TITLE_KEY)
+    if not isinstance(title, str) or not title.strip():
+        raise ValidationError(
+            {APPLICATION_TITLE_KEY: _("This field is required.")}
+        )
+    return title.strip()
 
 
 def _write_answers(application, dynamic_form, fields) -> None:

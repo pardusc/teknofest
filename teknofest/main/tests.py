@@ -659,7 +659,7 @@ class DynamicFormTests(TestCase):
 
         self.assertEqual(
             form.fields["title"].widget.attrs["placeholder"],
-            _("Type your answer"),
+            _("e.g. Login page crashes after update"),
         )
         self.assertEqual(
             form.fields["repo"].widget.attrs["placeholder"],
@@ -694,6 +694,27 @@ class DynamicFormTests(TestCase):
             forms.CheckboxSelectMultiple,
         )
         self.assertEqual(form.fields["topics"].widget.attrs["class"], "check")
+
+    def test_title_rejects_ambiguous_or_special_characters(self):
+        for value in ("Bug\u200b", "B\u043eg", "Hata 🙂", "A"):
+            with self.subTest(value=value):
+                form = build_form(self.form, data=self.valid_data(title=value))
+                self.assertFalse(form.is_valid())
+                self.assertIn("title", form.errors)
+
+    def test_title_normalizes_typographic_punctuation(self):
+        FormField.objects.filter(key="title").update(max_length=100)
+
+        form = build_form(
+            self.form,
+            data=self.valid_data(title="Hata: “giriş” – düzelt"),
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(
+            form.cleaned_data["title"],
+            'Hata: "giriş" - düzelt',
+        )
 
     def test_boolean_field_uses_yes_no_radios(self):
         form = build_form(self.form)
@@ -799,7 +820,7 @@ class FormPreviewTests(TestCase):
         self.assertContains(response, "choice-grid")
         self.assertContains(response, "choice-grid--multi")
         self.assertContains(response, "form-field-card choice-card")
-        self.assertContains(response, 'data-maxlength="120"')
+        self.assertContains(response, 'data-maxlength="100"')
         self.assertContains(response, "data-maxlength-counter")
         self.assertContains(response, "data-minlength-warning")
         self.assertContains(response, "form_fields.js")
@@ -837,6 +858,7 @@ class AdminTests(TestCase):
             f"{prefix}-0-key": key,
             f"{prefix}-0-label": label,
             f"{prefix}-0-field_type": FormField.FieldType.SHORT_TEXT,
+            f"{prefix}-0-is_required": "on",
             f"{prefix}-0-help_text": "",
             f"{prefix}-0-min_length": "",
             f"{prefix}-0-max_length": "",
@@ -884,7 +906,7 @@ class AdminTests(TestCase):
 
         self.assertRedirects(response, reverse("admin:index"))
         response = self.client.get(reverse("admin:index"))
-        self.assertContains(response, "Site administration")
+        self.assertContains(response, "Pardus Teknofest Administration")
 
     def test_admin_profile_forms_validate_photo_type(self):
         self.assertIs(ProfileAdmin.form, ProfileAdminForm)
@@ -967,6 +989,7 @@ class AdminTests(TestCase):
                 f"{prefix}-0-key": "title",
                 f"{prefix}-0-label": "Title",
                 f"{prefix}-0-field_type": FormField.FieldType.SHORT_TEXT,
+                f"{prefix}-0-is_required": "on",
                 f"{prefix}-0-help_text": "",
                 f"{prefix}-0-min_length": "",
                 f"{prefix}-0-max_length": "",
@@ -1010,6 +1033,38 @@ class AdminTests(TestCase):
         self.assertEqual(response.status_code, 302)
         form = FormDefinition.objects.get(title="Selected year form")
         self.assertEqual(form.year, selected_year)
+
+    def test_admin_form_definition_requires_a_title_field(self):
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        category = Category.objects.create(slug="no-title", name="No title")
+        data = {
+            "year": self.year.pk,
+            "category": category.pk,
+            "title": "Missing title",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "",
+            "opens_at_1": "",
+            "closes_at_0": "",
+            "closes_at_1": "",
+            "_save": "Save",
+        }
+        data.update(self.inline_field_data(prefix, key="summary", label="Summary"))
+
+        response = self.client.post(add_url, data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            _("Add a required title field (key: %(key)s).")
+            % {"key": "title"},
+        )
+        self.assertFalse(
+            FormDefinition.objects.filter(title="Missing title").exists()
+        )
 
     def test_admin_form_definition_deadline_optional_with_global_deadline(self):
         settings = SiteSettings.load()
@@ -1171,6 +1226,7 @@ class ApplicationServiceTests(MediaTestCase):
 
         self.assertEqual(application.status, Application.Status.SUBMITTED)
         self.assertEqual(application.code, "BUG-2026-00001")
+        self.assertEqual(application.title, "A bug report")
         self.assertIsNotNone(application.submitted_at)
         self.assertEqual(
             ApplicationAnswer.objects.get(
@@ -1266,6 +1322,8 @@ class ApplicationServiceTests(MediaTestCase):
             ).value,
             "Updated title",
         )
+        application.refresh_from_db()
+        self.assertEqual(application.title, "Updated title")
         self.assertEqual(application.attachments.count(), 1)
 
     def test_update_requires_complete_data(self):
@@ -1775,6 +1833,7 @@ class JuryTests(MediaTestCase):
             form=self.form,
             year=self.year,
             category=self.category,
+            title="Visible answer",
             status=Application.Status.SUBMITTED,
             code="BUG-2026-00001",
             submitted_at=timezone.now(),
@@ -1802,6 +1861,7 @@ class JuryTests(MediaTestCase):
             form=self.form,
             year=self.year,
             category=self.category,
+            title=f"Jury application {Application.objects.count() + 1}",
             status=Application.Status.SUBMITTED,
             code=code,
             submitted_at=timezone.now(),
@@ -1948,6 +2008,26 @@ class JuryTests(MediaTestCase):
 
         self.assertEqual(len(match.context["rows"]), 1)
         self.assertEqual(len(no_match.context["rows"]), 0)
+
+    def test_list_search_by_title(self):
+        url = reverse("main:jury_application_list", args=[self.form.pk])
+
+        match = self.client.get(url, {"q": "Visible answer"})
+        no_match = self.client.get(url, {"q": "Different title"})
+
+        self.assertEqual(len(match.context["rows"]), 1)
+        self.assertEqual(len(no_match.context["rows"]), 0)
+
+    def test_list_shows_application_title(self):
+        url = reverse("main:jury_application_list", args=[self.form.pk])
+
+        response = self.client.get(url)
+
+        self.assertEqual(
+            response.context["rows"][0]["application"].title,
+            "Visible answer",
+        )
+        self.assertContains(response, "Visible answer")
 
     def test_detail_shows_other_reviews_and_average_before_my_review(self):
         Review.objects.create(
@@ -2369,6 +2449,7 @@ class JuryAPITests(MediaTestCase):
             form=self.form,
             year=self.year,
             category=self.category,
+            title="Visible answer",
             status=Application.Status.SUBMITTED,
             code="BUG-2026-00001",
             submitted_at=timezone.now(),
@@ -2491,6 +2572,7 @@ class JuryAPITests(MediaTestCase):
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
+        self.assertEqual(data["application"]["title"], "Visible answer")
         self.assertTrue(data["applicant"]["masked"])
         self.assertIsNone(data["applicant"]["email"])
         values = {item["key"]: item["value"] for item in data["answers"]}
@@ -2827,6 +2909,7 @@ class ReviewAuditTests(MediaTestCase):
             form=self.form,
             year=self.year,
             category=self.category,
+            title="Audit application",
             status=Application.Status.SUBMITTED,
             code="BUG-2026-00001",
             submitted_at=timezone.now(),
@@ -2877,6 +2960,7 @@ class AdminWorkflowTests(TestCase):
             form=self.form,
             year=self.year,
             category=self.category,
+            title="Workflow application",
             status=Application.Status.SUBMITTED,
             code="WORK-2026-00001",
             submitted_at=timezone.now(),
@@ -2977,8 +3061,9 @@ class AdminWorkflowTests(TestCase):
         content = response.content.decode()
 
         self.assertIn("text/csv", response["Content-Type"])
-        self.assertIn("code,year,category", content)
+        self.assertIn("code,title,year,category", content)
         self.assertIn(self.application.code, content)
+        self.assertIn(self.application.title, content)
         self.assertIn("80.0", content)
 
     def test_audit_admin_is_read_only(self):

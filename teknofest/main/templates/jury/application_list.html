@@ -24,8 +24,8 @@
 
   <form method="get" class="toolbar jury-list-filters">
     <div>
-      <label class="form-label" for="jury-search">{% if form_definition.mask_applicant_identity %}{% translate "Application code" %}{% else %}{% translate "Application code or e-mail" %}{% endif %}</label>
-      <input class="form-control" id="jury-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="{% if form_definition.mask_applicant_identity %}{% translate 'e.g. BUG-2026-00001' %}{% else %}{% translate 'Enter code or e-mail' %}{% endif %}">
+      <label class="form-label" for="jury-search">{% if form_definition.mask_applicant_identity %}{% translate "Application code or title" %}{% else %}{% translate "Application code, e-mail or title" %}{% endif %}</label>
+      <input class="form-control" id="jury-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="{% if form_definition.mask_applicant_identity %}{% translate 'Enter code or title' %}{% else %}{% translate 'Enter code, e-mail or title' %}{% endif %}">
     </div>
     <div>
       <label class="form-label" for="jury-mine">{% translate "My review" %}</label>
@@ -74,7 +74,7 @@
           <tbody>
             {% for row in rows %}
               <tr>
-                <td><a class="row-link" href="{% url 'main:jury_application_detail' row.application.public_id %}{% if page_query %}?{{ page_query }}{% endif %}"><span class="row-title">{{ row.application.code|default:application_label }}</span><span class="row-meta">{{ row.application.category.display_name }}</span></a></td>
+                <td><a class="row-link" href="{% url 'main:jury_application_detail' row.application.public_id %}{% if page_query %}?{{ page_query }}{% endif %}"><span class="row-title">{{ row.application.title|default:application_label }}</span><span class="row-meta">{{ row.application.code|default:"—" }} · {{ row.application.category.display_name }}</span></a></td>
                 <td class="small fg-secondary">{{ row.application.submitted_at|date:"d.m.Y H:i"|default:"—" }}</td>
                 <td>{{ row.attachment_count }}</td>
                 <td>{% if row.my_score is not None %}<strong>{{ row.my_score }}</strong><span class="small fg-secondary"> / 100</span>{% else %}—{% endif %}</td>

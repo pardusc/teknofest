@@ -29,6 +29,7 @@ from .models import (
     User,
 )
 from .services import audit, workflow
+from .validators import APPLICATION_TITLE_KEY
 
 admin.site.site_header = _("Pardus Teknofest Administration")
 admin.site.site_title = "Pardus Teknofest"
@@ -119,6 +120,14 @@ class FormFieldInlineFormSet(BaseInlineFormSet):
         if not active_fields:
             raise ValidationError(
                 _("Add at least one active field to the form.")
+            )
+        if not any(
+            form.cleaned_data.get("key") == APPLICATION_TITLE_KEY
+            for form in active_fields
+        ):
+            raise ValidationError(
+                _("Add a required title field (key: %(key)s).")
+                % {"key": APPLICATION_TITLE_KEY}
             )
 
 
@@ -292,12 +301,21 @@ class AttachmentInline(admin.TabularInline):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     inlines = (ApplicationAnswerInline, AttachmentInline)
-    list_display = ("code", "applicant", "category", "year", "status", "submitted_at")
+    list_display = (
+        "code",
+        "title",
+        "applicant",
+        "category",
+        "year",
+        "status",
+        "submitted_at",
+    )
     list_filter = ("status", "category", "year", "form")
-    search_fields = ("code", "applicant__email", "applicant__username")
+    search_fields = ("code", "title", "applicant__email", "applicant__username")
     readonly_fields = (
         "public_id",
         "code",
+        "title",
         "applicant",
         "form",
         "year",
@@ -362,6 +380,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         writer.writerow(
             [
                 "code",
+                "title",
                 "year",
                 "category",
                 "form",
@@ -384,6 +403,7 @@ class ApplicationAdmin(admin.ModelAdmin):
             writer.writerow(
                 [
                     application.code or "",
+                    application.title,
                     application.year.year,
                     application.category.name,
                     application.form.title,

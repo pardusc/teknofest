@@ -83,7 +83,7 @@ def jury_application_queryset(form_definition, user, params) -> QuerySet[Applica
 
     query = params.get("q", "").strip()
     if query:
-        conditions = Q(code__icontains=query)
+        conditions = Q(code__icontains=query) | Q(title__icontains=query)
         if not form_definition.mask_applicant_identity:
             conditions |= Q(applicant__email__icontains=query)
         queryset = queryset.filter(conditions)

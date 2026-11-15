@@ -48,6 +48,7 @@ def _application_data(application):
     return {
         "public_id": str(application.public_id),
         "code": application.code,
+        "title": application.title,
         "status": application.status,
         "submitted_at": _iso(application.submitted_at),
         "updated_at": _iso(application.updated_at),

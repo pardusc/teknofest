@@ -1,12 +1,63 @@
+import unicodedata
+
 from django import forms
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from .models import FormField
+from .validators import (
+    APPLICATION_TITLE_KEY,
+    APPLICATION_TITLE_MAX_LENGTH,
+    APPLICATION_TITLE_MIN_LENGTH,
+    validate_application_title,
+)
+
+_TITLE_REPLACEMENTS = str.maketrans(
+    {
+        "’": "'",
+        "‘": "'",
+        "‚": "'",
+        "‛": "'",
+        "“": '"',
+        "”": '"',
+        "„": '"',
+        "‟": '"',
+        "–": "-",
+        "—": "-",
+        "−": "-",
+        "‑": "-",
+        "\u00a0": " ",
+    }
+)
+
+
+class ApplicationTitleField(forms.CharField):
+    """Normalised title field with a strict character whitelist."""
+
+    default_error_messages = {
+        "min_length": gettext_lazy(
+            "Application titles must be at least %(limit_value)s characters."
+        ),
+        "max_length": gettext_lazy(
+            "Application titles can be at most %(limit_value)s characters."
+        ),
+    }
+
+    def to_python(self, value):
+        value = super().to_python(value)
+        if value:
+            value = unicodedata.normalize("NFC", value)
+            value = value.translate(_TITLE_REPLACEMENTS)
+            value = " ".join(value.split())
+        return value
+
 
 def _placeholder(field: FormField) -> str:
     if field.placeholder:
         return field.placeholder
+    if field.key == APPLICATION_TITLE_KEY:
+        return _("e.g. Login page crashes after update")
     match field.field_type:
         case FormField.FieldType.SHORT_TEXT:
             return _("Type your answer")
@@ -51,8 +102,55 @@ class ThemedDateInput(forms.DateInput):
     template_name = "main/widgets/date_input.html"
 
 
+def _application_title_field(field: FormField) -> ApplicationTitleField:
+    max_length = min(
+        field.max_length or APPLICATION_TITLE_MAX_LENGTH,
+        APPLICATION_TITLE_MAX_LENGTH,
+    )
+    min_length = min(
+        max(field.min_length or 0, APPLICATION_TITLE_MIN_LENGTH),
+        max_length,
+    )
+    attrs = {
+        "class": "form-control",
+        "placeholder": _placeholder(field),
+        "maxlength": str(max_length),
+        "data-maxlength": str(max_length),
+        "data-minlength": str(min_length),
+        "data-minlength-message": _(
+            "This field must be at least %(min)s characters."
+        )
+        % {"min": min_length},
+    }
+    if field.short_description:
+        attrs["aria-describedby"] = f"id_{field.key}_description"
+
+    validators = [validate_application_title]
+    if field.regex:
+        validators.append(
+            RegexValidator(
+                field.regex,
+                message=field.regex_error_message or "Enter a valid value.",
+            )
+        )
+
+    return ApplicationTitleField(
+        label=field.label,
+        help_text=field.short_description
+        or _("Give your application a short, descriptive title."),
+        required=True,
+        min_length=min_length,
+        max_length=max_length,
+        widget=forms.TextInput(attrs=attrs),
+        validators=validators,
+    )
+
+
 def to_django_field(field: FormField, required: bool | None = None) -> forms.Field:
     """Build the Django form field for a stored ``FormField`` definition."""
+    if field.key == APPLICATION_TITLE_KEY:
+        return _application_title_field(field)
+
     common = {
         "label": field.label,
         "help_text": field.short_description,
