@@ -1,15 +1,12 @@
 import uuid
 from datetime import date, datetime
-from pathlib import Path
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from PIL import Image
 
 from ..dynamic_forms import build_form
 from ..models import (
@@ -22,16 +19,8 @@ from ..models import (
 )
 from ..permissions import is_jury
 from ..validators import APPLICATION_TITLE_KEY
+from .attachments import attachment_filename, prepare_uploads
 from .audit import record
-
-MAX_ATTACHMENTS = 10
-MAX_FILE_SIZE = 2 * 1024 * 1024
-MAX_TOTAL_SIZE = 10 * 1024 * 1024
-
-ALLOWED_IMAGE_FORMATS = {
-    "JPEG": ("image/jpeg", ".jpg"),
-    "PNG": ("image/png", ".png"),
-}
 
 
 def submit_application(applicant, form: FormDefinition, data, files=None) -> Application:
@@ -53,7 +42,7 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
 
     uploads = list(files or [])
     _check_attachment_policy(form, len(uploads))
-    prepared = _prepare_uploads(uploads)
+    prepared = prepare_uploads(form, uploads)
 
     with transaction.atomic():
         if form.has_reached_submission_limit(applicant):
@@ -73,8 +62,8 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
         application.save(update_fields=["code"])
 
         _write_answers(application, dynamic_form, _active_fields(form))
-        for upload, image_format, size in prepared:
-            _create_attachment(application, upload, image_format, size)
+        for item in prepared:
+            _create_attachment(application, item)
 
         record(
             AuditEvent.Action.APPLICATION_SUBMITTED,
@@ -102,19 +91,21 @@ def update_application(application: Application, data, files=None) -> Applicatio
     title = _application_title(dynamic_form)
 
     uploads = list(files or [])
-    existing_count = application.attachments.count()
-    existing_total = _attachment_total(application)
-    _check_attachment_policy(application.form, existing_count + len(uploads))
-    prepared = _prepare_uploads(
+    existing_attachments = list(application.attachments.all())
+    _check_attachment_policy(
+        application.form,
+        len(existing_attachments) + len(uploads),
+    )
+    prepared = prepare_uploads(
+        application.form,
         uploads,
-        existing_count=existing_count,
-        existing_total=existing_total,
+        existing_attachments,
     )
 
     with transaction.atomic():
         _write_answers(application, dynamic_form, _active_fields(application.form))
-        for upload, image_format, size in prepared:
-            _create_attachment(application, upload, image_format, size)
+        for item in prepared:
+            _create_attachment(application, item)
         application.title = title
         application.save(update_fields=["title", "updated_at"])
         record(
@@ -150,15 +141,17 @@ def add_attachment(application: Application, upload: UploadedFile) -> Attachment
     _ensure_applicant(application.applicant)
     _ensure_editable(application)
 
-    existing_count = application.attachments.count()
-    _check_attachment_policy(application.form, existing_count + 1)
-    prepared = _prepare_uploads(
-        [upload],
-        existing_count=existing_count,
-        existing_total=_attachment_total(application),
+    existing_attachments = list(application.attachments.all())
+    _check_attachment_policy(
+        application.form,
+        len(existing_attachments) + 1,
     )
-    upload, image_format, size = prepared[0]
-    return _create_attachment(application, upload, image_format, size)
+    prepared = prepare_uploads(
+        application.form,
+        [upload],
+        existing_attachments,
+    )
+    return _create_attachment(application, prepared[0])
 
 
 def delete_attachment(attachment: Attachment) -> None:
@@ -250,44 +243,17 @@ def _check_attachment_policy(form: FormDefinition, total_count: int) -> None:
         )
 
 
-def _prepare_uploads(uploads, existing_count=0, existing_total=0):
-    if existing_count + len(uploads) > MAX_ATTACHMENTS:
-        raise ValidationError(
-            _("At most %(limit)s files can be uploaded per application.")
-            % {"limit": MAX_ATTACHMENTS}
-        )
-
-    prepared = []
-    total = existing_total
-    for upload in uploads:
-        size = upload.size or 0
-        if size > MAX_FILE_SIZE:
-            raise ValidationError(_("Each file must be 2 MB or smaller."))
-        total += size
-        image_format = _verify_image(upload)
-        prepared.append((upload, image_format, size))
-
-    if total > MAX_TOTAL_SIZE:
-        raise ValidationError(_("Total attachment size must be 10 MB or smaller."))
-
-    return prepared
-
-
-def _attachment_total(application: Application) -> int:
-    return application.attachments.aggregate(total=Sum("size"))["total"] or 0
-
-
-def _create_attachment(application, upload, image_format, size) -> Attachment:
-    content_type, extension = ALLOWED_IMAGE_FORMATS[image_format]
-    original_name = Path(upload.name).name
-    upload.name = f"{uuid.uuid4().hex}{extension}"
+def _create_attachment(application, prepared) -> Attachment:
+    upload = prepared.upload
+    original_name = attachment_filename(upload)
+    upload.name = f"{uuid.uuid4().hex}{prepared.extension}"
 
     attachment = Attachment.objects.create(
         application=application,
         file=upload,
         original_name=original_name,
-        content_type=content_type,
-        size=size,
+        content_type=prepared.content_type,
+        size=prepared.size,
     )
     record(
         AuditEvent.Action.ATTACHMENT_ADDED,
@@ -296,7 +262,7 @@ def _create_attachment(application, upload, image_format, size) -> Attachment:
         form=application.form,
         code=application.code,
         name=original_name,
-        size=size,
+        size=prepared.size,
     )
     return attachment
 
@@ -311,21 +277,6 @@ def _next_code(application: Application) -> str:
 
     prefix = application.category.code_prefix or application.category.slug.upper()
     return f"{prefix}-{application.year.year}-{sequence.last_number:05d}"
-
-
-def _verify_image(upload: UploadedFile) -> str:
-    try:
-        image = Image.open(upload)
-        image_format = image.format
-        image.verify()
-    except Exception as exc:
-        raise ValidationError(_("Upload a JPG or PNG image.")) from exc
-    finally:
-        upload.seek(0)
-
-    if image_format not in ALLOWED_IMAGE_FORMATS:
-        raise ValidationError(_("Upload a JPG or PNG image."))
-    return image_format
 
 
 def _send_confirmation(application: Application) -> None:

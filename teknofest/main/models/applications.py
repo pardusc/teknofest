@@ -162,6 +162,27 @@ class Attachment(models.Model):
         verbose_name = _("Attachment")
         verbose_name_plural = _("Attachments")
 
+    @property
+    def is_video(self) -> bool:
+        return self.content_type == "video/webm"
+
+    @property
+    def is_image(self) -> bool:
+        return (self.content_type or "").startswith("image/")
+
+    @property
+    def media_kind(self) -> str:
+        return "video" if self.is_video else "image"
+
+    @property
+    def format_label(self) -> str:
+        return {
+            "image/webp": "WebP",
+            "image/png": "PNG",
+            "image/jpeg": "JPEG",
+            "video/webm": "WebM",
+        }.get(self.content_type, self.content_type or "")
+
     def __str__(self) -> str:
         return self.original_name
 
@@ -199,3 +220,7 @@ class ApplicationSequence(models.Model):
 def delete_attachment_file(sender, instance, **kwargs):
     if instance.file:
         instance.file.delete(save=False)
+
+    from main.services.previews import delete_thumbnail
+
+    delete_thumbnail(instance)

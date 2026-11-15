@@ -50,6 +50,21 @@ urlpatterns = [
         views.AttachmentDeleteView.as_view(),
         name="attachment_delete",
     ),
+    path(
+        "attachments/<int:pk>/thumbnail/",
+        views.attachment_thumbnail,
+        name="attachment_thumbnail",
+    ),
+    path(
+        "attachments/<int:pk>/preview/",
+        views.attachment_preview,
+        name="attachment_preview",
+    ),
+    path(
+        "attachments/<int:pk>/download/",
+        views.attachment_download,
+        name="attachment_download",
+    ),
     path("jury/", views.JuryDashboardView.as_view(), name="jury_dashboard"),
     path(
         "jury/api-keys/",

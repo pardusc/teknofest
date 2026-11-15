@@ -40,6 +40,9 @@ from .models import (
     SiteSettings,
     SiteSettingsTranslation,
 )
+from .services import audit as audit_service
+from .services import previews as preview_service
+from .services.attachments import WEBP_MAX_TOTAL_SIZE, usage_for
 from .services.applications import (
     add_attachment,
     delete_application,
@@ -78,6 +81,22 @@ def make_image(name="photo.png", image_format="PNG", content_type=None):
         "WEBP": "image/webp",
     }[image_format]
     return SimpleUploadedFile(name, buffer.getvalue(), content_type=content_type)
+
+
+def make_webp(name="photo.webp"):
+    return make_image(name=name, image_format="WEBP")
+
+
+def make_webm(name="clip.webm"):
+    # Minimal EBML header with DocType "webm" plus an (unknown-size) Segment.
+    doc_type = b"\x42\x82\x84webm"
+    ebml_header = b"\x1a\x45\xdf\xa3" + bytes([0x80 | len(doc_type)]) + doc_type
+    segment = b"\x18\x53\x80\x67\x01\xff\xff\xff\xff\xff\xff\xff"
+    return SimpleUploadedFile(
+        name,
+        ebml_header + segment + b"\x00" * 64,
+        content_type="video/webm",
+    )
 
 
 class HomeViewTests(TestCase):
@@ -1453,17 +1472,17 @@ class ApplicationServiceTests(MediaTestCase):
 
         self.assertFalse(Application.objects.exists())
 
-    @patch("main.services.applications.MAX_FILE_SIZE", 10)
+    @patch("main.services.attachments.DEFAULT_MAX_IMAGE_SIZE", 10)
     def test_per_file_size_limit(self):
         with self.assertRaisesMessage(ValidationError, _("Each file must be 2 MB or smaller.")):
             self.submit_application(files=[make_image()])
 
-    @patch("main.services.applications.MAX_TOTAL_SIZE", 1)
+    @patch("main.services.attachments.DEFAULT_MAX_TOTAL_SIZE", 1)
     def test_total_size_limit(self):
         with self.assertRaisesMessage(ValidationError, _("Total attachment size must be 10 MB or smaller.")):
             self.submit_application(files=[make_image()])
 
-    @patch("main.services.applications.MAX_ATTACHMENTS", 1)
+    @patch("main.services.attachments.DEFAULT_MAX_FILES", 1)
     def test_attachment_count_limit(self):
         with self.assertRaisesMessage(ValidationError, _("At most %(limit)s files can be uploaded per application.") % {"limit": 1}):
             self.submit_application(files=[make_image(), make_image()])
@@ -3634,3 +3653,476 @@ class SiteSettingsTests(TestCase):
 
         self.assertContains(response, "English category")
         self.assertContains(response, "English category description")
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class WebpWebmAttachmentTests(MediaTestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="webp-applicant",
+            email="webp-applicant@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=self.user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="WebP form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
+            attachment_profile=FormDefinition.AttachmentProfile.WEBP_WEBM,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+
+    def submit(self, files=None, data=None, form=None, user=None):
+        return submit_application(
+            user or self.user,
+            form or self.form,
+            data or {"title": "WebP application"},
+            files=files,
+        )
+
+    def make_default_form(self):
+        form = FormDefinition.objects.create(
+            year=self.year,
+            category=Category.objects.get(slug="development"),
+            title="Default form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
+        )
+        FormField.objects.create(
+            form=form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+        return form
+
+    def test_webp_image_is_accepted_and_stored_as_webp(self):
+        application = self.submit(files=[make_webp()])
+
+        attachment = application.attachments.get()
+        self.assertEqual(attachment.content_type, "image/webp")
+        self.assertTrue(attachment.file.name.endswith(".webp"))
+        self.assertEqual(attachment.original_name, "photo.webp")
+        self.assertEqual(attachment.media_kind, "image")
+
+    def test_jpeg_and_png_are_rejected_on_webp_profile(self):
+        for upload in (
+            make_image(name="photo.jpg", image_format="JPEG"),
+            make_image(name="photo.png", image_format="PNG"),
+        ):
+            with self.subTest(name=upload.name):
+                with self.assertRaisesMessage(
+                    ValidationError,
+                    _("Upload a WebP image."),
+                ):
+                    self.submit(files=[upload])
+
+        self.assertFalse(Application.objects.exists())
+
+    def test_webm_video_is_accepted(self):
+        application = self.submit(files=[make_webm()])
+
+        attachment = application.attachments.get()
+        self.assertEqual(attachment.content_type, "video/webm")
+        self.assertTrue(attachment.file.name.endswith(".webm"))
+        self.assertTrue(attachment.is_video)
+        self.assertEqual(attachment.media_kind, "video")
+
+    def test_multiple_files_are_saved(self):
+        application = self.submit(
+            files=[make_webp("one.webp"), make_webp("two.webp"), make_webm()]
+        )
+
+        self.assertEqual(application.attachments.count(), 3)
+        self.assertEqual(
+            application.attachments.filter(content_type="video/webm").count(),
+            1,
+        )
+
+    def test_invalid_webm_is_rejected(self):
+        upload = SimpleUploadedFile(
+            "clip.webm",
+            b"not a webm file",
+            content_type="video/webm",
+        )
+
+        with self.assertRaisesMessage(ValidationError, _("Upload a WebM video.")):
+            self.submit(files=[upload])
+
+    def test_renamed_image_with_webp_extension_is_rejected(self):
+        upload = make_image(name="renamed.webp", image_format="JPEG")
+
+        with self.assertRaisesMessage(ValidationError, _("Upload a WebP image.")):
+            self.submit(files=[upload])
+
+    def test_renamed_png_with_webm_extension_is_rejected(self):
+        image = make_image(name="original.png")
+        upload = SimpleUploadedFile(
+            "renamed.webm",
+            image.read(),
+            content_type="video/webm",
+        )
+
+        with self.assertRaisesMessage(ValidationError, _("Upload a WebM video.")):
+            self.submit(files=[upload])
+
+    def test_webm_magic_without_doctype_is_rejected(self):
+        upload = SimpleUploadedFile(
+            "fake.webm",
+            b"\x1a\x45\xdf\xa3" + b"\x00" * 10 + b"webm" + b"\x00" * 32,
+            content_type="video/webm",
+        )
+
+        with self.assertRaisesMessage(ValidationError, _("Upload a WebM video.")):
+            self.submit(files=[upload])
+
+    def test_video_quota_is_two(self):
+        with self.assertRaisesMessage(
+            ValidationError,
+            _("At most %(limit)s videos can be uploaded per application.")
+            % {"limit": 2},
+        ):
+            self.submit(
+                files=[
+                    make_webm("one.webm"),
+                    make_webm("two.webm"),
+                    make_webm("three.webm"),
+                ]
+            )
+
+    def test_existing_videos_count_toward_quota_when_updating(self):
+        application = self.submit(
+            files=[make_webm("one.webm"), make_webm("two.webm")]
+        )
+
+        with self.assertRaisesMessage(
+            ValidationError,
+            _("At most %(limit)s videos can be uploaded per application.")
+            % {"limit": 2},
+        ):
+            update_application(
+                application,
+                {"title": "Updated title"},
+                files=[make_webm("three.webm")],
+            )
+
+    def test_image_size_limit(self):
+        with patch("main.services.attachments.WEBP_MAX_IMAGE_SIZE", 1):
+            with self.assertRaises(ValidationError):
+                self.submit(files=[make_webp()])
+
+    def test_video_size_limit(self):
+        with patch("main.services.attachments.WEBP_MAX_VIDEO_SIZE", 1):
+            with self.assertRaises(ValidationError):
+                self.submit(files=[make_webm()])
+
+    def test_total_size_limit(self):
+        with patch("main.services.attachments.WEBP_MAX_TOTAL_SIZE", 1):
+            with self.assertRaises(ValidationError):
+                self.submit(files=[make_webp()])
+
+    def test_image_dimensions_limit(self):
+        with patch("main.services.attachments.MAX_IMAGE_PIXELS", 1):
+            with self.assertRaisesMessage(
+                ValidationError,
+                _("The image dimensions are too large."),
+            ):
+                self.submit(files=[make_webp()])
+
+    def test_default_profile_rejects_video(self):
+        form = self.make_default_form()
+
+        with self.assertRaisesMessage(
+            ValidationError,
+            _("This form does not accept video attachments."),
+        ):
+            self.submit(form=form, files=[make_webm()])
+
+    def test_default_profile_still_accepts_png(self):
+        form = self.make_default_form()
+        application = self.submit(form=form, files=[make_image()])
+
+        self.assertEqual(application.attachments.get().content_type, "image/png")
+
+    def test_usage_counts_existing_attachments(self):
+        application = self.submit(files=[make_webp(), make_webm()])
+
+        usage = usage_for(self.form, application.attachments.all())
+        self.assertEqual(usage.file_count, 2)
+        self.assertEqual(usage.video_count, 1)
+        self.assertEqual(usage.remaining_files, 8)
+        self.assertEqual(usage.remaining_videos, 1)
+        self.assertLess(usage.remaining_bytes, WEBP_MAX_TOTAL_SIZE)
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class AttachmentPreviewTests(MediaTestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="preview-owner",
+            email="preview-owner@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=self.user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.other = get_user_model().objects.create_user(
+            username="preview-other",
+            email="preview-other@example.com",
+            password="secret123",
+        )
+        self.jury = get_user_model().objects.create_user(
+            username="preview-jury",
+            email="preview-jury@example.com",
+            password="secret123",
+        )
+        self.jury.groups.add(Group.objects.get(name="jury"))
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="Preview form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
+            attachment_profile=FormDefinition.AttachmentProfile.WEBP_WEBM,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+        self.application = submit_application(
+            self.user,
+            self.form,
+            {"title": "Preview application"},
+            files=[make_webp(), make_webm()],
+        )
+        self.image = self.application.attachments.get(content_type="image/webp")
+        self.video = self.application.attachments.get(content_type="video/webm")
+
+    def thumbnail_url(self, attachment=None):
+        return reverse(
+            "main:attachment_thumbnail",
+            args=[(attachment or self.image).pk],
+        )
+
+    def preview_url(self, attachment):
+        return reverse("main:attachment_preview", args=[attachment.pk])
+
+    def download_url(self, attachment):
+        return reverse("main:attachment_download", args=[attachment.pk])
+
+    def test_thumbnail_is_served_to_owner_and_cached(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.thumbnail_url())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/webp")
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+        self.assertTrue(preview_service.thumbnail_path(self.image).exists())
+
+        cached = self.client.get(self.thumbnail_url())
+        self.assertEqual(cached.status_code, 200)
+
+    def test_thumbnail_is_removed_with_attachment(self):
+        self.client.force_login(self.user)
+        self.client.get(self.thumbnail_url())
+        path = preview_service.thumbnail_path(self.image)
+        self.assertTrue(path.exists())
+
+        delete_attachment(self.image)
+
+        self.assertFalse(path.exists())
+
+    def test_legacy_png_attachment_can_be_previewed(self):
+        upload = make_image(name="legacy.png", image_format="PNG")
+        legacy = Attachment.objects.create(
+            application=self.application,
+            file=upload,
+            original_name="legacy.png",
+            content_type="image/png",
+            size=upload.size,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.thumbnail_url(legacy))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/webp")
+        self.assertEqual(legacy.format_label, "PNG")
+
+    def test_thumbnail_rejects_videos(self):
+        self.client.force_login(self.user)
+
+        self.assertEqual(
+            self.client.get(self.thumbnail_url(self.video)).status_code,
+            404,
+        )
+
+    def test_preview_permissions(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.preview_url(self.image)).status_code, 200)
+
+        self.client.force_login(self.jury)
+        self.assertEqual(self.client.get(self.preview_url(self.video)).status_code, 200)
+
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(self.preview_url(self.image)).status_code, 404)
+
+        self.client.logout()
+        self.assertEqual(self.client.get(self.preview_url(self.image)).status_code, 404)
+
+    def test_preview_page_renders_media(self):
+        self.client.force_login(self.user)
+
+        image_response = self.client.get(self.preview_url(self.image))
+        self.assertContains(image_response, "<img")
+        self.assertContains(image_response, self.image.original_name)
+
+        video_response = self.client.get(self.preview_url(self.video))
+        self.assertContains(video_response, "<video")
+        self.assertContains(video_response, self.video.original_name)
+
+    def test_download_sets_attachment_disposition(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.download_url(self.video))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment;", response["Content-Disposition"])
+        self.assertEqual(response["Content-Type"], "video/webm")
+
+    def test_range_request_returns_partial_content(self):
+        self.client.force_login(self.user)
+        source = Path(self.video.file.path).read_bytes()
+
+        response = self.client.get(
+            self.video.file.url,
+            HTTP_RANGE="bytes=2-5",
+        )
+
+        self.assertEqual(response.status_code, 206)
+        self.assertEqual(response["Content-Range"], f"bytes 2-5/{len(source)}")
+        self.assertEqual(response["Accept-Ranges"], "bytes")
+        self.assertEqual(b"".join(response.streaming_content), source[2:6])
+
+    def test_unsatisfiable_range_returns_416(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            self.video.file.url,
+            HTTP_RANGE="bytes=999999-",
+        )
+
+        self.assertEqual(response.status_code, 416)
+        self.assertEqual(
+            response["Content-Range"],
+            f"bytes */{Path(self.video.file.path).stat().st_size}",
+        )
+
+    def test_normal_media_response_advertises_ranges(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.video.file.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Accept-Ranges"], "bytes")
+
+    def test_upload_ui_for_webp_profile(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("main:application_edit", args=[self.application.public_id])
+        )
+
+        self.assertContains(
+            response,
+            'accept=".webp,.webm,image/webp,video/webm"',
+        )
+        self.assertContains(response, "data-quota-videos")
+        self.assertContains(response, "data-quota-bytes")
+        self.assertContains(response, _("videos left"))
+        self.assertContains(response, self.thumbnail_url())
+
+    def test_new_application_form_has_local_preview_dialog(self):
+        form = FormDefinition.objects.create(
+            year=self.year,
+            category=Category.objects.get(slug="development"),
+            title="New preview form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
+            attachment_profile=FormDefinition.AttachmentProfile.WEBP_WEBM,
+        )
+        FormField.objects.create(
+            form=form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("main:application_start", args=[form.pk])
+        )
+
+        self.assertContains(response, "attachment-preview-dialog")
+        self.assertContains(response, "attachment_upload.js")
+        self.assertContains(response, "attachment_preview.js")
+
+    def test_application_detail_renders_gallery(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("main:application_detail", args=[self.application.public_id])
+        )
+
+        self.assertContains(response, "data-attachment-preview")
+        self.assertContains(response, "attachment-preview-dialog")
+        self.assertContains(response, "attachment-thumb")
+        self.assertContains(response, self.preview_url(self.image))
+
+    def test_jury_detail_renders_gallery(self):
+        Application.objects.filter(pk=self.application.pk).update(
+            status=Application.Status.IN_REVIEW
+        )
+        self.client.force_login(self.jury)
+
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            )
+        )
+
+        self.assertContains(response, "data-attachment-preview")
+        self.assertContains(response, "attachment-preview-dialog")
+        self.assertContains(response, self.thumbnail_url())
+
+    def test_other_applicant_cannot_use_thumbnail_or_download(self):
+        self.client.force_login(self.other)
+
+        self.assertEqual(
+            self.client.get(self.thumbnail_url()).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.get(self.download_url(self.image)).status_code,
+            404,
+        )

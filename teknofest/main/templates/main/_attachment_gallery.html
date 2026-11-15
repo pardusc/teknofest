@@ -1,0 +1,40 @@
+{% load i18n %}
+{% translate "Delete this file?" as delete_file_confirm %}
+<div class="attachment-gallery" role="list">
+  {% for attachment in attachments %}
+    <article class="attachment-card" role="listitem">
+      <a class="attachment-link"
+         href="{% url 'main:attachment_preview' attachment.pk %}"
+         data-attachment-preview
+         data-preview-kind="{{ attachment.media_kind }}"
+         data-preview-url="{{ attachment.file.url }}"
+         data-preview-title="{{ attachment.original_name }}"
+         data-download-url="{% url 'main:attachment_download' attachment.pk %}"
+         aria-label="{% blocktranslate with name=attachment.original_name %}Preview {{ name }}{% endblocktranslate %}">
+        <span class="attachment-thumb{% if attachment.is_video %} attachment-thumb--video{% endif %}">
+          {% if attachment.is_video %}
+            <video preload="metadata" muted playsinline tabindex="-1" aria-hidden="true"
+                   src="{{ attachment.file.url }}#t=0.1"></video>
+            <span class="attachment-play" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+          {% else %}
+            <img src="{% url 'main:attachment_thumbnail' attachment.pk %}"
+                 alt="{{ attachment.original_name }}" loading="lazy" decoding="async">
+          {% endif %}
+        </span>
+        <span class="attachment-info">
+          <span class="attachment-name">{{ attachment.original_name }}</span>
+          <span class="attachment-meta">{{ attachment.size|filesizeformat }} · {{ attachment.format_label }}</span>
+        </span>
+      </a>
+      {% if can_delete_attachments and application %}
+        <button class="attachment-delete" type="submit"
+                formaction="{% url 'main:attachment_delete' application.public_id attachment.pk %}"
+                formmethod="post" formnovalidate
+                aria-label="{% translate 'Delete' %}" title="{% translate 'Delete' %}"
+                onclick="return confirm('{{ delete_file_confirm|escapejs }}')">×</button>
+      {% endif %}
+    </article>
+  {% endfor %}
+</div>

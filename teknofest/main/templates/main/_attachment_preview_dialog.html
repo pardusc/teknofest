@@ -1,0 +1,13 @@
+{% load i18n %}
+<dialog id="attachment-preview-dialog" class="attachment-preview-dialog" aria-labelledby="attachment-preview-title">
+  <div class="attachment-preview-header">
+    <h2 id="attachment-preview-title" class="h6 mb-0" data-preview-title></h2>
+    <button class="btn-ghost btn-sm attachment-preview-close" type="button" data-preview-close aria-label="{% translate 'Close' %}">
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+  <div class="attachment-preview-body" data-preview-body></div>
+  <div class="attachment-preview-footer">
+    <a class="btn-outline btn-sm" data-preview-download href="#">{% translate "Download" %}</a>
+  </div>
+</dialog>

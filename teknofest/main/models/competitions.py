@@ -150,6 +150,10 @@ class FormDefinition(models.Model):
         OPTIONAL = "optional", _("Optional")
         REQUIRED = "required", _("Required")
 
+    class AttachmentProfile(models.TextChoices):
+        DEFAULT = "default", _("Default (JPEG/PNG images)")
+        WEBP_WEBM = "webp_webm", _("WebP images and WebM videos")
+
     year = models.ForeignKey(
         CompetitionYear,
         on_delete=models.PROTECT,
@@ -187,6 +191,16 @@ class FormDefinition(models.Model):
         help_text=_(
             "How many applications one applicant may submit for this form. "
             "0 means unlimited."
+        ),
+    )
+    attachment_profile = models.CharField(
+        max_length=16,
+        choices=AttachmentProfile.choices,
+        default=AttachmentProfile.DEFAULT,
+        verbose_name=_("Attachment profile"),
+        help_text=_(
+            "Controls accepted attachment formats and limits. "
+            "Use the WebP/WebM profile for bug/suggestion forms."
         ),
     )
     opens_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Opens at"))

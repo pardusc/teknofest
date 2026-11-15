@@ -1,0 +1,39 @@
+{% extends "main/base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ attachment.original_name }} · {% translate "Attachment preview" %}{% endblock %}
+
+{% block content %}
+<div class="container site-main">
+  <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
+    <a href="{{ back_url }}">{% translate "Back" %}</a>
+    <span>{{ attachment.original_name }}</span>
+  </nav>
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">{{ application.year.year }} · {{ application.category.display_name }}</span>
+      <h1>{{ attachment.original_name }}</h1>
+      <p class="small fg-secondary mb-0">
+        {{ application.title }} · {{ attachment.size|filesizeformat }} · {{ attachment.format_label }}
+      </p>
+    </div>
+    <a class="btn-outline" href="{{ back_url }}">{% translate "Back to application" %}</a>
+  </div>
+
+  <section class="card section-card attachment-preview-page">
+    <div class="section-body">
+      {% if is_video %}
+        <video class="attachment-preview-media" controls autoplay playsinline preload="metadata"
+               src="{{ attachment.file.url }}"></video>
+      {% else %}
+        <img class="attachment-preview-media" src="{{ attachment.file.url }}" alt="{{ attachment.original_name }}">
+      {% endif %}
+    </div>
+    <div class="form-actions">
+      <span class="hint">{% translate "Preview is only visible to the applicant and the jury." %}</span>
+      <a class="btn-solid" href="{{ download_url }}">{% translate "Download" %}</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

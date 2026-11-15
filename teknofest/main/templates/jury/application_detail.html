@@ -1,5 +1,5 @@
 {% extends "main/base.html" %}
-{% load i18n %}
+{% load static i18n %}
 
 {% block title %}{% if application.code %}{{ application.code }}{% else %}{% translate "Application" %}{% endif %} · {% translate "Jury review" %}{% endblock %}
 
@@ -54,14 +54,7 @@
         <div class="section-head"><h2>{% translate "Attachments" %}</h2><span class="chip chip-neutral">{{ attachments|length }}</span></div>
         <div class="section-body">
           {% if attachments %}
-            <ul class="attachment-list mb-0">
-              {% for attachment in attachments %}
-                <li>
-                  <span><a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a><span class="attachment-meta">{{ attachment.size|filesizeformat }}</span></span>
-                  <a class="btn-outline btn-sm" href="{{ attachment.file.url }}" download>{% translate "Download" %}</a>
-                </li>
-              {% endfor %}
-            </ul>
+            {% include "main/_attachment_gallery.html" with attachments=attachments can_delete_attachments=False application=application %}
           {% else %}
             <p class="small fg-secondary mb-0">{% translate "No attachments in this application." %}</p>
           {% endif %}
@@ -131,5 +124,10 @@
       </section>
     </aside>
   </div>
+  {% include "main/_attachment_preview_dialog.html" %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'main/js/attachment_preview.js' %}"></script>
 {% endblock %}

@@ -795,3 +795,232 @@ input[type="file"].form-control::file-selector-button:hover {
 }
 
 [data-bs-theme="dark"] .auth-brand img { filter: brightness(0) invert(1); }
+
+/* Attachment gallery and previews */
+.attachment-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+.attachment-quota {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: var(--p-muted);
+}
+.attachment-quota span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--p-border);
+  border-radius: 999px;
+  background: var(--p-surface-alt);
+  white-space: nowrap;
+}
+.attachment-quota strong { color: var(--p-ink); font-weight: 600; }
+.attachment-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.attachment-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--p-border);
+  border-radius: calc(var(--p-radius) + 3px);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow);
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+.attachment-card:hover, .attachment-card:focus-within {
+  border-color: var(--p-accent);
+  transform: translateY(-1px);
+}
+.attachment-link { display: block; color: inherit; }
+button.attachment-link {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.attachment-link:focus-visible { outline: 2px solid var(--p-accent); outline-offset: -2px; }
+.attachment-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #171516;
+}
+.attachment-thumb img, .attachment-thumb video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.attachment-thumb video { pointer-events: none; background: #000; }
+.attachment-thumb--video::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 5%), rgb(0 0 0 / 45%));
+  pointer-events: none;
+}
+.attachment-play {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 92%);
+  color: #231f20;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 30%);
+  pointer-events: none;
+}
+.attachment-info { display: block; padding: 0.55rem 0.65rem 0.65rem; }
+.attachment-name {
+  display: block;
+  overflow: hidden;
+  color: var(--p-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachment-meta { display: block; color: var(--p-muted); font-size: 0.7rem; }
+.attachment-delete {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 55%);
+  border-radius: 999px;
+  background: rgb(20 18 19 / 78%);
+  color: #fff;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+}
+.attachment-delete:hover, .attachment-delete:focus-visible {
+  border-color: var(--p-danger);
+  background: var(--p-danger);
+  color: #fff;
+}
+
+.file-drop.is-dragover {
+  border-color: var(--p-accent);
+  background: var(--p-accent-soft);
+}
+.attachment-selection {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.attachment-preview-dialog {
+  width: min(980px, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--p-surface);
+  color: var(--p-text);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 45%);
+}
+.attachment-preview-dialog:not([open]) { display: none; }
+.attachment-preview-dialog::backdrop {
+  background: rgb(12 10 11 / 78%);
+  backdrop-filter: blur(3px);
+}
+body.attachment-preview-open { overflow: hidden; }
+.attachment-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--p-border);
+  background: var(--p-surface);
+}
+.attachment-preview-header h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachment-preview-close {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.attachment-preview-body {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  max-height: calc(100dvh - 11rem);
+  overflow: auto;
+  padding: 0.75rem;
+  background: #0f0e0e;
+}
+.attachment-preview-body img,
+.attachment-preview-body video,
+.attachment-preview-media {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 13rem);
+  margin: 0 auto;
+  object-fit: contain;
+}
+.attachment-preview-body video { width: 100%; background: #000; }
+.attachment-preview-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid var(--p-border);
+  background: var(--p-surface);
+}
+.attachment-preview-page .section-body { background: #0f0e0e; }
+.attachment-preview-page .attachment-preview-media { max-height: 75dvh; }
+
+@media (max-width: 575.98px) {
+  .attachment-gallery, .attachment-selection { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+  .attachment-quota { font-size: 0.7rem; }
+  .attachment-preview-dialog {
+    width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .attachment-preview-body { max-height: calc(100dvh - 9rem); padding: 0.4rem; }
+  .attachment-preview-body img, .attachment-preview-body video { max-height: calc(100dvh - 11rem); }
+}
+
+.attachment-selection[hidden], [data-attachment-error][hidden] { display: none !important; }

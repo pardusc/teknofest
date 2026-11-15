@@ -7,12 +7,18 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.cache import cache
 from django.core.exceptions import SuspiciousFileOperation, ValidationError
-from django.http import FileResponse, Http404
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponse,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils._os import safe_join
+from django.utils.http import content_disposition_header, url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
 from django.views import View
@@ -34,7 +40,9 @@ from .models import (
 from .permissions import ApplicantOnlyMixin, JuryRequiredMixin, is_jury
 from .services import applications as application_service
 from .services import audit as audit_service
+from .services import previews as preview_service
 from .services import reviews as review_service
+from .services.attachments import rules_for, usage_for
 from .services.jury import (
     REVIEWABLE_APPLICATION_STATUSES,
     jury_application_queue,
@@ -245,10 +253,13 @@ class ApplicationDetailView(ApplicantOnlyMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        attachments = list(self.object.attachments.all())
         context.update(
             {
                 "field_answers": _field_answers(self.object),
-                "attachments": self.object.attachments.all(),
+                "attachments": attachments,
+                "attachment_usage": usage_for(self.object.form, attachments),
+                "can_delete_attachments": False,
                 "can_edit": self.object.is_editable,
             }
         )
@@ -435,18 +446,22 @@ def _initial_answers(application):
 
 def _application_form_context(form_definition, application_form, application=None):
     policy = form_definition.attachment_policy
+    attachments = list(application.attachments.all()) if application else []
     return {
         "form_definition": form_definition,
         "application": application,
         "application_form": application_form,
-        "attachments": application.attachments.all() if application else [],
+        "attachments": attachments,
         "attachment_policy": policy,
+        "attachment_rules": rules_for(form_definition),
+        "attachment_usage": usage_for(form_definition, attachments),
         "accepts_files": policy != FormDefinition.AttachmentPolicy.NONE,
         "can_add_attachment": bool(
             application
             and application.is_editable
             and policy != FormDefinition.AttachmentPolicy.NONE
         ),
+        "can_delete_attachments": bool(application and application.is_editable),
     }
 
 
@@ -538,11 +553,13 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
             next_id = queue[index + 1] if index + 1 < len(queue) else None
 
         context.update(review_stats(application, self.request.user))
+        attachments = list(application.attachments.all())
         context.update(
             {
                 "form_definition": application.form,
                 "field_answers": _review_field_answers(application),
-                "attachments": application.attachments.all(),
+                "attachments": attachments,
+                "attachment_usage": usage_for(application.form, attachments),
                 "can_review": (
                     application.form.status == FormDefinition.Status.IN_REVIEW
                 ),
@@ -744,6 +761,94 @@ def _review_field_answers(application):
     return items
 
 
+def _get_visible_attachment(request, pk):
+    attachment = get_object_or_404(
+        Attachment.objects.select_related(
+            "application",
+            "application__form",
+        ),
+        pk=pk,
+    )
+    user = request.user
+    if not user.is_authenticated or not (
+        attachment.application.applicant_id == user.pk or is_jury(user)
+    ):
+        raise Http404
+    return attachment
+
+
+def _attachment_back_url(request, attachment):
+    next_url = request.GET.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    if is_jury(request.user):
+        return reverse(
+            "main:jury_application_detail",
+            args=[attachment.application.public_id],
+        )
+    return reverse(
+        "main:application_detail",
+        args=[attachment.application.public_id],
+    )
+
+
+def attachment_thumbnail(request, pk):
+    attachment = _get_visible_attachment(request, pk)
+    if not attachment.is_image:
+        raise Http404
+    try:
+        thumbnail = preview_service.get_or_create_thumbnail(attachment)
+    except Exception as exc:  # corrupt or unreadable legacy file
+        raise Http404 from exc
+
+    response = FileResponse(
+        thumbnail.open("rb"),
+        content_type="image/webp",
+    )
+    response["Cache-Control"] = "private, max-age=604800"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+def attachment_preview(request, pk):
+    attachment = _get_visible_attachment(request, pk)
+    if not (attachment.is_image or attachment.is_video):
+        raise Http404
+    return render(
+        request,
+        "main/attachment_preview.html",
+        {
+            "attachment": attachment,
+            "application": attachment.application,
+            "is_video": attachment.is_video,
+            "back_url": _attachment_back_url(request, attachment),
+            "download_url": reverse(
+                "main:attachment_download",
+                args=[attachment.pk],
+            ),
+        },
+    )
+
+
+def attachment_download(request, pk):
+    attachment = _get_visible_attachment(request, pk)
+    try:
+        response = FileResponse(
+            attachment.file.open("rb"),
+            content_type=attachment.content_type or "application/octet-stream",
+            as_attachment=True,
+            filename=attachment.original_name,
+        )
+    except FileNotFoundError as exc:
+        raise Http404 from exc
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 def protected_media(request, path):
     """Serve uploaded files only to users allowed to see them."""
     user = request.user
@@ -770,6 +875,7 @@ def protected_media(request, path):
             attachment.file,
             attachment.original_name,
             attachment.content_type,
+            range_header=request.headers.get("Range"),
         )
 
     profile = Profile.objects.filter(photo=path).first()
@@ -780,18 +886,113 @@ def protected_media(request, path):
             profile.photo,
             os.path.basename(profile.photo.name),
             None,
+            range_header=request.headers.get("Range"),
         )
 
     raise Http404
 
 
-def _media_response(field_file, filename, content_type):
+def _media_response(
+    field_file,
+    filename,
+    content_type,
+    range_header=None,
+    as_attachment=False,
+):
     if content_type is None:
         content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-    response = FileResponse(
-        field_file.open("rb"),
+
+    if as_attachment:
+        response = FileResponse(
+            field_file.open("rb"),
+            content_type=content_type,
+            as_attachment=True,
+            filename=filename,
+        )
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    size = field_file.size
+    parsed_range = _parse_range_header(range_header, size)
+    if parsed_range is None:
+        response = FileResponse(
+            field_file.open("rb"),
+            content_type=content_type,
+            filename=filename,
+        )
+        response["Accept-Ranges"] = "bytes"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    start, end = parsed_range
+    if start is None and end is None:
+        response = HttpResponse(status=416)
+        response["Content-Range"] = f"bytes */{size}"
+        return response
+
+    length = end - start + 1
+    file_handle = field_file.open("rb")
+    file_handle.seek(start)
+    response = StreamingHttpResponse(
+        _file_range_iterator(file_handle, length),
+        status=206,
         content_type=content_type,
-        filename=filename,
+    )
+    response["Accept-Ranges"] = "bytes"
+    response["Content-Length"] = str(length)
+    response["Content-Range"] = f"bytes {start}-{end}/{size}"
+    response["Content-Disposition"] = content_disposition_header(
+        False,
+        filename,
     )
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+def _parse_range_header(range_header, size):
+    """Parse a single byte range; return ``(start, end)`` or ``None``.
+
+    ``(None, None)`` signals an unsatisfiable range.
+    """
+    if not range_header or not range_header.startswith("bytes="):
+        return None
+    if size <= 0:
+        return (None, None)
+
+    value = range_header.removeprefix("bytes=").strip()
+    if "," in value:
+        return (None, None)
+    if "-" not in value:
+        return (None, None)
+
+    start_text, end_text = value.split("-", 1)
+    try:
+        if start_text == "":
+            suffix_length = int(end_text)
+            if suffix_length <= 0:
+                return (None, None)
+            start = max(0, size - suffix_length)
+            end = size - 1
+        else:
+            start = int(start_text)
+            if start < 0 or start >= size:
+                return (None, None)
+            end = size - 1 if end_text == "" else int(end_text)
+            if end < start:
+                return (None, None)
+            end = min(end, size - 1)
+    except ValueError:
+        return (None, None)
+    return (start, end)
+
+
+def _file_range_iterator(file_handle, remaining, chunk_size=64 * 1024):
+    try:
+        while remaining > 0:
+            chunk = file_handle.read(min(chunk_size, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+            yield chunk
+    finally:
+        file_handle.close()

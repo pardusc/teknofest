@@ -4,7 +4,18 @@
 {% block title %}{{ form_definition.title }} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
-{% translate "Delete this file?" as delete_file_confirm %}
+{% if attachment_rules.is_webp_webm %}
+  {% translate "Only WebP images are accepted for this form." as msg_image %}
+{% else %}
+  {% translate "Only JPG or PNG images are accepted for this form." as msg_image %}
+{% endif %}
+{% translate "Only WebM videos are accepted for this form." as msg_video %}
+{% translate "One of the selected files is larger than the allowed size." as msg_size %}
+{% translate "You have reached the file limit." as msg_file_limit %}
+{% translate "You have reached the video limit." as msg_video_limit %}
+{% translate "The selected files would exceed the total size limit." as msg_total_limit %}
+{% translate "Remove" as msg_remove %}
+{% translate "Preview" as msg_preview %}
 <div class="container site-main">
   <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
     <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
@@ -45,30 +56,55 @@
 
         {% if accepts_files %}
           <div class="section-body border-top">
-            <h2 class="h6 fw-bold mb-1">{% translate "Attachments" %}</h2>
-            <p class="small fg-secondary mb-3">{% translate "JPG or PNG · max 2 MB per file · max 10 MB total" %}{% if attachment_policy == 'required' %} · {% translate "at least one file required" %}{% endif %}</p>
+            <div class="attachment-section-head">
+              <div>
+                <h2 class="h6 fw-bold mb-1">{% translate "Attachments" %}</h2>
+                <p class="small fg-secondary mb-0">{{ attachment_rules.hint }}{% if attachment_policy == 'required' %} · {% translate "at least one file required" %}{% endif %}</p>
+              </div>
+              <div class="attachment-quota" data-attachment-quota aria-live="polite">
+                <span><strong data-quota-files>{{ attachment_usage.remaining_files }}</strong> {% translate "files left" %}</span>
+                {% if attachment_rules.max_videos %}
+                  <span><strong data-quota-videos>{{ attachment_usage.remaining_videos }}</strong> {% translate "videos left" %}</span>
+                {% endif %}
+                <span><strong data-quota-bytes>{{ attachment_usage.remaining_bytes|filesizeformat }}</strong> {% translate "space left" %}</span>
+              </div>
+            </div>
 
             {% if attachments %}
-              <ul class="attachment-list mb-3">
-                {% for attachment in attachments %}
-                  <li>
-                    <span>
-                      <a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a>
-                      <span class="attachment-meta">{{ attachment.size|filesizeformat }}</span>
-                    </span>
-                    <button class="btn-ghost btn-sm" type="submit"
-                            formaction="{% url 'main:attachment_delete' application.public_id attachment.pk %}"
-                            formmethod="post" formnovalidate
-                            onclick="return confirm('{{ delete_file_confirm|escapejs }}')">{% translate "Delete" %}</button>
-                  </li>
-                {% endfor %}
-              </ul>
+              {% include "main/_attachment_gallery.html" with attachments=attachments can_delete_attachments=can_delete_attachments application=application %}
             {% endif %}
 
-            <div class="file-drop">
+            <div class="file-drop" data-file-drop>
               <label class="form-label" for="application-files">{% translate "Choose files" %}</label>
-              <input id="application-files" class="form-control" type="file" name="files" accept="image/jpeg,image/png" multiple{% if attachment_policy == 'required' and not attachments %} required{% endif %}>
+              <input id="application-files" class="form-control" type="file" name="files"
+                     accept="{{ attachment_rules.accept_attribute }}" multiple
+                     data-attachment-input
+                     data-profile="{{ attachment_rules.profile }}"
+                     data-max-files="{{ attachment_rules.max_files }}"
+                     data-max-videos="{{ attachment_rules.max_videos }}"
+                     data-max-image-bytes="{{ attachment_rules.max_image_size }}"
+                     data-max-video-bytes="{{ attachment_rules.max_video_size }}"
+                     data-max-total-bytes="{{ attachment_rules.max_total_size }}"
+                     data-existing-files="{{ attachment_usage.file_count }}"
+                     data-existing-videos="{{ attachment_usage.video_count }}"
+                     data-existing-bytes="{{ attachment_usage.total_size }}"
+                     data-remaining-files="{{ attachment_usage.remaining_files }}"
+                     data-remaining-videos="{{ attachment_usage.remaining_videos }}"
+                     data-remaining-bytes="{{ attachment_usage.remaining_bytes }}"
+                     data-msg-image="{{ msg_image|escapejs }}"
+                     data-msg-video="{{ msg_video|escapejs }}"
+                     data-msg-size="{{ msg_size|escapejs }}"
+                     data-msg-file-limit="{{ msg_file_limit|escapejs }}"
+                     data-msg-video-limit="{{ msg_video_limit|escapejs }}"
+                     data-msg-total-limit="{{ msg_total_limit|escapejs }}"
+                     data-msg-remove="{{ msg_remove|escapejs }}"
+                     data-msg-preview="{{ msg_preview|escapejs }}"
+                     {% if attachment_policy == 'required' and not attachments %}required{% endif %}>
+              <p class="small fg-secondary mb-0 mt-2">{% translate "Drag files here or choose them from your device." %}</p>
             </div>
+            <div class="attachment-selection" data-attachment-selection hidden></div>
+            <p class="field-error" data-attachment-error hidden role="alert"></p>
+            {% include "main/_attachment_preview_dialog.html" %}
           </div>
         {% endif %}
 
@@ -115,4 +151,6 @@
 {% include "main/_date_picker.html" %}
 <script type="module" src="{% static 'main/js/form_fields.js' %}"></script>
 <script type="module" src="{% static 'main/js/date_picker.js' %}"></script>
+<script type="module" src="{% static 'main/js/attachment_upload.js' %}"></script>
+<script type="module" src="{% static 'main/js/attachment_preview.js' %}"></script>
 {% endblock %}

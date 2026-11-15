@@ -46,6 +46,7 @@ class ProfileCompletionMiddleware:
         self.exempt_prefixes = (
             "/static/",
             "/media/",
+            "/attachments/",
             "/i18n/",
             "/admin/",
             "/jury/",

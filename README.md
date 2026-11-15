@@ -24,6 +24,21 @@ validation through `main.dynamic_forms`.
 Forms can be opened, put in review or closed manually from the admin, and each field can
 be hidden from reviewers. Staff members can preview a form before opening it.
 
+## Attachments and previews
+
+Each form has an attachment profile. The default profile keeps JPEG/PNG images with the
+historical 2 MB per-file and 10 MB total limits. The `webp_webm` profile is intended for
+the bug/suggestion form: it accepts WebP images up to 5 MB and WebM videos up to 40 MB,
+with at most 2 videos, 10 files and 80 MB total per application.
+
+Applicants and jury members see image thumbnails and video cards in a gallery. Clicking
+a card opens an in-page preview dialog (images are shown full size, videos play with
+controls) with a download action. Attachment previews are permission-checked; the
+original files are never served directly from `MEDIA_ROOT`.
+
+When deploying, configure the reverse proxy to accept request bodies up to the total
+attachment limit (80 MB for the `webp_webm` profile).
+
 ## Getting started
 
 Requirements: Python 3.15 and [uv](https://docs.astral.sh/uv/) (or plain `venv` + `pip`).

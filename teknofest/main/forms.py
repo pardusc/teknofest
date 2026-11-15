@@ -137,6 +137,13 @@ class FormDefinitionAdminForm(forms.ModelForm):
         self.fields["closes_at"].help_text = _(
             "Optional. Leave empty to use the global application deadline, if configured."
         )
+        self.fields["attachment_profile"].required = False
+
+    def clean_attachment_profile(self):
+        return (
+            self.cleaned_data.get("attachment_profile")
+            or FormDefinition.AttachmentProfile.DEFAULT
+        )
 
 
 class FormFieldAdminForm(forms.ModelForm):

@@ -165,6 +165,7 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "mask_applicant_identity",
         "attachment_policy",
         "submission_limit",
+        "attachment_profile",
         "opens_at",
         "closes_at",
     )
@@ -174,11 +175,12 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "status",
         "attachment_policy",
         "submission_limit",
+        "attachment_profile",
         "opens_at",
         "closes_at",
         "preview_link",
     )
-    list_filter = ("status", "year", "category")
+    list_filter = ("status", "year", "category", "attachment_profile")
     search_fields = ("title", "description")
     actions = ("mark_open", "mark_in_review", "mark_closed")
 
