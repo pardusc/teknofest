@@ -160,11 +160,15 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 
 python teknofest/manage.py migrate
+python teknofest/manage.py compilemessages -l tr
 python teknofest/manage.py createsuperuser
 python teknofest/manage.py runserver
 ```
 
 The development server runs at <http://127.0.0.1:8000/>.
+
+`compilemessages` requires gettext (`msgfmt`). It is only needed after editing
+`locale/tr/LC_MESSAGES/django.po`; the compiled `.mo` file is committed.
 
 If you prefer plain `venv`:
 
@@ -183,6 +187,23 @@ Settings are read from environment variables with development-friendly defaults:
 | `DJANGO_SECRET_KEY` | insecure development key | Secret key; must be set in production. |
 | `DJANGO_DEBUG` | `1` | Set to `0` to disable debug mode. |
 | `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated list of allowed hosts. |
+
+## Localization
+
+Backend messages use Django's standard gettext catalogs. Turkish is the default
+language (`LANGUAGE_CODE = "tr"`); untranslated strings fall back to their English
+msgid.
+
+- Translations live in `teknofest/locale/tr/LC_MESSAGES/django.po`
+- After adding or changing strings, regenerate and compile the catalog:
+
+```bash
+cd teknofest
+../.venv/bin/python manage.py makemessages -l tr --no-wrap
+../.venv/bin/python manage.py compilemessages -l tr
+```
+
+Commit both `django.po` and `django.mo`.
 
 ## Status
 

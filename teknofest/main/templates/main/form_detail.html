@@ -1,11 +1,12 @@
 {% extends "main/base.html" %}
+{% load i18n %}
 
-{% block title %}{{ form_definition.title }} · Başvuru formu{% endblock %}
+{% block title %}{{ form_definition.title }} · {% translate "Application form" %}{% endblock %}
 
 {% block content %}
 <section class="container py-5">
   <div class="mb-4">
-    <a class="small fg-primary text-decoration-none" href="{% url 'main:form_list' %}">Başvuru formlarına dön</a>
+    <a class="small fg-primary text-decoration-none" href="{% url 'main:form_list' %}">{% translate "Back to application forms" %}</a>
     <p class="eyebrow fg-primary mt-4 mb-2">{{ form_definition.year.year }} · {{ form_definition.category.name }}</p>
     <h1 class="h2 fw-bold mb-2">{{ form_definition.title }}</h1>
     {% if form_definition.description %}<p class="fg-secondary mb-0">{{ form_definition.description|linebreaksbr }}</p>{% endif %}
@@ -13,27 +14,27 @@
   <div class="row g-4">
     <div class="lg:col-8">
       <section class="card h-100"><div class="card-body p-4 p-lg-5">
-        <h2 class="h5 fw-bold mb-3">Formda istenen bilgiler</h2>
+        <h2 class="h5 fw-bold mb-3">{% translate "Information requested in the form" %}</h2>
         {% if fields %}
           <ol class="form-field-list mb-0">
             {% for field in fields %}
-              <li><span class="fw-semibold">{{ field.label }}</span>{% if field.is_required %}<span class="fg-danger ms-1">Zorunlu</span>{% else %}<span class="small fg-secondary ms-1">İsteğe bağlı</span>{% endif %}{% if field.help_text %}<p class="small fg-secondary mb-0 mt-1">{{ field.help_text }}</p>{% endif %}</li>
+              <li><span class="fw-semibold">{{ field.label }}</span>{% if field.is_required %}<span class="fg-danger ms-1">{% translate "Required" %}</span>{% else %}<span class="small fg-secondary ms-1">{% translate "Optional" %}</span>{% endif %}{% if field.help_text %}<p class="small fg-secondary mb-0 mt-1">{{ field.help_text }}</p>{% endif %}</li>
             {% endfor %}
           </ol>
-        {% else %}<p class="fg-secondary mb-0">Bu form için henüz alan tanımlanmamış.</p>{% endif %}
+        {% else %}<p class="fg-secondary mb-0">{% translate "No fields have been defined for this form yet." %}</p>{% endif %}
       </div></section>
     </div>
     <div class="lg:col-4">
       <aside class="card application-side-card"><div class="card-body p-4">
-        <h2 class="h5 fw-bold">Başvuru bilgileri</h2>
-        <dl class="application-facts mb-4"><div><dt>Yarışma yılı</dt><dd>{{ form_definition.year.year }}</dd></div><div><dt>Kategori</dt><dd>{{ form_definition.category.name }}</dd></div><div><dt>Durum</dt><dd>{% if form_definition.is_accepting_submissions %}Başvuruya açık{% else %}Başvuruya kapalı{% endif %}</dd></div>{% if form_definition.closes_at %}<div><dt>Son başvuru</dt><dd>{{ form_definition.closes_at|date:"d.m.Y H:i" }}</dd></div>{% endif %}</dl>
+        <h2 class="h5 fw-bold">{% translate "Application information" %}</h2>
+        <dl class="application-facts mb-4"><div><dt>{% translate "Competition year" %}</dt><dd>{{ form_definition.year.year }}</dd></div><div><dt>{% translate "Category" %}</dt><dd>{{ form_definition.category.name }}</dd></div><div><dt>{% translate "Status" %}</dt><dd>{% if form_definition.is_accepting_submissions %}{% translate "Open for applications" %}{% else %}{% translate "Closed for applications" %}{% endif %}</dd></div>{% if form_definition.closes_at %}<div><dt>{% translate "Application deadline" %}</dt><dd>{{ form_definition.closes_at|date:"d.m.Y H:i" }}</dd></div>{% endif %}</dl>
         {% if existing_application %}
-          <p class="small fg-secondary">Bu form için daha önce başvuru oluşturdunuz.</p>
-          <a class="btn-solid theme-primary w-100" href="{% url 'main:application_detail' existing_application.public_id %}">Mevcut başvuruya git</a>
+          <p class="small fg-secondary">{% translate "You have already created an application for this form." %}</p>
+          <a class="btn-solid theme-primary w-100" href="{% url 'main:application_detail' existing_application.public_id %}">{% translate "Go to my application" %}</a>
         {% elif can_apply %}
-          <form method="post" action="{% url 'main:application_start' form_definition.pk %}">{% csrf_token %}<button class="btn-solid theme-primary w-100" type="submit">Başvuruya başla</button></form>
-          <p class="small fg-secondary mt-3 mb-0">Başvurunuzu taslak olarak kaydedip daha sonra tamamlayabilirsiniz.</p>
-        {% else %}<button class="btn-solid theme-primary w-100" type="button" disabled>Başvuruya kapalı</button>{% endif %}
+          <form method="post" action="{% url 'main:application_start' form_definition.pk %}">{% csrf_token %}<button class="btn-solid theme-primary w-100" type="submit">{% translate "Start application" %}</button></form>
+          <p class="small fg-secondary mt-3 mb-0">{% translate "You can edit your application until the deadline after submitting it." %}</p>
+        {% else %}<button class="btn-solid theme-primary w-100" type="button" disabled>{% translate "Closed for applications" %}</button>{% endif %}
       </div></aside>
     </div>
   </div>

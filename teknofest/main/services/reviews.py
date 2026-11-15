@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db.models import Avg
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from ..models import FormDefinition, Review
 
@@ -21,7 +22,7 @@ def save_review(application, juror, score=None, note="") -> Review:
 def submit_review(application, juror, score=None, note="") -> Review:
     """Complete the review; a score is required, the note is optional."""
     if score in (None, ""):
-        raise ValidationError("Enter a score before submitting your review.")
+        raise ValidationError(_("Enter a score before submitting your review."))
 
     review = save_review(application, juror, score=score, note=note)
     if review.completed_at is None:
@@ -54,7 +55,7 @@ def review_stats(application, juror) -> dict:
 def _ensure_reviewable(application) -> None:
     if application.form.status != FormDefinition.Status.IN_REVIEW:
         raise ValidationError(
-            "Reviews can only be edited while the form is in review."
+            _("Reviews can only be edited while the form is in review.")
         )
 
 
@@ -64,7 +65,7 @@ def _validate_score(score):
     try:
         value = int(score)
     except (TypeError, ValueError) as exc:
-        raise ValidationError("Enter a whole number between 0 and 100.") from exc
+        raise ValidationError(_("Enter a whole number between 0 and 100.")) from exc
     if not 0 <= value <= 100:
-        raise ValidationError("Enter a whole number between 0 and 100.")
+        raise ValidationError(_("Enter a whole number between 0 and 100."))
     return value

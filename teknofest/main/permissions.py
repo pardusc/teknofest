@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
+from django.utils.translation import gettext as _
 
 JURY_GROUP_NAME = "jury"
 
@@ -29,6 +30,6 @@ class ApplicantOnlyMixin(LoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and is_jury(request.user):
-            messages.error(request, "Jüri hesapları başvuru yapamaz.")
+            messages.error(request, _("Jury accounts cannot apply."))
             return redirect("main:jury_dashboard")
         return super().dispatch(request, *args, **kwargs)

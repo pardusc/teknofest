@@ -1,13 +1,14 @@
 {% extends "main/base.html" %}
+{% load i18n %}
 
-{% block title %}Jüri paneli · Pardus Teknofest{% endblock %}
+{% block title %}{% translate "Jury panel" %} · Pardus Teknofest{% endblock %}
 
 {% block content %}
 <section class="container py-5 jury-dashboard">
   <header class="jury-page-header mb-4">
-    <p class="eyebrow mb-2">Jüri alanı</p>
-    <h1 class="mb-2">Değerlendirme paneli</h1>
-    <p class="mb-0">Yarışma formlarına gelen başvuruları inceleyin ve değerlendirmenizi kaydedin.</p>
+    <p class="eyebrow mb-2">{% translate "Jury area" %}</p>
+    <h1 class="mb-2">{% translate "Evaluation panel" %}</h1>
+    <p class="mb-0">{% translate "Review applications submitted to competition forms and save your evaluation." %}</p>
   </header>
 
   {% if forms %}
@@ -19,22 +20,22 @@
               <div class="jury-card-meta mb-3">
                 <span class="jury-chip">{{ form.year.year }}</span>
                 {% if form.status == 'in_review' %}
-                  <span class="jury-status jury-status-active">Değerlendirme açık</span>
+                  <span class="jury-status jury-status-active">{% translate "Review open" %}</span>
                 {% elif form.status == 'open' %}
-                  <span class="jury-status">Başvuru dönemi</span>
+                  <span class="jury-status">{% translate "Application period" %}</span>
                 {% else %}
-                  <span class="jury-status">Kapalı</span>
+                  <span class="jury-status">{% translate "Closed" %}</span>
                 {% endif %}
               </div>
               <p class="jury-category mb-1">{{ form.category.name }}</p>
               <h2 class="h4 mb-2">{{ form.title }}</h2>
-              {% if form.description %}<p class="jury-description mb-4">{{ form.description|linebreaksbr }}</p>{% else %}<p class="jury-description mb-4">Bu form üzerinden gönderilen başvuruların inceleme ve puanlama işlemleri.</p>{% endif %}
+              {% if form.description %}<p class="jury-description mb-4">{{ form.description|linebreaksbr }}</p>{% else %}<p class="jury-description mb-4">{% translate "Review and scoring of applications submitted through this form." %}</p>{% endif %}
 
               <div class="jury-form-stats mt-auto mb-3">
-                <div><span>Değerlendirilebilir başvuru</span><strong>{{ form.application_count }}</strong></div>
-                <div><span>Tamamladığınız değerlendirme</span><strong>{{ form.my_completed_count }}</strong></div>
+                <div><span>{% translate "Applications available for review" %}</span><strong>{{ form.application_count }}</strong></div>
+                <div><span>{% translate "Your completed reviews" %}</span><strong>{{ form.my_completed_count }}</strong></div>
               </div>
-              <a class="btn-solid theme-primary align-self-start" href="{% url 'main:jury_application_list' form.pk %}">Başvuruları aç</a>
+              <a class="btn-solid theme-primary align-self-start" href="{% url 'main:jury_application_list' form.pk %}">{% translate "Open applications" %}</a>
             </div>
           </article>
         </div>
@@ -43,9 +44,9 @@
   {% else %}
     <section class="card jury-empty-state">
       <div class="card-body">
-        <p class="eyebrow mb-2">Jüri alanı</p>
-        <h2 class="h4 mb-2">Henüz değerlendirilecek form yok</h2>
-        <p class="mb-0">Aktif yarışma yılı ve kategorilere bağlı formlar burada listelenir.</p>
+        <p class="eyebrow mb-2">{% translate "Jury area" %}</p>
+        <h2 class="h4 mb-2">{% translate "No forms to review yet" %}</h2>
+        <p class="mb-0">{% translate "Forms linked to active competition years and categories are listed here." %}</p>
       </div>
     </section>
   {% endif %}

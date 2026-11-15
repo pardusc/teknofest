@@ -1,5 +1,5 @@
-{% load static %}<!doctype html>
-<html lang="tr" data-bs-theme="light">
+{% load static i18n %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}" data-bs-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -31,31 +31,31 @@
         <span class="brand-mark" aria-hidden="true">P</span>
         <span class="brand-name">Pardus <span>Teknofest</span></span>
       </a>
-      <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="Menüyü aç">
+      <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="{% translate 'Open menu' %}">
         <span class="navbar-toggler-icon" aria-hidden="true"></span>
       </button>
       <dialog class="drawer drawer-end" tabindex="-1" id="siteNav" aria-labelledby="siteNavTitle">
         <div class="drawer-header">
-          <h2 class="drawer-title h5" id="siteNavTitle">Menü</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="drawer" aria-label="Menüyü kapat"></button>
+          <h2 class="drawer-title h5" id="siteNavTitle">{% translate "Menu" %}</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="drawer" aria-label="{% translate 'Close menu' %}"></button>
         </div>
         <div class="drawer-body">
         <div class="navbar-nav ms-auto lg:align-items-center lg:gap-2 py-3 lg:py-0">
-          <a class="nav-link site-nav-link" href="{% url 'main:home' %}">Ana sayfa</a>
+          <a class="nav-link site-nav-link" href="{% url 'main:home' %}">{% translate "Home" %}</a>
           {% if user.is_authenticated %}
             {% if is_jury_member %}
-              <a class="nav-link site-nav-link" href="{% url 'main:jury_dashboard' %}">Jüri paneli</a>
+              <a class="nav-link site-nav-link" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
             {% else %}
-              <a class="nav-link site-nav-link" href="{% url 'main:application_list' %}">Başvurularım</a>
-              <a class="nav-link site-nav-link" href="{% url 'main:form_list' %}">Başvuru formları</a>
-              <a class="nav-link site-nav-link" href="{% url 'main:profile' %}">Profilim</a>
+              <a class="nav-link site-nav-link" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
+              <a class="nav-link site-nav-link" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+              <a class="nav-link site-nav-link" href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
             {% endif %}
             <form method="post" action="{% url 'logout' %}" class="m-0">
               {% csrf_token %}
-              <button type="submit" class="btn-outline theme-inverse btn-sm lg:ms-2 navbar-logout">Çıkış yap</button>
+              <button type="submit" class="btn-outline theme-inverse btn-sm lg:ms-2 navbar-logout">{% translate "Log out" %}</button>
             </form>
           {% else %}
-            <a class="btn-solid theme-secondary btn-sm lg:ms-2 navbar-login" href="{% url 'login' %}">Giriş yap</a>
+            <a class="btn-solid theme-secondary btn-sm lg:ms-2 navbar-login" href="{% url 'login' %}">{% translate "Log in" %}</a>
           {% endif %}
         </div>
         </div>
@@ -69,7 +69,7 @@
         {% for message in messages %}
           <div class="alert site-alert mb-2" role="status">
             {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
           </div>
         {% endfor %}
       </div>
@@ -79,8 +79,8 @@
 
   <footer class="site-footer">
     <div class="container py-4 d-flex flex-column md:flex-row justify-content-between gap-2">
-      <span><strong>Pardus Teknofest</strong> <span>· Açık kaynakla daha iyi bir Pardus</span></span>
-      <span>Yarışma başvuruları ve değerlendirme platformu</span>
+      <span><strong>Pardus Teknofest</strong> <span>· {% translate "A better Pardus with open source" %}</span></span>
+      <span>{% translate "Competition application and evaluation platform" %}</span>
     </div>
   </footer>
   <script type="module" src="{% static 'main/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>

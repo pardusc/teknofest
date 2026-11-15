@@ -1,6 +1,7 @@
 {% extends "main/base.html" %}
+{% load i18n %}
 
-{% block title %}Ana sayfa · Pardus Teknofest{% endblock %}
+{% block title %}{% translate "Home" %} · Pardus Teknofest{% endblock %}
 
 {% block content %}
   <section class="hero-section">
@@ -9,27 +10,27 @@
         <div class="lg:col-7">
           <div class="hero-content">
           <span class="eyebrow">Pardus Teknofest · 2026</span>
-          <h1 class="hero-title mt-3 mb-3">Pardus Hata Yakalama ve Öneri Yarışması</h1>
-          <p class="hero-lead mb-4">Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı yarışma başvurusu olarak iletin.</p>
+          <h1 class="hero-title mt-3 mb-3">{% translate "Pardus Bug Finding and Suggestion Competition" %}</h1>
+          <p class="hero-lead mb-4">{% translate "Submit your bug reports, suggestions and development work as a competition application." %}</p>
           <div class="d-flex flex-wrap gap-3">
             {% if user.is_authenticated %}
-              <a class="btn-solid theme-primary btn-lg" href="{% url 'main:application_list' %}">Başvurularım</a>
-              <a class="btn-outline theme-secondary btn-lg" href="{% url 'main:form_list' %}">Başvuru formları</a>
+              <a class="btn-solid theme-primary btn-lg" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
+              <a class="btn-outline theme-secondary btn-lg" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
             {% else %}
-              <a class="btn-solid theme-primary btn-lg" href="{% url 'login' %}">Giriş yap</a>
-              <a class="btn-outline theme-secondary btn-lg" href="#kategoriler">Başvuru kategorileri</a>
+              <a class="btn-solid theme-primary btn-lg" href="{% url 'login' %}">{% translate "Log in" %}</a>
+              <a class="btn-outline theme-secondary btn-lg" href="#kategoriler">{% translate "Application categories" %}</a>
             {% endif %}
           </div>
           </div>
         </div>
         <div class="lg:col-5">
           <aside class="hero-card p-4 p-lg-5" aria-labelledby="competition-info-title">
-            <p class="small text-uppercase fw-semibold mb-2">Yarışma bilgileri</p>
-            <h2 class="h3 mb-4" id="competition-info-title">Başvuru dönemi</h2>
+            <p class="small text-uppercase fw-semibold mb-2">{% translate "Competition information" %}</p>
+            <h2 class="h3 mb-4" id="competition-info-title">{% translate "Application period" %}</h2>
             <dl class="competition-facts mb-0">
-              <div><dt>Yarışma dönemi</dt><dd>2026</dd></div>
-              <div><dt>Başvuru kategorisi</dt><dd>İki kategori</dd></div>
-              <div><dt>Takvim ve koşullar</dt><dd>Form ayrıntılarında yer alır</dd></div>
+              <div><dt>{% translate "Competition period" %}</dt><dd>2026</dd></div>
+              <div><dt>{% translate "Application category" %}</dt><dd>{% translate "Two categories" %}</dd></div>
+              <div><dt>{% translate "Calendar and conditions" %}</dt><dd>{% translate "Included in form details" %}</dd></div>
             </dl>
           </aside>
       </div>
@@ -37,16 +38,16 @@
   </section>
 
   <section class="container py-5" id="kategoriler">
-    <h2 class="section-title mb-4">Başvuru kategorileri</h2>
+    <h2 class="section-title mb-4">{% translate "Application categories" %}</h2>
     <div class="row g-4">
       <div class="md:col-6">
         <article class="card category-card h-100">
           <div class="card-body p-4 p-lg-5">
-            <h3 class="category-title">Hata bildirimi ve öneri</h3>
-            <p class="fg-secondary">Pardus bileşenlerinde karşılaşılan hataları veya kullanılabilirlik önerilerini açıklama ve gerekli eklerle iletin.</p>
+            <h3 class="category-title">{% translate "Bug report and suggestion" %}</h3>
+            <p class="fg-secondary">{% translate "Describe bugs or usability suggestions you encounter in Pardus components and submit them with the required attachments." %}</p>
             <ul class="list-unstyled category-list mb-4">
-              <li>Hata ve yeniden oluşturma adımları</li>
-              <li>Kullanılabilirlik veya özellik önerileri</li>
+              <li>{% translate "Bug and reproduction steps" %}</li>
+              <li>{% translate "Usability or feature suggestions" %}</li>
             </ul>
           </div>
         </article>
@@ -54,11 +55,11 @@
       <div class="md:col-6">
         <article class="card category-card h-100">
           <div class="card-body p-4 p-lg-5">
-            <h3 class="category-title">Yazılım geliştirme</h3>
-            <p class="fg-secondary">Pardus için geliştirilen yazılım, araç veya teknik iyileştirme çalışmalarınızı proje bilgileriyle birlikte sunun.</p>
+            <h3 class="category-title">{% translate "Software development" %}</h3>
+            <p class="fg-secondary">{% translate "Present the software, tools or technical improvements you develop for Pardus together with project information." %}</p>
             <ul class="list-unstyled category-list mb-4">
-              <li>Proje ve teknik çözüm açıklaması</li>
-              <li>İlgili çalışma çıktıları</li>
+              <li>{% translate "Project and technical solution description" %}</li>
+              <li>{% translate "Related work outputs" %}</li>
             </ul>
           </div>
         </article>

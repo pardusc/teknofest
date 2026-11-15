@@ -1,31 +1,31 @@
 {% extends "main/base.html" %}
+{% load i18n %}
 
-{% block title %}Başvuru ayrıntıları · Pardus Teknofest{% endblock %}
+{% block title %}{% translate "Application details" %} · Pardus Teknofest{% endblock %}
 
 {% block content %}
 <section class="container py-5">
   <div class="mb-4">
-    <a class="small fg-primary text-decoration-none" href="{% url 'main:application_list' %}">Başvurularıma dön</a>
+    <a class="small fg-primary text-decoration-none" href="{% url 'main:application_list' %}">{% translate "Back to my applications" %}</a>
     <div class="d-flex flex-column md:flex-row justify-content-between md:align-items-end gap-3 mt-4">
-      <div><span class="eyebrow fg-primary">{{ application.year.year }} · {{ application.category.name }}</span><h1 class="h2 fw-bold mt-2 mb-1">{{ application.form.title }}</h1><p class="fg-secondary mb-0">{% if application.code %}Başvuru kodu: <strong>{{ application.code }}</strong>{% else %}Taslak başvuru{% endif %}</p></div>
-      <span class="badge rounded-pill {% if application.status == 'draft' %}theme-warning{% else %}badge-profile-complete{% endif %}">{% if application.status == 'draft' %}Taslak{% elif application.status == 'submitted' %}Gönderildi{% elif application.status == 'in_review' %}Değerlendiriliyor{% elif application.status == 'evaluated' %}Değerlendirildi{% else %}{{ application.get_status_display }}{% endif %}</span>
+      <div><span class="eyebrow fg-primary">{{ application.year.year }} · {{ application.category.name }}</span><h1 class="h2 fw-bold mt-2 mb-1">{{ application.form.title }}</h1><p class="fg-secondary mb-0">{% if application.code %}{% blocktranslate with code=application.code %}Application code: <strong>{{ code }}</strong>{% endblocktranslate %}{% endif %}</p></div>
+      <span class="badge rounded-pill badge-profile-complete">{% if application.status == 'submitted' %}{% translate "Submitted" %}{% elif application.status == 'in_review' %}{% translate "In review" %}{% elif application.status == 'evaluated' %}{% translate "Evaluated" %}{% else %}{{ application.get_status_display }}{% endif %}</span>
     </div>
   </div>
   <div class="row g-4">
     <div class="lg:col-8">
       <section class="card"><div class="card-body p-4 p-lg-5">
-        <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 fw-bold mb-0">Yanıtlar</h2>{% if can_edit %}<a class="btn-outline theme-primary btn-sm" href="{% url 'main:application_edit' application.public_id %}">Başvuruyu düzenle</a>{% endif %}</div>
+        <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 fw-bold mb-0">{% translate "Answers" %}</h2>{% if can_edit %}<a class="btn-outline theme-primary btn-sm" href="{% url 'main:application_edit' application.public_id %}">{% translate "Edit application" %}</a>{% endif %}</div>
         {% for answer in field_answers %}
-          <div class="application-answer"><p class="detail-label">{{ answer.field.label }}</p><p class="detail-value">{% if answer.display_value == "" %}<span class="fg-secondary fw-normal">Yanıtlanmadı</span>{% else %}{{ answer.display_value|linebreaksbr }}{% endif %}</p></div>
-        {% empty %}<p class="fg-secondary mb-0">Bu başvuruda henüz yanıt bulunmuyor.</p>{% endfor %}
+          <div class="application-answer"><p class="detail-label">{{ answer.field.label }}</p><p class="detail-value">{% if answer.value == "" %}<span class="fg-secondary fw-normal">{% translate "Not answered" %}</span>{% else %}{{ answer.value|linebreaksbr }}{% endif %}</p></div>
+        {% empty %}<p class="fg-secondary mb-0">{% translate "No answers in this application yet." %}</p>{% endfor %}
       </div></section>
     </div>
     <div class="lg:col-4">
-      <section class="card mb-4"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">Ek dosyalar</h2>
-        {% if attachments %}<ul class="list-unstyled attachment-list mb-0">{% for attachment in attachments %}<li><a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a><span class="small fg-secondary">{{ attachment.size|filesizeformat }}</span></li>{% endfor %}</ul>{% else %}<p class="small fg-secondary mb-0">Henüz ek dosya yüklenmedi.</p>{% endif %}
+      <section class="card mb-4"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">{% translate "Attachments" %}</h2>
+        {% if attachments %}<ul class="list-unstyled attachment-list mb-0">{% for attachment in attachments %}<li><a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a><span class="small fg-secondary">{{ attachment.size|filesizeformat }}</span></li>{% endfor %}</ul>{% else %}<p class="small fg-secondary mb-0">{% translate "No attachments uploaded yet." %}</p>{% endif %}
       </div></section>
-      <section class="card"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">Başvuru geçmişi</h2><dl class="application-facts mb-0"><div><dt>Oluşturulma</dt><dd>{{ application.created_at|date:"d.m.Y H:i" }}</dd></div><div><dt>Son güncelleme</dt><dd>{{ application.updated_at|date:"d.m.Y H:i" }}</dd></div>{% if application.submitted_at %}<div><dt>Gönderilme</dt><dd>{{ application.submitted_at|date:"d.m.Y H:i" }}</dd></div>{% endif %}</dl></div></section>
-      {% if application.status == 'draft' %}<form method="post" action="{% url 'main:application_delete' application.public_id %}" class="mt-3" onsubmit="return confirm('Bu taslak ve ekleri kalıcı olarak silinsin mi?')">{% csrf_token %}<button class="btn-outline theme-danger w-100" type="submit">Taslağı sil</button></form>{% endif %}
+      <section class="card"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">{% translate "Application history" %}</h2><dl class="application-facts mb-0"><div><dt>{% translate "Created" %}</dt><dd>{{ application.created_at|date:"d.m.Y H:i" }}</dd></div><div><dt>{% translate "Last updated" %}</dt><dd>{{ application.updated_at|date:"d.m.Y H:i" }}</dd></div>{% if application.submitted_at %}<div><dt>{% translate "Submitted" %}</dt><dd>{{ application.submitted_at|date:"d.m.Y H:i" }}</dd></div>{% endif %}</dl></div></section>
     </div>
   </div>
 </section>

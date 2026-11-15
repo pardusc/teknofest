@@ -2,6 +2,7 @@ import re
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 from .models import FormField, Profile
 
@@ -17,9 +18,9 @@ class ProfileForm(forms.ModelForm):
             "phone": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "+90 5xx xxx xx xx"}
             ),
-            "city": forms.TextInput(attrs={"class": "form-control", "placeholder": "Örn. Ankara"}),
+            "city": forms.TextInput(attrs={"class": "form-control", "placeholder": _("e.g. Ankara")}),
             "institution": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Örn. Gazi Üniversitesi"}
+                attrs={"class": "form-control", "placeholder": _("e.g. Gazi University")}
             ),
             "education_level": forms.Select(attrs={"class": "form-control"}),
             "photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
@@ -34,7 +35,7 @@ class ProfileForm(forms.ModelForm):
         phone = self.cleaned_data["phone"].strip()
         normalized = re.sub(r"[\s\-()]", "", phone)
         if not re.fullmatch(r"\+?\d{10,15}", normalized):
-            raise ValidationError("Enter a valid phone number.")
+            raise ValidationError(_("Enter a valid phone number."))
         return phone
 
     def clean_photo(self):
@@ -43,9 +44,9 @@ class ProfileForm(forms.ModelForm):
         if not photo or not hasattr(photo, "content_type"):
             return photo
         if photo.size > MAX_PHOTO_SIZE:
-            raise ValidationError("The photo must be 1 MB or smaller.")
+            raise ValidationError(_("The photo must be 1 MB or smaller."))
         if photo.content_type not in ALLOWED_PHOTO_TYPES:
-            raise ValidationError("Upload a JPG or PNG image.")
+            raise ValidationError(_("Upload a JPG or PNG image."))
         return photo
 
 
@@ -88,9 +89,9 @@ class FormFieldAdminForm(forms.ModelForm):
         text = self.cleaned_data.get("choices_text", "")
         values = [line.strip() for line in text.splitlines() if line.strip()]
         if len(values) != len(set(values)):
-            raise ValidationError("Choices must be unique.")
+            raise ValidationError(_("Choices must be unique."))
         if self.cleaned_data.get("field_type") in FormField.CHOICE_TYPES and not values:
-            raise ValidationError("Choose at least one option for this field type.")
+            raise ValidationError(_("Choose at least one option for this field type."))
         return values
 
     def clean(self):

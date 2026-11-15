@@ -1,19 +1,20 @@
 {% extends "main/base.html" %}
+{% load i18n %}
 
-{% block title %}{{ form_definition.title }} · Jüri değerlendirmesi{% endblock %}
+{% block title %}{{ form_definition.title }} · {% translate "Jury evaluation" %}{% endblock %}
 
 {% block content %}
 <section class="container py-5 jury-page">
   <header class="jury-page-header mb-4">
-    <a class="jury-back-link" href="{% url 'main:jury_dashboard' %}">Jüri paneline dön</a>
+    <a class="jury-back-link" href="{% url 'main:jury_dashboard' %}">{% translate "Back to jury panel" %}</a>
     <div class="jury-page-title-row mt-3">
       <div>
         <p class="eyebrow mb-2">{{ form_definition.year.year }} · {{ form_definition.category.name }}</p>
         <h1 class="mb-2">{{ form_definition.title }}</h1>
-        <p class="mb-0">Başvuruları inceleyin ve kendi değerlendirmenizi kaydedin.</p>
+        <p class="mb-0">{% translate "Review applications and save your own evaluation." %}</p>
       </div>
       <span class="jury-status {% if form_definition.status == 'in_review' %}jury-status-active{% endif %}">
-        {% if form_definition.status == 'in_review' %}Değerlendirme açık{% elif form_definition.status == 'open' %}Başvuru dönemi{% else %}Kapalı{% endif %}
+        {% if form_definition.status == 'in_review' %}{% translate "Review open" %}{% elif form_definition.status == 'open' %}{% translate "Application period" %}{% else %}{% translate "Closed" %}{% endif %}
       </span>
     </div>
   </header>
@@ -22,64 +23,64 @@
     <div class="card-body">
       <div class="row g-3 align-items-end">
         <div class="col-md-5">
-          <label class="form-label" for="jury-search">{% if form_definition.mask_applicant_identity %}Başvuru kodu{% else %}Başvuru kodu veya e-posta{% endif %}</label>
-          <input class="form-control" id="jury-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="{% if form_definition.mask_applicant_identity %}Örn. BUG-2026-00001{% else %}Kod veya e-posta yazın{% endif %}">
+          <label class="form-label" for="jury-search">{% if form_definition.mask_applicant_identity %}{% translate "Application code" %}{% else %}{% translate "Application code or e-mail" %}{% endif %}</label>
+          <input class="form-control" id="jury-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="{% if form_definition.mask_applicant_identity %}{% translate 'e.g. BUG-2026-00001' %}{% else %}{% translate 'Enter code or e-mail' %}{% endif %}">
         </div>
         <div class="col-md-3">
-          <label class="form-label" for="jury-mine">Değerlendirmem</label>
+          <label class="form-label" for="jury-mine">{% translate "My review" %}</label>
           <select class="form-select" id="jury-mine" name="mine">
-            <option value="" {% if not request.GET.mine %}selected{% endif %}>Tüm başvurular</option>
-            <option value="pending" {% if request.GET.mine == 'pending' %}selected{% endif %}>Bekleyenlerim</option>
-            <option value="completed" {% if request.GET.mine == 'completed' %}selected{% endif %}>Tamamladıklarım</option>
+            <option value="" {% if not request.GET.mine %}selected{% endif %}>{% translate "All applications" %}</option>
+            <option value="pending" {% if request.GET.mine == 'pending' %}selected{% endif %}>{% translate "Pending" %}</option>
+            <option value="completed" {% if request.GET.mine == 'completed' %}selected{% endif %}>{% translate "Completed" %}</option>
           </select>
         </div>
         <div class="col-md-2">
-          <label class="form-label" for="jury-ordering">Sıralama</label>
+          <label class="form-label" for="jury-ordering">{% translate "Ordering" %}</label>
           <select class="form-select" id="jury-ordering" name="ordering">
-            <option value="-submitted_at" {% if request.GET.ordering == '-submitted_at' or not request.GET.ordering %}selected{% endif %}>En yeni</option>
-            <option value="submitted_at" {% if request.GET.ordering == 'submitted_at' %}selected{% endif %}>En eski</option>
-            <option value="-my_score" {% if request.GET.ordering == '-my_score' %}selected{% endif %}>Puanım: yüksekten düşüğe</option>
-            <option value="my_score" {% if request.GET.ordering == 'my_score' %}selected{% endif %}>Puanım: düşükten yükseğe</option>
-            <option value="-average" {% if request.GET.ordering == '-average' %}selected{% endif %}>Ortalama: yüksekten düşüğe</option>
-            <option value="average" {% if request.GET.ordering == 'average' %}selected{% endif %}>Ortalama: düşükten yükseğe</option>
+            <option value="-submitted_at" {% if request.GET.ordering == '-submitted_at' or not request.GET.ordering %}selected{% endif %}>{% translate "Newest" %}</option>
+            <option value="submitted_at" {% if request.GET.ordering == 'submitted_at' %}selected{% endif %}>{% translate "Oldest" %}</option>
+            <option value="-my_score" {% if request.GET.ordering == '-my_score' %}selected{% endif %}>{% translate "My score: high to low" %}</option>
+            <option value="my_score" {% if request.GET.ordering == 'my_score' %}selected{% endif %}>{% translate "My score: low to high" %}</option>
+            <option value="-average" {% if request.GET.ordering == '-average' %}selected{% endif %}>{% translate "Average: high to low" %}</option>
+            <option value="average" {% if request.GET.ordering == 'average' %}selected{% endif %}>{% translate "Average: low to high" %}</option>
           </select>
         </div>
         <div class="col-md-2">
           <input type="hidden" name="files" value="0">
-          <label class="jury-check-filter" for="jury-files"><input id="jury-files" type="checkbox" name="files" value="1" {% if request.GET.files == '1' %}checked{% endif %}> Ek dosyası olanlar</label>
-          <button class="btn-solid theme-primary w-100" type="submit">Uygula</button>
+          <label class="jury-check-filter" for="jury-files"><input id="jury-files" type="checkbox" name="files" value="1" {% if request.GET.files == '1' %}checked{% endif %}> {% translate "With attachments" %}</label>
+          <button class="btn-solid theme-primary w-100" type="submit">{% translate "Apply" %}</button>
         </div>
       </div>
     </div>
   </form>
 
   <div class="jury-results-heading">
-    <h2 class="h5 mb-0">Başvurular</h2>
-    <span>{{ paginator.count }} kayıt</span>
+    <h2 class="h5 mb-0">{% translate "Applications" %}</h2>
+    <span>{% blocktranslate with count=paginator.count %}{{ count }} records{% endblocktranslate %}</span>
   </div>
   {% if rows %}
     <div class="card jury-results-card">
       <div class="table-responsive">
         <table class="table jury-table align-middle mb-0">
           <thead><tr>
-            <th scope="col">Başvuru</th>
-            <th scope="col">Gönderim</th>
-            <th scope="col">Ekler</th>
-            <th scope="col">Puanım</th>
-            <th scope="col">Ortalama</th>
-            <th scope="col">Değerlendirme</th>
-            <th scope="col"><span class="visually-hidden">İşlem</span></th>
+            <th scope="col">{% translate "Application" %}</th>
+            <th scope="col">{% translate "Submitted" %}</th>
+            <th scope="col">{% translate "Attachments" %}</th>
+            <th scope="col">{% translate "My score" %}</th>
+            <th scope="col">{% translate "Average" %}</th>
+            <th scope="col">{% translate "Review" %}</th>
+            <th scope="col"><span class="visually-hidden">{% translate "Action" %}</span></th>
           </tr></thead>
           <tbody>
             {% for row in rows %}
               <tr>
-                <td><strong class="jury-application-code">{{ row.application.code|default:"Başvuru" }}</strong><span class="jury-row-caption">{{ row.application.category.name }}</span></td>
+                <td><strong class="jury-application-code">{% if row.application.code %}{{ row.application.code }}{% else %}{% translate "Application" %}{% endif %}</strong><span class="jury-row-caption">{{ row.application.category.name }}</span></td>
                 <td>{{ row.application.submitted_at|date:"d.m.Y H:i"|default:"—" }}</td>
                 <td>{{ row.attachment_count }}</td>
                 <td>{% if row.my_score is not None %}<strong>{{ row.my_score }}</strong><span class="jury-row-caption">/ 100</span>{% else %}—{% endif %}</td>
-                <td>{% if row.average is not None %}<strong>{{ row.average|floatformat:1 }}</strong><span class="jury-row-caption">/ 100</span>{% else %}<span class="jury-muted-value">Gizli</span>{% endif %}</td>
-                <td>{% if row.my_completed %}<span class="jury-status jury-status-complete">Tamamlandı</span>{% else %}<span class="jury-status">Bekliyor</span>{% endif %}</td>
-                <td class="text-end"><a class="btn-outline theme-primary btn-sm" href="{% url 'main:jury_application_detail' row.application.public_id %}">İncele</a></td>
+                <td>{% if row.average is not None %}<strong>{{ row.average|floatformat:1 }}</strong><span class="jury-row-caption">/ 100</span>{% else %}<span class="jury-muted-value">{% translate "Hidden" %}</span>{% endif %}</td>
+                <td>{% if row.my_completed %}<span class="jury-status jury-status-complete">{% translate "Completed" %}</span>{% else %}<span class="jury-status">{% translate "Pending" %}</span>{% endif %}</td>
+                <td class="text-end"><a class="btn-outline theme-primary btn-sm" href="{% url 'main:jury_application_detail' row.application.public_id %}">{% translate "View" %}</a></td>
               </tr>
             {% endfor %}
           </tbody>
@@ -87,19 +88,19 @@
       </div>
     </div>
     {% if is_paginated %}
-      <nav class="jury-pagination" aria-label="Başvuru sayfaları">
-        <span>Sayfa {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+      <nav class="jury-pagination" aria-label="{% translate 'Application pages' %}">
+        <span>{% blocktranslate with number=page_obj.number total=paginator.num_pages %}Page {{ number }} / {{ total }}{% endblocktranslate %}</span>
         <div class="d-flex gap-2">
-          {% if page_obj.has_previous %}<a class="btn-outline theme-secondary btn-sm" href="?{% if page_query %}{{ page_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Önceki</a>{% endif %}
-          {% if page_obj.has_next %}<a class="btn-outline theme-secondary btn-sm" href="?{% if page_query %}{{ page_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Sonraki</a>{% endif %}
+          {% if page_obj.has_previous %}<a class="btn-outline theme-secondary btn-sm" href="?{% if page_query %}{{ page_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">{% translate "Previous" %}</a>{% endif %}
+          {% if page_obj.has_next %}<a class="btn-outline theme-secondary btn-sm" href="?{% if page_query %}{{ page_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}">{% translate "Next" %}</a>{% endif %}
         </div>
       </nav>
     {% endif %}
   {% else %}
     <section class="card jury-empty-state">
       <div class="card-body">
-        <h2 class="h5 mb-2">Bu ölçütlere uygun başvuru bulunamadı</h2>
-        <p class="mb-0">Filtreleri değiştirebilir veya daha sonra yeniden kontrol edebilirsiniz.</p>
+        <h2 class="h5 mb-2">{% translate "No applications match these criteria" %}</h2>
+        <p class="mb-0">{% translate "You can change the filters or check again later." %}</p>
       </div>
     </section>
   {% endif %}

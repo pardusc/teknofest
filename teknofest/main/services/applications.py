@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from PIL import Image
 
 from ..dynamic_forms import build_form
@@ -34,9 +35,9 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
     """Create and submit a complete application in one step."""
     _ensure_applicant(applicant)
     if not form.is_accepting_submissions:
-        raise ValidationError("This form is not accepting applications.")
+        raise ValidationError(_("This form is not accepting applications."))
     if Application.objects.filter(applicant=applicant, form=form).exists():
-        raise ValidationError("You already have an application for this form.")
+        raise ValidationError(_("You already have an application for this form."))
 
     dynamic_form = build_form(form, data=data)
     if not dynamic_form.is_valid():
@@ -131,7 +132,7 @@ def delete_attachment(attachment: Attachment) -> None:
         and application.attachments.count() <= 1
     ):
         raise ValidationError(
-            "At least one attachment is required for this form."
+            _("At least one attachment is required for this form.")
         )
 
     attachment.delete()
@@ -139,18 +140,18 @@ def delete_attachment(attachment: Attachment) -> None:
 
 def _ensure_applicant(user) -> None:
     if is_jury(user):
-        raise ValidationError("Jury accounts cannot submit applications.")
+        raise ValidationError(_("Jury accounts cannot submit applications."))
 
 
 def _ensure_editable(application: Application) -> None:
     if not application.is_editable:
-        raise ValidationError("This application can no longer be edited.")
+        raise ValidationError(_("This application can no longer be edited."))
 
 
 def _ensure_profile_complete(user) -> None:
     profile = getattr(user, "profile", None)
     if profile is None or not profile.is_complete:
-        raise ValidationError("Complete your profile before submitting.")
+        raise ValidationError(_("Complete your profile before submitting."))
 
 
 def _active_fields(form: FormDefinition) -> dict:
@@ -185,17 +186,18 @@ def _json_value(value):
 def _check_attachment_policy(form: FormDefinition, total_count: int) -> None:
     policy = form.attachment_policy
     if policy == FormDefinition.AttachmentPolicy.NONE and total_count:
-        raise ValidationError("This form does not accept attachments.")
+        raise ValidationError(_("This form does not accept attachments."))
     if policy == FormDefinition.AttachmentPolicy.REQUIRED and total_count == 0:
         raise ValidationError(
-            "At least one attachment is required for this form."
+            _("At least one attachment is required for this form.")
         )
 
 
 def _prepare_uploads(uploads, existing_count=0, existing_total=0):
     if existing_count + len(uploads) > MAX_ATTACHMENTS:
         raise ValidationError(
-            f"At most {MAX_ATTACHMENTS} files can be uploaded per application."
+            _("At most %(limit)s files can be uploaded per application.")
+            % {"limit": MAX_ATTACHMENTS}
         )
 
     prepared = []
@@ -203,13 +205,13 @@ def _prepare_uploads(uploads, existing_count=0, existing_total=0):
     for upload in uploads:
         size = upload.size or 0
         if size > MAX_FILE_SIZE:
-            raise ValidationError("Each file must be 2 MB or smaller.")
+            raise ValidationError(_("Each file must be 2 MB or smaller."))
         total += size
         image_format = _verify_image(upload)
         prepared.append((upload, image_format, size))
 
     if total > MAX_TOTAL_SIZE:
-        raise ValidationError("Total attachment size must be 10 MB or smaller.")
+        raise ValidationError(_("Total attachment size must be 10 MB or smaller."))
 
     return prepared
 
@@ -250,24 +252,29 @@ def _verify_image(upload: UploadedFile) -> str:
         image_format = image.format
         image.verify()
     except Exception as exc:
-        raise ValidationError("Upload a JPG or PNG image.") from exc
+        raise ValidationError(_("Upload a JPG or PNG image.")) from exc
     finally:
         upload.seek(0)
 
     if image_format not in ALLOWED_IMAGE_FORMATS:
-        raise ValidationError("Upload a JPG or PNG image.")
+        raise ValidationError(_("Upload a JPG or PNG image."))
     return image_format
 
 
 def _send_confirmation(application: Application) -> None:
     send_mail(
-        subject=f"Application received: {application.code}",
-        message=(
-            f"Your {application.category.name} application has been received.\n\n"
-            f"Application code: {application.code}\n"
-            f"Year: {application.year.year}\n\n"
+        subject=_("Application received: %(code)s") % {"code": application.code},
+        message=_(
+            "Your %(category)s application has been received.\n\n"
+            "Application code: %(code)s\n"
+            "Year: %(year)s\n\n"
             "You can edit or delete your application until the deadline."
-        ),
+        )
+        % {
+            "category": application.category.name,
+            "code": application.code,
+            "year": application.year.year,
+        },
         from_email=None,
         recipient_list=[application.applicant.email],
         fail_silently=False,

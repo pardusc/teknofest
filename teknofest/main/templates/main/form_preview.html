@@ -1,6 +1,7 @@
 {% extends "main/base.html" %}
+{% load i18n %}
 
-{% block title %}{{ definition.title }} · Form önizlemesi{% endblock %}
+{% block title %}{{ definition.title }} · {% translate "Form preview" %}{% endblock %}
 
 {% block content %}
   <section class="container py-5">
@@ -10,7 +11,7 @@
       {% if definition.description %}<p class="mb-0">{{ definition.description|linebreaksbr }}</p>{% endif %}
     </div>
     <div class="card application-form"><div class="card-body p-4 p-lg-5">
-      <p class="small fg-secondary">Bu sayfa form tanımının önizlemesidir; gönderilen yanıtlar kaydedilmez.</p>
+      <p class="small fg-secondary">{% translate "This page is a preview of the form definition; submitted answers are not stored." %}</p>
       {% if form.fields %}
         {% for field in form %}
           <div class="mb-4">
@@ -21,7 +22,7 @@
           </div>
         {% endfor %}
       {% else %}
-        <p class="mb-0">Bu formda henüz alan tanımlanmamış.</p>
+        <p class="mb-0">{% translate "No fields have been defined for this form yet." %}</p>
       {% endif %}
     </div></div>
   </section>

@@ -5,6 +5,8 @@ from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Q, Subque
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_noop
 from django.views import View
 from django.views.generic import DetailView, ListView, UpdateView
 
@@ -43,7 +45,7 @@ class ProfileUpdateView(ApplicantOnlyMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, "Profiliniz güncellendi.")
+        messages.success(self.request, _("Your profile has been updated."))
         return response
 
 
@@ -99,7 +101,7 @@ class ApplicationStartView(ApplicantOnlyMixin, View):
             pk=pk,
         )
         if not form_definition.is_accepting_submissions:
-            messages.error(request, "Bu form şu anda başvuru kabul etmiyor.")
+            messages.error(request, _("This form is not accepting applications."))
             return redirect("main:form_detail", pk=form_definition.pk)
 
         existing = Application.objects.filter(
@@ -143,7 +145,8 @@ class ApplicationStartView(ApplicantOnlyMixin, View):
 
         messages.success(
             request,
-            f"Başvurunuz alındı. Başvuru kodunuz: {application.code}",
+            _("Your application has been received. Application code: %(code)s")
+            % {"code": application.code},
         )
         return redirect(
             "main:application_detail",
@@ -192,7 +195,7 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
     def get(self, request, public_id):
         application = _get_owned_application(request, public_id)
         if not application.is_editable:
-            messages.error(request, "Bu başvuru artık düzenlenemez.")
+            messages.error(request, _("This application can no longer be edited."))
             return redirect(
                 "main:application_detail",
                 public_id=application.public_id,
@@ -211,7 +214,7 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
     def post(self, request, public_id):
         application = _get_owned_application(request, public_id)
         if not application.is_editable:
-            messages.error(request, "Bu başvuru artık düzenlenemez.")
+            messages.error(request, _("This application can no longer be edited."))
             return redirect(
                 "main:application_detail",
                 public_id=application.public_id,
@@ -239,7 +242,7 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
                 _edit_context(application, form),
             )
 
-        messages.success(request, "Başvurunuz güncellendi.")
+        messages.success(request, _("Your application has been updated."))
         return redirect(
             "main:application_detail",
             public_id=application.public_id,
@@ -283,7 +286,7 @@ class ApplicationDeleteView(ApplicantOnlyMixin, View):
                 public_id=application.public_id,
             )
 
-        messages.success(request, "Başvuru silindi.")
+        messages.success(request, _("Application deleted."))
         return redirect("main:application_list")
 
 
@@ -293,7 +296,7 @@ class AttachmentUploadView(ApplicantOnlyMixin, View):
         upload = request.FILES.get("file")
 
         if upload is None:
-            messages.error(request, "Yüklenecek bir dosya seçin.")
+            messages.error(request, _("Choose a file to upload."))
             return redirect(
                 "main:application_edit",
                 public_id=application.public_id,
@@ -304,7 +307,7 @@ class AttachmentUploadView(ApplicantOnlyMixin, View):
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
         else:
-            messages.success(request, "Dosya yüklendi.")
+            messages.success(request, _("File uploaded."))
 
         return redirect(
             "main:application_edit",
@@ -322,7 +325,7 @@ class AttachmentDeleteView(ApplicantOnlyMixin, View):
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
         else:
-            messages.success(request, "Dosya silindi.")
+            messages.success(request, _("File deleted."))
 
         return redirect(
             "main:application_edit",
@@ -413,26 +416,13 @@ def _application_form_context(form_definition, application_form):
 
 
 def _validation_message(error):
-    translations = {
-        "This form is not accepting applications.": "Bu form şu anda başvuru kabul etmiyor.",
-        "This application can no longer be edited.": "Bu başvuru artık düzenlenemez.",
-        "You already have an application for this form.": "Bu form için zaten bir başvurunuz var.",
-        "Complete your profile before submitting.": "Başvuruyu göndermeden önce profil bilgilerinizi tamamlayın.",
-        "At least one attachment is required for this form.": "Bu form için en az bir ek dosya yükleyin.",
-        "This form does not accept attachments.": "Bu form ek dosya kabul etmiyor.",
-        "Upload a JPG or PNG image.": "JPG veya PNG biçiminde bir görsel yükleyin.",
-        "Each file must be 2 MB or smaller.": "Her dosya en fazla 2 MB olabilir.",
-        "Total attachment size must be 10 MB or smaller.": "Ek dosyaların toplam boyutu en fazla 10 MB olabilir.",
-        "Jury accounts cannot submit applications.": "Jüri hesapları başvuru gönderemez.",
-    }
     if hasattr(error, "message_dict"):
-        texts = []
-        for field_messages in error.message_dict.values():
-            texts.extend(str(message) for message in field_messages)
-        return " ".join(translations.get(text, text) for text in texts)
-    return " ".join(
-        translations.get(str(message), str(message)) for message in error.messages
-    )
+        return " ".join(
+            str(message)
+            for field_messages in error.message_dict.values()
+            for message in field_messages
+        )
+    return " ".join(str(message) for message in error.messages)
 
 
 REVIEWABLE_APPLICATION_STATUSES = (
@@ -594,7 +584,7 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
                 ),
                 "applicant_identity_masked": masked,
                 "applicant_name": (
-                    "Gizli başvuru sahibi"
+                    _("Hidden applicant")
                     if masked
                     else (applicant.get_full_name() or applicant.username)
                 ),
@@ -618,7 +608,7 @@ class JuryReviewSaveView(JuryRequiredMixin, View):
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
         else:
-            messages.success(request, "Değerlendirme taslağı kaydedildi.")
+            messages.success(request, _("Review draft saved."))
 
         return redirect(
             "main:jury_application_detail",
@@ -640,7 +630,7 @@ class JuryReviewSubmitView(JuryRequiredMixin, View):
         except ValidationError as exc:
             messages.error(request, _validation_message(exc))
         else:
-            messages.success(request, "Değerlendirme gönderildi.")
+            messages.success(request, _("Review submitted."))
 
         return redirect(
             "main:jury_application_detail",
@@ -657,7 +647,7 @@ def _get_reviewable_application(request, public_id):
     )
 
 
-MASKED_FIELD_MESSAGE = "Bu alan jüri değerlendirmesinde gizlenmiştir."
+MASKED_FIELD_MESSAGE = gettext_noop("This field is hidden from jury review.")
 
 
 def _review_field_answers(application):
@@ -679,8 +669,8 @@ def _review_field_answers(application):
             items.append(
                 {
                     "field": field,
-                    "value": MASKED_FIELD_MESSAGE,
-                    "display_value": MASKED_FIELD_MESSAGE,
+                    "value": _(MASKED_FIELD_MESSAGE),
+                    "display_value": _(MASKED_FIELD_MESSAGE),
                     "is_masked": True,
                 }
             )

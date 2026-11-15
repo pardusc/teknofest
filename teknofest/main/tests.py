@@ -15,7 +15,8 @@ from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.utils.translation import gettext as _
 from PIL import Image
 
 from .dynamic_forms import build_form
@@ -46,6 +47,7 @@ from .views import (
     ApplicationUpdateView,
     FormDetailView,
     FormListView,
+    _validation_message,
 )
 
 
@@ -187,7 +189,7 @@ class ProfileTests(MediaTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
-            response.context["form"], "photo", "Upload a JPG, PNG or WebP image."
+            response.context["form"], "photo", _("Upload a JPG or PNG image.")
         )
 
     @patch("main.forms.MAX_PHOTO_SIZE", 10)
@@ -199,7 +201,7 @@ class ProfileTests(MediaTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
-            response.context["form"], "photo", "The photo must be 5 MB or smaller."
+            response.context["form"], "photo", _("The photo must be 1 MB or smaller.")
         )
 
     def test_missing_required_field_is_rejected(self):
@@ -209,7 +211,7 @@ class ProfileTests(MediaTestCase):
         response = self.client.post(reverse("main:profile_edit"), data)
 
         self.assertEqual(response.status_code, 200)
-        self.assertFormError(response.context["form"], "city", "This field is required.")
+        self.assertFormError(response.context["form"], "city", _("This field is required."))
 
     def test_invalid_phone_is_rejected(self):
         response = self.client.post(
@@ -219,7 +221,7 @@ class ProfileTests(MediaTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
-            response.context["form"], "phone", "Enter a valid phone number."
+            response.context["form"], "phone", _("Enter a valid phone number.")
         )
 
     def test_incomplete_profile_is_not_complete(self):
@@ -725,14 +727,14 @@ class ApplicationServiceTests(MediaTestCase):
         self.user.profile.city = ""
         self.user.profile.save()
 
-        with self.assertRaisesMessage(ValidationError, "Complete your profile"):
+        with self.assertRaisesMessage(ValidationError, _("Complete your profile before submitting.")):
             self.submit_application()
 
     def test_required_attachment_policy(self):
         self.form.attachment_policy = FormDefinition.AttachmentPolicy.REQUIRED
         self.form.save()
 
-        with self.assertRaisesMessage(ValidationError, "At least one attachment"):
+        with self.assertRaisesMessage(ValidationError, _("At least one attachment is required for this form.")):
             self.submit_application()
 
         application = self.submit_application(files=[make_image()])
@@ -742,7 +744,7 @@ class ApplicationServiceTests(MediaTestCase):
         self.form.attachment_policy = FormDefinition.AttachmentPolicy.NONE
         self.form.save()
 
-        with self.assertRaisesMessage(ValidationError, "does not accept attachments"):
+        with self.assertRaisesMessage(ValidationError, _("This form does not accept attachments.")):
             self.submit_application(files=[make_image()])
 
         application = self.submit_application()
@@ -758,7 +760,7 @@ class ApplicationServiceTests(MediaTestCase):
     def test_duplicate_application_per_form_is_rejected(self):
         self.submit_application()
 
-        with self.assertRaisesMessage(ValidationError, "already have an application"):
+        with self.assertRaisesMessage(ValidationError, _("You already have an application for this form.")):
             self.submit_application()
 
         self.assertEqual(Application.objects.count(), 1)
@@ -769,9 +771,9 @@ class ApplicationServiceTests(MediaTestCase):
         self.form.save()
         application.refresh_from_db()
 
-        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
+        with self.assertRaisesMessage(ValidationError, _("This application can no longer be edited.")):
             update_application(application, self.valid_data())
-        with self.assertRaisesMessage(ValidationError, "can no longer be edited"):
+        with self.assertRaisesMessage(ValidationError, _("This application can no longer be edited.")):
             delete_application(application)
 
     def test_update_replaces_answers_and_adds_files(self):
@@ -815,24 +817,24 @@ class ApplicationServiceTests(MediaTestCase):
 
         for upload in uploads:
             with self.subTest(name=upload.name):
-                with self.assertRaisesMessage(ValidationError, "Upload a JPG or PNG"):
+                with self.assertRaisesMessage(ValidationError, _("Upload a JPG or PNG image.")):
                     self.submit_application(files=[upload])
 
         self.assertFalse(Application.objects.exists())
 
     @patch("main.services.applications.MAX_FILE_SIZE", 10)
     def test_per_file_size_limit(self):
-        with self.assertRaisesMessage(ValidationError, "2 MB or smaller"):
+        with self.assertRaisesMessage(ValidationError, _("Each file must be 2 MB or smaller.")):
             self.submit_application(files=[make_image()])
 
     @patch("main.services.applications.MAX_TOTAL_SIZE", 1)
     def test_total_size_limit(self):
-        with self.assertRaisesMessage(ValidationError, "10 MB or smaller"):
+        with self.assertRaisesMessage(ValidationError, _("Total attachment size must be 10 MB or smaller.")):
             self.submit_application(files=[make_image()])
 
     @patch("main.services.applications.MAX_ATTACHMENTS", 1)
     def test_attachment_count_limit(self):
-        with self.assertRaisesMessage(ValidationError, "At most 1"):
+        with self.assertRaisesMessage(ValidationError, _("At most %(limit)s files can be uploaded per application.") % {"limit": 1}):
             self.submit_application(files=[make_image(), make_image()])
 
     def test_delete_application_removes_files(self):
@@ -851,7 +853,7 @@ class ApplicationServiceTests(MediaTestCase):
         self.form.save()
         application = self.submit_application(files=[make_image()])
 
-        with self.assertRaisesMessage(ValidationError, "At least one attachment"):
+        with self.assertRaisesMessage(ValidationError, _("At least one attachment is required for this form.")):
             delete_attachment(application.attachments.get())
 
         add_attachment(application, make_image())
@@ -1598,9 +1600,9 @@ class JuryTests(MediaTestCase):
         )
 
     def test_application_services_reject_jury_accounts(self):
-        with self.assertRaisesMessage(ValidationError, "Jury accounts"):
+        with self.assertRaisesMessage(ValidationError, _("Jury accounts cannot submit applications.")):
             submit_application(self.jury, self.form, {"title": "Nope"})
-        with self.assertRaisesMessage(ValidationError, "Jury accounts"):
+        with self.assertRaisesMessage(ValidationError, _("Jury accounts cannot submit applications.")):
             submit_application(self.admin, self.form, {"title": "Nope"})
 
     def test_detail_masks_applicant_identity_when_enabled(self):
@@ -1618,7 +1620,7 @@ class JuryTests(MediaTestCase):
         )
 
         self.assertTrue(response.context["applicant_identity_masked"])
-        self.assertEqual(response.context["applicant_name"], "Gizli başvuru sahibi")
+        self.assertEqual(response.context["applicant_name"], _("Hidden applicant"))
         self.assertIsNone(response.context["applicant_email"])
 
     def test_detail_shows_applicant_identity_by_default(self):
@@ -1684,8 +1686,48 @@ class JuryTests(MediaTestCase):
         }
         values = [item["value"] for item in response.context["field_answers"]]
 
-        self.assertEqual(items["private_note"]["value"], MASKED_FIELD_MESSAGE)
+        self.assertEqual(items["private_note"]["value"], _(MASKED_FIELD_MESSAGE))
         self.assertTrue(items["private_note"]["is_masked"])
         self.assertNotIn("Top secret", values)
         self.assertNotIn("Hidden answer", values)
         self.assertIn("Visible answer", values)
+
+
+class TranslationTests(TestCase):
+    def test_service_message_is_translated_in_turkish(self):
+        with translation.override("tr"):
+            error = ValidationError(
+                {"title": [_("This form is not accepting applications.")]}
+            )
+
+            self.assertEqual(
+                _validation_message(error),
+                "Bu form şu anda başvuru kabul etmiyor.",
+            )
+
+    def test_service_message_falls_back_to_english(self):
+        with translation.override("en"):
+            error = ValidationError(
+                {"title": [_("This form is not accepting applications.")]}
+            )
+
+            self.assertEqual(
+                _validation_message(error),
+                "This form is not accepting applications.",
+            )
+
+    def test_non_field_messages_are_flattened_and_translated(self):
+        with translation.override("tr"):
+            error = ValidationError(
+                _("Jury accounts cannot submit applications.")
+            )
+
+            self.assertEqual(
+                _validation_message(error),
+                "Jüri hesapları başvuru gönderemez.",
+            )
+
+    def test_plain_messages_are_not_remapped(self):
+        error = ValidationError("Plain message")
+
+        self.assertEqual(_validation_message(error), "Plain message")

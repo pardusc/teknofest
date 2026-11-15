@@ -1,13 +1,15 @@
 {% extends "main/base.html" %}
+{% load i18n %}
 
-{% block title %}Başvuru formları · Pardus Teknofest{% endblock %}
+{% block title %}{% translate "Application forms" %} · Pardus Teknofest{% endblock %}
 
 {% block content %}
+{% translate "Competition application for this category." as default_category_description %}
 <section class="container py-5">
   <div class="mb-4">
-    <span class="eyebrow fg-primary">Yarışma başvuruları</span>
-    <h1 class="h2 fw-bold mt-2 mb-1">Başvuru formları</h1>
-    <p class="fg-secondary mb-0">Yarışma dönemi ve kategoriye uygun formu seçerek başvurunuzu hazırlayın.</p>
+    <span class="eyebrow fg-primary">{% translate "Competition applications" %}</span>
+    <h1 class="h2 fw-bold mt-2 mb-1">{% translate "Application forms" %}</h1>
+    <p class="fg-secondary mb-0">{% translate "Choose the form that matches the competition period and category to prepare your application." %}</p>
   </div>
   {% if forms %}
     <div class="row g-4">
@@ -18,16 +20,16 @@
               <div class="d-flex flex-wrap gap-2 mb-3">
                 <span class="badge rounded-pill badge-profile-complete">{{ form_definition.year.year }}</span>
                 {% if form_definition.is_accepting_submissions %}
-                  <span class="badge rounded-pill theme-success">Başvuruya açık</span>
+                  <span class="badge rounded-pill theme-success">{% translate "Open for applications" %}</span>
                 {% else %}
-                  <span class="badge rounded-pill theme-warning">Başvuruya kapalı</span>
+                  <span class="badge rounded-pill theme-warning">{% translate "Closed for applications" %}</span>
                 {% endif %}
               </div>
               <h2 class="h4 fw-bold">{{ form_definition.title }}</h2>
               <p class="small fw-semibold fg-secondary mb-2">{{ form_definition.category.name }}</p>
-              {% if form_definition.description %}<p class="fg-secondary">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary">{{ form_definition.category.description|default:"Bu kategori için yarışma başvurusu." }}</p>{% endif %}
-              {% if form_definition.closes_at %}<p class="small fg-secondary mt-auto mb-3">Son başvuru: {{ form_definition.closes_at|date:"d.m.Y H:i" }}</p>{% else %}<div class="mt-auto"></div>{% endif %}
-              <a class="btn-outline theme-primary align-self-start" href="{% url 'main:form_detail' form_definition.pk %}">Form ayrıntıları</a>
+              {% if form_definition.description %}<p class="fg-secondary">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary">{{ form_definition.category.description|default:default_category_description }}</p>{% endif %}
+              {% if form_definition.closes_at %}<p class="small fg-secondary mt-auto mb-3">{% blocktranslate with closes_at=form_definition.closes_at|date:"d.m.Y H:i" %}Application deadline: {{ closes_at }}{% endblocktranslate %}</p>{% else %}<div class="mt-auto"></div>{% endif %}
+              <a class="btn-outline theme-primary align-self-start" href="{% url 'main:form_detail' form_definition.pk %}">{% translate "Form details" %}</a>
             </div>
           </article>
         </div>
@@ -35,8 +37,8 @@
     </div>
   {% else %}
     <section class="card empty-state text-center"><div class="card-body p-4 p-lg-5">
-      <h2 class="h4 fw-bold">Şu anda yayımlanmış form yok</h2>
-      <p class="fg-secondary mb-0">Yeni bir başvuru formu yayımlandığında burada görüntülenecektir.</p>
+      <h2 class="h4 fw-bold">{% translate "No forms published right now" %}</h2>
+      <p class="fg-secondary mb-0">{% translate "A new application form will appear here when it is published." %}</p>
     </div></section>
   {% endif %}
 </section>

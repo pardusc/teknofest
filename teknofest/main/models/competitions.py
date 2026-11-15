@@ -3,6 +3,7 @@ import re
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class CompetitionYear(models.Model):
@@ -101,7 +102,7 @@ class FormDefinition(models.Model):
         super().clean()
         if self.opens_at and self.closes_at and self.closes_at <= self.opens_at:
             raise ValidationError(
-                {"closes_at": "The closing date must be after the opening date."}
+                {"closes_at": _("The closing date must be after the opening date.")}
             )
 
     @property
@@ -199,27 +200,27 @@ class FormField(models.Model):
 
         if not re.fullmatch(r"[a-z][a-z0-9_]*", self.key or ""):
             errors["key"] = (
-                "Use lowercase letters, digits and underscores, starting with a letter."
+                _("Use lowercase letters, digits and underscores, starting with a letter.")
             )
         if self.key in self.RESERVED_KEYS:
-            errors["key"] = "This key is reserved."
+            errors["key"] = _("This key is reserved.")
 
         if (
             self.min_length is not None
             and self.max_length is not None
             and self.min_length > self.max_length
         ):
-            errors["max_length"] = "Maximum length must be at least the minimum length."
+            errors["max_length"] = _("Maximum length must be at least the minimum length.")
 
         if self.regex:
             try:
                 re.compile(self.regex)
             except re.error:
-                errors["regex"] = "Enter a valid regular expression."
+                errors["regex"] = _("Enter a valid regular expression.")
 
         if self.field_type in self.CHOICE_TYPES and not self.choice_pairs:
             errors[NON_FIELD_ERRORS] = (
-                "Single and multiple choice fields require at least one choice."
+                _("Single and multiple choice fields require at least one choice.")
             )
 
         if errors:
