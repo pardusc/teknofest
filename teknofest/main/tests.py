@@ -187,7 +187,7 @@ class ProfileTests(MediaTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
-            response.context["form"], "photo", "Upload a JPG, PNG or WebP image."
+            response.context["form"], "photo", "Upload a JPG or PNG image."
         )
 
     @patch("main.forms.MAX_PHOTO_SIZE", 10)
@@ -199,7 +199,7 @@ class ProfileTests(MediaTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
-            response.context["form"], "photo", "The photo must be 5 MB or smaller."
+            response.context["form"], "photo", "The photo must be 1 MB or smaller."
         )
 
     def test_missing_required_field_is_rejected(self):

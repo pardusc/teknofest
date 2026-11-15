@@ -35,9 +35,17 @@
               </div>
               <div class="col-12">
                 <label class="form-label" for="{{ form.photo.id_for_label }}">Profil fotoğrafı <span class="fg-secondary fw-normal">(isteğe bağlı)</span></label>
-                {{ form.photo }}
+                {% if form.instance.photo %}
+                  <div class="d-flex align-items-center gap-3 mb-2">
+                    <img class="profile-avatar" src="{{ form.instance.photo.url }}" alt="Mevcut profil fotoğrafı">
+                    <label class="small fg-secondary d-inline-flex align-items-center gap-2 mb-0" for="photo-clear_id">
+                      <input type="checkbox" name="{{ form.photo.html_name }}-clear" id="photo-clear_id"> Mevcut fotoğrafı kaldır
+                    </label>
+                  </div>
+                {% endif %}
+                <input type="file" name="{{ form.photo.html_name }}" id="{{ form.photo.id_for_label }}" class="form-control" accept="image/jpeg,image/png">
                 {% if form.photo.errors %}<div class="invalid-feedback d-block">{{ form.photo.errors|join:", " }}</div>{% endif %}
-                <div class="form-text">JPG, PNG veya WebP · en fazla 5 MB</div>
+                <div class="form-text">JPG veya PNG · en fazla 1 MB</div>
               </div>
             </div>
           </div>
