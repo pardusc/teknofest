@@ -6,6 +6,7 @@ from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
+from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core import mail
@@ -618,6 +619,27 @@ class DynamicFormTests(TestCase):
             "Project name",
         )
 
+    def test_choice_fields_use_bootstrap_6_widgets(self):
+        form = build_form(self.form)
+
+        self.assertIsInstance(form.fields["level"].widget, forms.RadioSelect)
+        self.assertEqual(form.fields["level"].widget.attrs["class"], "radio")
+        self.assertIsInstance(
+            form.fields["topics"].widget,
+            forms.CheckboxSelectMultiple,
+        )
+        self.assertEqual(form.fields["topics"].widget.attrs["class"], "check")
+
+    def test_boolean_field_uses_yes_no_radios(self):
+        form = build_form(self.form)
+        widget = form.fields["confirmed"].widget
+
+        self.assertIsInstance(widget, forms.RadioSelect)
+        self.assertEqual(
+            list(widget.choices),
+            [(True, _("Yes")), (False, _("No"))],
+        )
+
     def test_invalid_select_value_is_rejected(self):
         form = build_form(self.form, data=self.valid_data(level="medium"))
 
@@ -656,6 +678,16 @@ class FormPreviewTests(TestCase):
             key="title",
             label="Project title",
             field_type=FormField.FieldType.SHORT_TEXT,
+            short_description="Write the project title.",
+            placeholder="e.g. My project",
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="level",
+            label="Level",
+            field_type=FormField.FieldType.SELECT,
+            choices=[{"value": "low", "label": "Low"}],
+            order=1,
         )
 
     def test_preview_requires_staff(self):
@@ -680,6 +712,11 @@ class FormPreviewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Project title")
+        self.assertContains(response, "Write the project title.")
+        self.assertContains(response, 'placeholder="e.g. My project"')
+        self.assertContains(response, "field-description")
+        self.assertContains(response, "choice-grid")
+        self.assertContains(response, "form-field-card choice-card")
 
 
 class AdminTests(TestCase):

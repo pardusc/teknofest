@@ -21,8 +21,19 @@ def _placeholder(field: FormField) -> str:
 
 
 def _text_attrs(field: FormField) -> dict[str, str]:
+    attrs = {"class": "form-control"}
     placeholder = _placeholder(field)
-    return {"placeholder": placeholder} if placeholder else {}
+    if placeholder:
+        attrs["placeholder"] = placeholder
+    if field.short_description:
+        attrs["aria-describedby"] = f"id_{field.key}_description"
+    return attrs
+
+
+class YesNoRadioSelect(forms.RadioSelect):
+    """Radio group used for yes/no fields."""
+
+    yes_no = True
 
 
 def to_django_field(field: FormField, required: bool | None = None) -> forms.Field:
@@ -59,11 +70,15 @@ def to_django_field(field: FormField, required: bool | None = None) -> forms.Fie
         case FormField.FieldType.MARKDOWN:
             return forms.CharField(widget=forms.Textarea(attrs={"rows": 10}), **text_kwargs)
         case FormField.FieldType.SELECT:
-            return forms.ChoiceField(choices=field.choice_pairs, **common)
+            return forms.ChoiceField(
+                choices=field.choice_pairs,
+                widget=forms.RadioSelect(attrs={"class": "radio"}),
+                **common,
+            )
         case FormField.FieldType.MULTI_SELECT:
             return forms.MultipleChoiceField(
                 choices=field.choice_pairs,
-                widget=forms.CheckboxSelectMultiple,
+                widget=forms.CheckboxSelectMultiple(attrs={"class": "check"}),
                 **common,
             )
         case FormField.FieldType.NUMBER:
@@ -82,10 +97,26 @@ def to_django_field(field: FormField, required: bool | None = None) -> forms.Fie
                 **common,
             )
         case FormField.FieldType.BOOLEAN:
-            return forms.BooleanField(**common)
+            return forms.BooleanField(
+                widget=YesNoRadioSelect(
+                    choices=((True, _("Yes")), (False, _("No"))),
+                    attrs={"class": "radio"},
+                ),
+                **common,
+            )
         case FormField.FieldType.DATE:
             return forms.DateField(
-                widget=forms.DateInput(attrs={"type": "date"}),
+                widget=forms.DateInput(
+                    attrs={
+                        "type": "date",
+                        "class": "form-control",
+                        **(
+                            {"aria-describedby": f"id_{field.key}_description"}
+                            if field.short_description
+                            else {}
+                        ),
+                    }
+                ),
                 **common,
             )
 

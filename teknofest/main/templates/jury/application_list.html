@@ -29,7 +29,7 @@
     </div>
     <div>
       <label class="form-label" for="jury-mine">{% translate "My review" %}</label>
-      <select class="form-select" id="jury-mine" name="mine">
+      <select class="form-control" id="jury-mine" name="mine">
         <option value="" {% if not request.GET.mine %}selected{% endif %}>{% translate "All applications" %}</option>
         <option value="pending" {% if request.GET.mine == 'pending' %}selected{% endif %}>{% translate "Pending" %}</option>
         <option value="completed" {% if request.GET.mine == 'completed' %}selected{% endif %}>{% translate "Completed" %}</option>
@@ -37,7 +37,7 @@
     </div>
     <div>
       <label class="form-label" for="jury-ordering">{% translate "Ordering" %}</label>
-      <select class="form-select" id="jury-ordering" name="ordering">
+      <select class="form-control" id="jury-ordering" name="ordering">
         <option value="-submitted_at" {% if request.GET.ordering == '-submitted_at' or not request.GET.ordering %}selected{% endif %}>{% translate "Newest" %}</option>
         <option value="submitted_at" {% if request.GET.ordering == 'submitted_at' %}selected{% endif %}>{% translate "Oldest" %}</option>
         <option value="-my_score" {% if request.GET.ordering == '-my_score' %}selected{% endif %}>{% translate "My score: high to low" %}</option>

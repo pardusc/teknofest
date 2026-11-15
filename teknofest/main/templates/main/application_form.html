@@ -37,14 +37,7 @@
           {% endif %}
 
           {% for field in application_form %}
-            <div class="form-field">
-              <label class="form-label" for="{{ field.id_for_label }}">
-                {{ field.label }}{% if field.name in required_keys %}<span class="required" aria-hidden="true">*</span>{% else %} <span class="small fg-secondary">({% translate "optional" %})</span>{% endif %}
-              </label>
-              {{ field }}
-              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-              {% if field.errors %}<div class="invalid-feedback">{{ field.errors|join:", " }}</div>{% endif %}
-            </div>
+            {% include "main/_dynamic_field.html" with field=field %}
           {% empty %}
             <p class="fg-secondary mb-0">{% translate "There are no fields to fill in this form." %}</p>
           {% endfor %}

@@ -20,12 +20,7 @@
     <div class="section-body">
       {% if form.fields %}
         {% for field in form %}
-          <div class="form-field">
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="required">*</span>{% endif %}</label>
-            {{ field }}
-            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-            {% if field.errors %}<div class="invalid-feedback">{{ field.errors|join:", " }}</div>{% endif %}
-          </div>
+          {% include "main/_dynamic_field.html" with field=field %}
         {% endfor %}
       {% else %}
         <p class="fg-secondary mb-0">{% translate "No fields have been defined for this form yet." %}</p>
