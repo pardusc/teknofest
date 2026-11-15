@@ -287,6 +287,7 @@ main .container > .d-flex:first-child > div > p { max-width: 64ch; }
 .jury-other-reviews li strong { color: var(--site-heading); }
 .jury-other-reviews li span { color: var(--site-muted); font-size: .8rem; }
 .jury-other-reviews li p { margin: .4rem 0 0; color: var(--site-text); font-size: .88rem; }
+.jury-other-reviews li .jury-review-author { margin-top: .35rem; color: var(--site-heading); font-size: .82rem; font-weight: 600; }
 
 @media (min-width: 1024px) {
   .site-navbar .drawer {

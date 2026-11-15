@@ -41,3 +41,8 @@ class Review(models.Model):
     @property
     def is_completed(self) -> bool:
         return self.completed_at is not None
+
+    @property
+    def juror_name(self) -> str:
+        """Name shown to other jury members when listing reviews."""
+        return self.juror.get_full_name() or self.juror.username

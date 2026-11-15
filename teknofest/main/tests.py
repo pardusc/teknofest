@@ -1438,6 +1438,8 @@ class JuryTests(MediaTestCase):
         before = self.client.get(url)
         self.assertEqual(len(before.context["other_reviews"]), 1)
         self.assertEqual(before.context["other_reviews"][0].note, "Other note")
+        self.assertEqual(before.context["other_reviews"][0].juror_name, "jury2")
+        self.assertContains(before, "jury2")
         self.assertEqual(before.context["average_score"], 60.0)
 
         submit_review(self.application, self.jury, score=80)

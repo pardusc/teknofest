@@ -114,7 +114,7 @@
           {% if other_reviews %}
             <ul class="jury-other-reviews list-unstyled mb-0">
               {% for review in other_reviews %}
-                <li><div><strong>{{ review.score }} / 100</strong><span>{{ review.completed_at|date:"d.m.Y" }}</span></div>{% if review.note %}<p>{{ review.note|linebreaksbr }}</p>{% endif %}</li>
+                <li><div><strong>{{ review.score }} / 100</strong><span>{{ review.completed_at|date:"d.m.Y" }}</span></div><p class="jury-review-author">{{ review.juror_name }}</p>{% if review.note %}<p>{{ review.note|linebreaksbr }}</p>{% endif %}</li>
               {% endfor %}
             </ul>
           {% else %}
