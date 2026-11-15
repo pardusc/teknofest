@@ -5,8 +5,8 @@ from django.core.exceptions import ValidationError
 
 from .models import FormField, Profile
 
-MAX_PHOTO_SIZE = 5 * 1024 * 1024
-ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_PHOTO_SIZE = 1 * 1024 * 1024
+ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png"}
 
 
 class ProfileForm(forms.ModelForm):
@@ -19,7 +19,7 @@ class ProfileForm(forms.ModelForm):
             ),
             "city": forms.TextInput(attrs={"class": "form-control", "placeholder": "Örn. Ankara"}),
             "institution": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Örn. Ankara Üniversitesi"}
+                attrs={"class": "form-control", "placeholder": "Örn. Gazi Üniversitesi"}
             ),
             "education_level": forms.Select(attrs={"class": "form-control"}),
             "photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
@@ -43,9 +43,9 @@ class ProfileForm(forms.ModelForm):
         if not photo or not hasattr(photo, "content_type"):
             return photo
         if photo.size > MAX_PHOTO_SIZE:
-            raise ValidationError("The photo must be 5 MB or smaller.")
+            raise ValidationError("The photo must be 1 MB or smaller.")
         if photo.content_type not in ALLOWED_PHOTO_TYPES:
-            raise ValidationError("Upload a JPG, PNG or WebP image.")
+            raise ValidationError("Upload a JPG or PNG image.")
         return photo
 
 
