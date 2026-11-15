@@ -1,11 +1,17 @@
 {% extends "admin/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
 {% block extrastyle %}
   {{ block.super }}
   <style>
+    .ba-brand-logo {
+      flex: 0 0 auto;
+      width: auto;
+      height: 2.1rem;
+      filter: brightness(0) invert(1);
+    }
     .ba-language-switcher {
       display: inline-flex;
       align-items: center;
@@ -39,10 +45,9 @@
 
 {% block branding %}
   <a class="ba-brand" href="{% url 'admin:index' %}">
-    <span class="ba-brand-mark" aria-hidden="true">{{ site_header|default:_('Django administration')|first|upper }}</span>
+    <img class="ba-brand-logo" src="{% static 'main/img/pardus-logo.svg' %}" alt="Pardus">
     <span class="ba-brand-text">
       <span class="ba-brand-title">{{ site_header|default:_('Django administration') }}</span>
-      <span class="ba-brand-subtitle">{{ site_title|default:_('Django site admin') }}</span>
     </span>
   </a>
   {% if user.is_anonymous %}
