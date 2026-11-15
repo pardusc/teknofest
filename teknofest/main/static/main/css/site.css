@@ -499,6 +499,14 @@ body:has(.date-picker-dialog[open]) { overflow: hidden; }
   margin-top: 0.1rem;
 }
 .choice-grid--boolean { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 380px; }
+.choice-grid--multi { display: flex; flex-wrap: wrap; }
+.choice-grid--multi .choice-card {
+  flex: 0 1 auto;
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+}
 .choice-card {
   display: flex;
   align-items: center;

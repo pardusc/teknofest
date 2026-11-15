@@ -706,6 +706,14 @@ class FormPreviewTests(TestCase):
             field_type=FormField.FieldType.DATE,
             order=2,
         )
+        FormField.objects.create(
+            form=self.form,
+            key="topics",
+            label="Topics",
+            field_type=FormField.FieldType.MULTI_SELECT,
+            choices=[{"value": "ui", "label": "UI"}],
+            order=3,
+        )
 
     def test_preview_requires_staff(self):
         response = self.client.get(
@@ -733,6 +741,7 @@ class FormPreviewTests(TestCase):
         self.assertContains(response, 'placeholder="e.g. My project"')
         self.assertContains(response, "field-description")
         self.assertContains(response, "choice-grid")
+        self.assertContains(response, "choice-grid--multi")
         self.assertContains(response, "form-field-card choice-card")
         self.assertContains(response, 'data-maxlength="120"')
         self.assertContains(response, "data-maxlength-counter")
