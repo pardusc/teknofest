@@ -4,70 +4,167 @@
 {% block title %}{% translate "Home" %} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
-  {% translate "Pardus Bug Finding and Suggestion Competition" as default_competition_name %}
-  {% translate "Submit your bug reports, suggestions and development work as a competition application." as default_lead %}
-  {% translate "Included in form details" as default_calendar_note %}
+{% translate "Pardus Bug Finding and Suggestion Competition" as default_competition_name %}
+{% translate "Submit your bug reports, suggestions and development work as a competition application." as default_lead %}
+{% translate "Included in form details" as default_calendar_note %}
 
-  {% if site_settings.announcement_active and home_text.announcement %}
-    <div class="container pt-4">
-      <div class="alert site-alert mb-0" role="status">{{ home_text.announcement|linebreaksbr }}</div>
+{% if site_settings.announcement_active and home_text.announcement %}
+  <div class="container pt-3">
+    <div class="announcement" role="status">{{ home_text.announcement|linebreaksbr }}</div>
+  </div>
+{% endif %}
+
+{% if user.is_authenticated and not is_jury_member %}
+  <div class="container site-main">
+    <div class="page-header">
+      <div>
+        <span class="eyebrow">{{ site_settings.current_year }} · {% translate "Account area" %}</span>
+        <h1>{% translate "Overview" %}</h1>
+        <p>{% blocktranslate with name=user.first_name|default:user.username %}Welcome back, {{ name }}.{% endblocktranslate %}</p>
+      </div>
+      <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
     </div>
-  {% endif %}
 
-  <section class="hero-section">
-    <div class="container py-5 py-lg-6">
-      <div class="row align-items-center g-5">
-        <div class="lg:col-7">
-          <div class="hero-content">
-          <span class="eyebrow">{{ home_text.hero_eyebrow|default:"Pardus Teknofest" }} · {{ site_settings.current_year }}</span>
-          <h1 class="hero-title mt-3 mb-3">{{ home_text.hero_title|default:site_settings.competition_name|default:default_competition_name }}</h1>
-          <p class="hero-lead mb-4">{{ home_text.hero_lead|default:default_lead }}</p>
-          <div class="d-flex flex-wrap gap-3">
-            {% if user.is_authenticated %}
-              <a class="btn-solid theme-primary btn-lg" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
-              <a class="btn-outline theme-secondary btn-lg" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
-            {% else %}
-              <a class="btn-solid theme-primary btn-lg" href="{% url 'login' %}">{% translate "Log in" %}</a>
-              <a class="btn-outline theme-secondary btn-lg" href="#kategoriler">{% translate "Application categories" %}</a>
-            {% endif %}
+    <div class="row g-3">
+      <div class="lg:col-8">
+        <section class="card section-card">
+          <div class="section-head">
+            <h2>{% translate "My applications" %}</h2>
+            <a class="small" href="{% url 'main:application_list' %}">{% translate "View all" %}</a>
           </div>
+          {% if my_applications %}
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead><tr><th>{% translate "Application" %}</th><th>{% translate "Status" %}</th><th>{% translate "Last updated" %}</th><th class="text-end">{% translate "Action" %}</th></tr></thead>
+                <tbody>
+                  {% for application in my_applications %}
+                    <tr>
+                      <td><a class="row-link" href="{% url 'main:application_detail' application.public_id %}"><span class="row-title">{{ application.form.title }}</span><span class="row-meta">{{ application.year.year }} · {{ application.category.display_name }} · {{ application.code }}</span></a></td>
+                      <td><span class="chip {{ application.status_tone }}">{{ application.status_label }}</span></td>
+                      <td class="small fg-secondary">{{ application.updated_at|date:"d.m.Y H:i" }}</td>
+                      <td class="text-end"><a class="btn-outline btn-sm" href="{% url 'main:application_detail' application.public_id %}">{% translate "Open" %}</a></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <h3>{% translate "You have no applications yet" %}</h3>
+              <p>{% translate "Choose an open form to create your first application." %}</p>
+              <a class="btn-solid btn-sm" href="{% url 'main:form_list' %}">{% translate "Browse application forms" %}</a>
+            </div>
+          {% endif %}
+        </section>
+
+        <section class="card section-card mt-3">
+          <div class="section-head"><h2>{% translate "Application forms" %}</h2><span class="small fg-secondary">{{ open_form_count }} {% translate "open" %}</span></div>
+          {% if form_rows %}
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead><tr><th>{% translate "Form" %}</th><th>{% translate "Deadline" %}</th><th class="text-end">{% translate "Action" %}</th></tr></thead>
+                <tbody>
+                  {% for row in form_rows %}
+                    <tr>
+                      <td><span class="row-title">{{ row.form.title }}</span><span class="row-meta">{{ row.form.category.display_name }}</span></td>
+                      <td class="small fg-secondary">{% if row.form.closes_at %}{{ row.form.closes_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
+                      <td class="text-end">
+                        {% if row.application %}
+                          <a class="btn-outline btn-sm" href="{% url 'main:application_detail' row.application.public_id %}">{% translate "Open application" %}</a>
+                        {% elif row.form.is_accepting_submissions %}
+                          <a class="btn-solid btn-sm" href="{% url 'main:application_start' row.form.pk %}">{% translate "Apply" %}</a>
+                        {% else %}
+                          <span class="chip chip-neutral">{% translate "Closed" %}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p class="mb-0">{% translate "No forms are available for this period." %}</p></div>
+          {% endif %}
+        </section>
+      </div>
+
+      <div class="lg:col-4">
+        <section class="card section-card">
+          <div class="section-head"><h2>{% translate "Application period" %}</h2></div>
+          <div class="section-body">
+            <p class="mb-3">
+              {% if site_settings.is_application_open %}<span class="chip chip-success">{% translate "Open for applications" %}</span>{% else %}<span class="chip chip-neutral">{% translate "Closed for applications" %}</span>{% endif %}
+            </p>
+            <dl class="facts">
+              <dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd>
+              {% if site_settings.application_closes_at %}<dt>{% translate "Application deadline" %}</dt><dd>{{ site_settings.application_closes_at|date:"d.m.Y H:i" }}</dd>{% endif %}
+              <dt>{% translate "Calendar and conditions" %}</dt><dd>{{ home_text.calendar_note|default:default_calendar_note }}</dd>
+            </dl>
+          </div>
+        </section>
+
+        <section class="card section-card mt-3">
+          <div class="section-head"><h2>{% translate "Profile" %}</h2><a class="small" href="{% url 'main:profile' %}">{% translate "Edit" %}</a></div>
+          <div class="section-body">
+            <p class="small mb-2">{% if profile.is_complete %}<span class="chip chip-success">{% translate "Profile complete" %}</span>{% else %}<span class="chip chip-warning">{% translate "Missing information" %}</span>{% endif %}</p>
+            <p class="small fg-secondary mb-0">{{ user.email }}</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+{% else %}
+  <section class="home-hero">
+    <div class="container">
+      <div class="row g-4 align-items-center">
+        <div class="lg:col-7">
+          <span class="eyebrow">{{ home_text.hero_eyebrow|default:"Pardus Teknofest" }} · {{ site_settings.current_year }}</span>
+          <h1>{{ home_text.hero_title|default:site_settings.competition_name|default:default_competition_name }}</h1>
+          <p class="lead">{{ home_text.hero_lead|default:default_lead }}</p>
+          <div class="quick-actions mt-4">
+            {% if user.is_authenticated %}
+              <a class="btn-solid btn-lg" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+            {% else %}
+              <a class="btn-solid btn-lg" href="{% url 'login' %}">{% translate "Log in" %}</a>
+              <a class="btn-outline btn-lg" href="#kategoriler">{% translate "Application categories" %}</a>
+            {% endif %}
           </div>
         </div>
         <div class="lg:col-5">
-          <aside class="hero-card p-4 p-lg-5" aria-labelledby="competition-info-title">
-            <p class="small text-uppercase fw-semibold mb-2">{% translate "Competition information" %}</p>
-            <h2 class="h3 mb-4" id="competition-info-title">{% translate "Application period" %}</h2>
-            <dl class="competition-facts mb-0">
-              <div><dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd></div>
-              <div><dt>{% translate "Application category" %}</dt><dd>{% blocktranslate count counter=home_category_count %}{{ counter }} category{% plural %}{{ counter }} categories{% endblocktranslate %}</dd></div>
-              <div><dt>{% translate "Calendar and conditions" %}</dt><dd>{{ home_text.calendar_note|default:default_calendar_note }}</dd></div>
+          <aside class="period-card" aria-labelledby="period-title">
+            <div class="period-status">
+              <h2 class="h6 fw-bold mb-0" id="period-title">{% translate "Application period" %}</h2>
+              {% if site_settings.is_application_open %}<span class="chip chip-success">{% translate "Open" %}</span>{% else %}<span class="chip chip-neutral">{% translate "Closed" %}</span>{% endif %}
+            </div>
+            <dl>
+              <dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd>
+              <dt>{% translate "Application category" %}</dt><dd>{% blocktranslate count counter=home_category_count %}{{ counter }} category{% plural %}{{ counter }} categories{% endblocktranslate %}</dd>
+              <dt>{% translate "Calendar and conditions" %}</dt><dd>{{ home_text.calendar_note|default:default_calendar_note }}</dd>
             </dl>
           </aside>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="container py-5" id="kategoriler">
-    <h2 class="section-title mb-4">{% translate "Application categories" %}</h2>
-    <div class="row g-4">
+  <section class="container site-main" id="kategoriler">
+    <div class="page-header">
+      <div><span class="eyebrow">{% translate "Categories" %}</span><h2>{% translate "Application categories" %}</h2></div>
+    </div>
+    <div class="category-grid">
       {% for category in home_categories %}
-        <div class="md:col-6">
-          <article class="card category-card h-100">
-            <div class="card-body p-4 p-lg-5">
-              <h3 class="category-title">{{ category.display_name }}</h3>
-              <p class="fg-secondary">{{ category.display_home_description }}</p>
-              {% if category.highlight_list %}
-                <ul class="list-unstyled category-list mb-4">
-                  {% for highlight in category.highlight_list %}<li>{{ highlight }}</li>{% endfor %}
-                </ul>
-              {% endif %}
-            </div>
-          </article>
-        </div>
+        <article class="category-tile">
+          <h2>{{ category.display_name }}</h2>
+          <p class="mb-0">{{ category.display_home_description }}</p>
+          {% if category.highlight_list %}
+            <ul>{% for highlight in category.highlight_list %}<li>{{ highlight }}</li>{% endfor %}</ul>
+          {% endif %}
+        </article>
       {% empty %}
-        <div class="md:col-12"><p class="fg-secondary mb-0">{% translate "No categories are published yet." %}</p></div>
+        <p class="fg-secondary">{% translate "No categories are published yet." %}</p>
       {% endfor %}
     </div>
   </section>
-
+{% endif %}
 {% endblock %}

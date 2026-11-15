@@ -164,7 +164,7 @@ class ProfileTests(MediaTestCase):
         self.assertContains(response, self.user.email)
 
     def test_profile_update_saves_required_fields(self):
-        response = self.client.post(reverse("main:profile_edit"), self.valid_data())
+        response = self.client.post(reverse("main:profile"), self.valid_data())
 
         self.assertRedirects(response, reverse("main:profile"))
         profile = Profile.objects.get(user=self.user)
@@ -173,7 +173,7 @@ class ProfileTests(MediaTestCase):
         self.assertTrue(profile.is_complete)
 
     def test_photo_is_optional(self):
-        response = self.client.post(reverse("main:profile_edit"), self.valid_data())
+        response = self.client.post(reverse("main:profile"), self.valid_data())
 
         self.assertRedirects(response, reverse("main:profile"))
         self.assertFalse(Profile.objects.get(user=self.user).photo)
@@ -182,7 +182,7 @@ class ProfileTests(MediaTestCase):
         data = self.valid_data()
         data["photo"] = make_image()
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertRedirects(response, reverse("main:profile"))
         self.assertTrue(Profile.objects.get(user=self.user).photo.name.startswith("profiles/"))
@@ -191,7 +191,7 @@ class ProfileTests(MediaTestCase):
         data = self.valid_data()
         data["photo"] = make_image(name="photo.gif", image_format="GIF")
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
@@ -203,7 +203,7 @@ class ProfileTests(MediaTestCase):
         data = self.valid_data()
         data["photo"] = make_image()
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
@@ -214,14 +214,14 @@ class ProfileTests(MediaTestCase):
         data = self.valid_data()
         del data["city"]
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response.context["form"], "city", _("This field is required."))
 
     def test_invalid_phone_is_rejected(self):
         response = self.client.post(
-            reverse("main:profile_edit"),
+            reverse("main:profile"),
             self.valid_data(phone="not-a-phone"),
         )
 
@@ -953,19 +953,23 @@ class ApplicationViewTests(MediaTestCase):
 
         self.assertIn(self.form, response.context["forms"])
 
-    def test_form_detail_context_allows_applying(self):
+    def test_form_detail_redirects_to_application_form(self):
         response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
 
-        self.assertTrue(response.context["can_apply"])
-        self.assertIn(self.title_field, response.context["fields"])
+        self.assertRedirects(
+            response,
+            reverse("main:application_start", args=[self.form.pk]),
+        )
 
-    def test_form_detail_disables_applying_when_application_exists(self):
+    def test_form_detail_redirects_to_existing_application(self):
         application = self.make_application()
 
         response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
 
-        self.assertFalse(response.context["can_apply"])
-        self.assertEqual(response.context["existing_application"], application)
+        self.assertRedirects(
+            response,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
 
     def test_apply_page_renders_empty_form(self):
         response = self.client.get(
@@ -1034,10 +1038,7 @@ class ApplicationViewTests(MediaTestCase):
             reverse("main:application_start", args=[self.form.pk])
         )
 
-        self.assertRedirects(
-            response,
-            reverse("main:form_detail", args=[self.form.pk]),
-        )
+        self.assertRedirects(response, reverse("main:form_list"))
 
     def test_application_list_and_detail_context(self):
         application = self.make_application()
@@ -1183,16 +1184,16 @@ class ApplicationViewTests(MediaTestCase):
         self.assertFalse(Application.objects.filter(pk=application.pk).exists())
         self.assertFalse(path.exists())
 
-    def test_preview_context(self):
+    def test_preview_redirects_to_edit(self):
         application = self.make_application()
 
         response = self.client.get(
             reverse("main:application_preview", args=[application.public_id])
         )
 
-        self.assertEqual(
-            response.context["field_answers"][0]["value"],
-            "A bug report",
+        self.assertRedirects(
+            response,
+            reverse("main:application_edit", args=[application.public_id]),
         )
 
 
@@ -1549,7 +1550,7 @@ class JuryTests(MediaTestCase):
             reverse("main:application_list"),
             reverse("main:application_detail", args=[self.application.public_id]),
             reverse("main:profile"),
-            reverse("main:profile_edit"),
+            reverse("main:profile"),
         )
 
         for url in urls:

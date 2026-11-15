@@ -1,41 +1,36 @@
 {% extends "main/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
-{% block title %}{% translate "Log in" %} · Pardus Teknofest{% endblock %}
+{% block title %}{% translate "Log in" %} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
-  <section class="container py-5">
-    <div class="row justify-content-center align-items-center g-5">
-      <div class="lg:col-5 d-none lg:d-block">
-        <span class="eyebrow fg-primary">Pardus Teknofest</span>
-        <h1 class="fs-4xl fw-bold mt-3">{% translate "Participant login" %}</h1>
-        <p class="fs-lg fw-light fg-secondary mt-3">{% translate "Log in to your account to continue with applications and profile operations." %}</p>
-        <div class="login-aside-note mt-4">{% translate "After logging in you can view and update your profile information." %}</div>
+<div class="auth-wrap">
+  <section class="card auth-card">
+    <div class="card-body">
+      <div class="auth-brand">
+        <img src="{% static 'main/img/pardus-logo.svg' %}" alt="Pardus">
+        <p class="eyebrow mt-3 mb-0">{{ site_settings.current_year }} · {% translate "Competition applications" %}</p>
       </div>
-      <div class="md:col-8 lg:col-5">
-        <div class="card login-card">
-          <div class="card-body p-4 p-lg-5">
-            <p class="eyebrow fg-primary mb-2">{% translate "Account area" %}</p>
-            <h2 class="h3 fw-bold mb-2">{% translate "Sign in" %}</h2>
-            <p class="fg-secondary mb-4">{% translate "Enter your username and password." %}</p>
-            {% if form.errors %}<div class="alert theme-danger" role="alert">{% translate "The username or password is incorrect. Check your information and try again." %}</div>{% endif %}
-            <form method="post" class="login-form">
-              {% csrf_token %}
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.username.id_for_label }}">{% translate "Username" %}</label>
-                <input class="form-control form-control-lg" type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" autofocus required>
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.password.id_for_label }}">{% translate "Password" %}</label>
-                <input class="form-control form-control-lg" type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}" autocomplete="current-password" required>
-              </div>
-              {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-              <button class="btn-solid theme-primary btn-lg w-100 mt-2" type="submit">{% translate "Log in" %}</button>
-            </form>
-            <p class="small fg-secondary text-center mt-4 mb-0">{% translate "If you have trouble signing in, contact the competition coordination team." %}</p>
-          </div>
+      <h1>{% translate "Sign in" %}</h1>
+      <p class="fg-secondary mb-4">{% translate "Use your competition account to continue." %}</p>
+      {% if form.errors %}
+        <div class="alert alert-danger" role="alert">{% translate "The username or password is incorrect. Check your information and try again." %}</div>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-field">
+          <label class="form-label" for="{{ form.username.id_for_label }}">{% translate "Username" %}</label>
+          <input class="form-control" type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" autofocus required>
         </div>
-      </div>
+        <div class="form-field">
+          <label class="form-label" for="{{ form.password.id_for_label }}">{% translate "Password" %}</label>
+          <input class="form-control" type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}" autocomplete="current-password" required>
+        </div>
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <button class="btn-solid btn-lg w-100 mt-2" type="submit">{% translate "Log in" %}</button>
+      </form>
+      <p class="small fg-secondary text-center mt-4 mb-0">{% translate "If you have trouble signing in, contact the competition coordination team." %}</p>
     </div>
   </section>
+</div>
 {% endblock %}

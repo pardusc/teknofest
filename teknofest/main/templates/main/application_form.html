@@ -1,30 +1,119 @@
 {% extends "main/base.html" %}
 {% load i18n %}
 
-{% block title %}{{ form_definition.title }} · {% translate "Application form" %}{% endblock %}
+{% block title %}{{ form_definition.title }} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
-<section class="container py-5">
-  <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:form_list' %}">{% translate "Back to application forms" %}</a><p class="eyebrow fg-primary mt-4 mb-2">{{ form_definition.year.year }} · {{ form_definition.category.display_name }}</p><h1 class="h2 fw-bold mb-2">{{ form_definition.title }}</h1>{% if form_definition.description %}<p class="fg-secondary mb-0">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary mb-0">{% translate "Fill in the form and submit your application." %}</p>{% endif %}</div>
-  <div class="row g-4"><div class="lg:col-8">
-    <form method="post" action="{% url 'main:application_start' form_definition.pk %}" class="card application-form" enctype="multipart/form-data">
-      {% csrf_token %}<div class="card-body p-4 p-lg-5">
-        {% if application_form.non_field_errors %}<div class="alert theme-danger" role="alert">{{ application_form.non_field_errors }}</div>{% endif %}
-        {% if application_form %}{% for field in application_form %}
-          <div class="mb-4 application-field">
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.name in required_keys %}<span class="fg-danger ms-1">*</span>{% else %}<span class="small fg-secondary ms-1">({% translate "optional" %})</span>{% endif %}</label>
-            {{ field }}
-            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>{% endif %}
+{% translate "Delete this file?" as delete_file_confirm %}
+<div class="container site-main">
+  <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
+    <a href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+    <span>{{ form_definition.title }}</span>
+  </nav>
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">{{ form_definition.year.year }} · {{ form_definition.category.display_name }}</span>
+      <h1>{{ form_definition.title }}</h1>
+      {% if application %}
+        <p><span class="chip {{ application.status_tone }}">{{ application.status_label }}</span>{% if application.code %} <span class="small fg-secondary">{{ application.code }}</span>{% endif %}</p>
+      {% elif form_definition.description %}
+        <p>{{ form_definition.description|linebreaksbr }}</p>
+      {% endif %}
+    </div>
+    {% if application %}
+      <a class="btn-outline" href="{% url 'main:application_detail' application.public_id %}">{% translate "Back to application" %}</a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+    <div class="lg:col-8">
+      <form method="post" enctype="multipart/form-data" class="card section-card"
+            action="{% if application %}{% url 'main:application_edit' application.public_id %}{% else %}{% url 'main:application_start' form_definition.pk %}{% endif %}">
+        {% csrf_token %}
+        <div class="section-body">
+          {% if application_form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">{{ application_form.non_field_errors }}</div>
+          {% endif %}
+
+          {% for field in application_form %}
+            <div class="form-field">
+              <label class="form-label" for="{{ field.id_for_label }}">
+                {{ field.label }}{% if field.name in required_keys %}<span class="required" aria-hidden="true">*</span>{% else %}<span class="small fg-secondary">({% translate "optional" %})</span>{% endif %}
+              </label>
+              {{ field }}
+              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+              {% if field.errors %}<div class="invalid-feedback">{{ field.errors|join:", " }}</div>{% endif %}
+            </div>
+          {% empty %}
+            <p class="fg-secondary mb-0">{% translate "There are no fields to fill in this form." %}</p>
+          {% endfor %}
+        </div>
+
+        {% if accepts_files %}
+          <div class="section-body border-top">
+            <h2 class="h6 fw-bold mb-1">{% translate "Attachments" %}</h2>
+            <p class="small fg-secondary mb-3">{% translate "JPG or PNG · max 2 MB per file · max 10 MB total" %}{% if attachment_policy == 'required' %} · {% translate "at least one file required" %}{% endif %}</p>
+
+            {% if attachments %}
+              <ul class="attachment-list mb-3">
+                {% for attachment in attachments %}
+                  <li>
+                    <span>
+                      <a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a>
+                      <span class="attachment-meta">{{ attachment.size|filesizeformat }}</span>
+                    </span>
+                    <form method="post" action="{% url 'main:attachment_delete' application.public_id attachment.pk %}" onsubmit="return confirm('{{ delete_file_confirm|escapejs }}')">
+                      {% csrf_token %}
+                      <button class="btn-ghost btn-sm" type="submit">{% translate "Delete" %}</button>
+                    </form>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+
+            <div class="file-drop">
+              <label class="form-label" for="application-files">{% translate "Choose files" %}</label>
+              <input id="application-files" class="form-control" type="file" name="files" accept="image/jpeg,image/png" multiple{% if attachment_policy == 'required' and not attachments %} required{% endif %}>
+            </div>
           </div>
-        {% endfor %}{% else %}<p class="fg-secondary">{% translate "There are no fields to fill in this form." %}</p>{% endif %}
-      </div>
-      {% if accepts_files %}<div class="card-body border-top px-4 px-lg-5">
-        <h2 class="h5 fw-bold">{% translate "Attachments" %}</h2><p class="small fg-secondary">{% translate "JPG or PNG · max 2 MB per file · max 10 MB total" %}{% if attachment_policy == 'required' %} · {% translate "at least one file required" %}{% endif %}</p>
-        <div><label class="form-label" for="application-files">{% translate "Choose files" %}</label><input id="application-files" class="form-control" type="file" name="files" accept="image/jpeg,image/png" multiple{% if attachment_policy == 'required' %} required{% endif %}></div>
-      </div>{% endif %}
-      <div class="card-footer px-4 px-lg-5 py-3 d-flex flex-column sm:flex-row justify-content-between sm:align-items-center gap-3"><span class="small fg-secondary">{% translate "Required fields are marked with an asterisk." %}</span><div class="d-flex flex-wrap gap-2"><a class="btn-outline theme-secondary" href="{% url 'main:form_list' %}">{% translate "Cancel" %}</a><button class="btn-solid theme-primary" type="submit">{% translate "Submit application" %}</button></div></div>
-    </form>
-  </div><div class="lg:col-4"><aside class="card application-side-card"><div class="card-body p-4"><h2 class="h5 fw-bold">{% translate "Before submitting" %}</h2><ul class="small fg-secondary ps-3 mb-0"><li>{% translate "Fill in the required fields." %}</li><li>{% translate "Check your contact and profile information." %}</li>{% if attachment_policy == 'required' %}<li>{% translate "Upload the required attachment." %}</li>{% endif %}</ul></div></aside></div></div>
-</section>
+        {% endif %}
+
+        <div class="form-actions">
+          <span class="hint">{% translate "Required fields are marked with an asterisk." %}</span>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn-outline" href="{% if application %}{% url 'main:application_detail' application.public_id %}{% else %}{% url 'main:form_list' %}{% endif %}">{% translate "Cancel" %}</a>
+            <button class="btn-solid" type="submit">{% if application %}{% translate "Save changes" %}{% else %}{% translate "Submit application" %}{% endif %}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="lg:col-4">
+      <aside class="card section-card">
+        <div class="section-head"><h2>{% translate "Application information" %}</h2></div>
+        <div class="section-body">
+          <dl class="facts mb-4">
+            <dt>{% translate "Competition year" %}</dt><dd>{{ form_definition.year.year }}</dd>
+            <dt>{% translate "Category" %}</dt><dd>{{ form_definition.category.display_name }}</dd>
+            <dt>{% translate "Deadline" %}</dt><dd>{% if form_definition.closes_at %}{{ form_definition.closes_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</dd>
+            {% if application %}<dt>{% translate "Code" %}</dt><dd>{{ application.code }}</dd>{% endif %}
+          </dl>
+          {% if form_definition.description %}<p class="small mb-0">{{ form_definition.description|linebreaksbr }}</p>{% endif %}
+        </div>
+      </aside>
+
+      <aside class="card section-card mt-3">
+        <div class="section-head"><h2>{% translate "Before submitting" %}</h2></div>
+        <div class="section-body">
+          <ul class="small fg-secondary mb-0 ps-3">
+            <li>{% translate "Fill in the required fields." %}</li>
+            <li>{% translate "Check your contact and profile information." %}</li>
+            {% if attachment_policy == 'required' %}<li>{% translate "Upload the required attachment." %}</li>{% endif %}
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
 {% endblock %}

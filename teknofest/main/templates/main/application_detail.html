@@ -1,32 +1,85 @@
 {% extends "main/base.html" %}
 {% load i18n %}
 
-{% block title %}{% translate "Application details" %} · Pardus Teknofest{% endblock %}
+{% block title %}{{ application.code }} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
-<section class="container py-5">
-  <div class="mb-4">
-    <a class="small fg-primary text-decoration-none" href="{% url 'main:application_list' %}">{% translate "Back to my applications" %}</a>
-    <div class="d-flex flex-column md:flex-row justify-content-between md:align-items-end gap-3 mt-4">
-      <div><span class="eyebrow fg-primary">{{ application.year.year }} · {{ application.category.display_name }}</span><h1 class="h2 fw-bold mt-2 mb-1">{{ application.form.title }}</h1><p class="fg-secondary mb-0">{% if application.code %}{% blocktranslate with code=application.code %}Application code: <strong>{{ code }}</strong>{% endblocktranslate %}{% endif %}</p></div>
-      <span class="badge rounded-pill badge-profile-complete">{% if application.status == 'submitted' %}{% translate "Submitted" %}{% elif application.status == 'in_review' %}{% translate "In review" %}{% elif application.status == 'evaluated' %}{% translate "Evaluated" %}{% else %}{{ application.get_status_display }}{% endif %}</span>
+{% translate "Delete this application and its attachments permanently?" as delete_confirm %}
+<div class="container site-main">
+  <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
+    <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
+    <span>{{ application.code }}</span>
+  </nav>
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">{{ application.year.year }} · {{ application.category.display_name }}</span>
+      <h1>{{ application.form.title }}</h1>
+      <p class="d-flex flex-wrap align-items-center gap-2">
+        <span class="chip {{ application.status_tone }}">{{ application.status_label }}</span>
+        <span class="small fg-secondary">{% blocktranslate with code=application.code %}Application code: {{ code }}{% endblocktranslate %}</span>
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      {% if can_edit %}<a class="btn-outline" href="{% url 'main:application_edit' application.public_id %}">{% translate "Edit application" %}</a>{% endif %}
+      {% if can_edit %}
+        <form method="post" action="{% url 'main:application_delete' application.public_id %}" onsubmit="return confirm('{{ delete_confirm|escapejs }}')">
+          {% csrf_token %}
+          <button class="btn-danger btn-outline" type="submit">{% translate "Delete" %}</button>
+        </form>
+      {% endif %}
     </div>
   </div>
-  <div class="row g-4">
+
+  <div class="row g-3">
     <div class="lg:col-8">
-      <section class="card"><div class="card-body p-4 p-lg-5">
-        <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 fw-bold mb-0">{% translate "Answers" %}</h2>{% if can_edit %}<a class="btn-outline theme-primary btn-sm" href="{% url 'main:application_edit' application.public_id %}">{% translate "Edit application" %}</a>{% endif %}</div>
-        {% for answer in field_answers %}
-          <div class="application-answer"><p class="detail-label">{{ answer.field.label }}</p><p class="detail-value">{% if answer.value == "" %}<span class="fg-secondary fw-normal">{% translate "Not answered" %}</span>{% else %}{{ answer.value|linebreaksbr }}{% endif %}</p></div>
-        {% empty %}<p class="fg-secondary mb-0">{% translate "No answers in this application yet." %}</p>{% endfor %}
-      </div></section>
+      <section class="card section-card">
+        <div class="section-head"><h2>{% translate "Answers" %}</h2></div>
+        <div class="section-body">
+          {% for answer in field_answers %}
+            <div class="answer-row">
+              <span class="answer-label">{{ answer.field.label }}</span>
+              <p class="answer-value">{% if answer.value == "" %}<span class="fg-secondary">{% translate "Not answered" %}</span>{% else %}{{ answer.value|linebreaksbr }}{% endif %}</p>
+            </div>
+          {% empty %}
+            <p class="fg-secondary mb-0">{% translate "No answers in this application yet." %}</p>
+          {% endfor %}
+        </div>
+      </section>
     </div>
+
     <div class="lg:col-4">
-      <section class="card mb-4"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">{% translate "Attachments" %}</h2>
-        {% if attachments %}<ul class="list-unstyled attachment-list mb-0">{% for attachment in attachments %}<li><a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a><span class="small fg-secondary">{{ attachment.size|filesizeformat }}</span></li>{% endfor %}</ul>{% else %}<p class="small fg-secondary mb-0">{% translate "No attachments uploaded yet." %}</p>{% endif %}
-      </div></section>
-      <section class="card"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">{% translate "Application history" %}</h2><dl class="application-facts mb-0"><div><dt>{% translate "Created" %}</dt><dd>{{ application.created_at|date:"d.m.Y H:i" }}</dd></div><div><dt>{% translate "Last updated" %}</dt><dd>{{ application.updated_at|date:"d.m.Y H:i" }}</dd></div>{% if application.submitted_at %}<div><dt>{% translate "Submitted" %}</dt><dd>{{ application.submitted_at|date:"d.m.Y H:i" }}</dd></div>{% endif %}</dl></div></section>
+      <section class="card section-card">
+        <div class="section-head"><h2>{% translate "Attachments" %}</h2><span class="chip chip-neutral">{{ attachments|length }}</span></div>
+        <div class="section-body">
+          {% if attachments %}
+            <ul class="attachment-list mb-0">
+              {% for attachment in attachments %}
+                <li>
+                  <span>
+                    <a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a>
+                    <span class="attachment-meta">{{ attachment.size|filesizeformat }}</span>
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="small fg-secondary mb-0">{% translate "No attachments uploaded yet." %}</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="card section-card mt-3">
+        <div class="section-head"><h2>{% translate "Application history" %}</h2></div>
+        <div class="section-body">
+          <dl class="facts">
+            <dt>{% translate "Created" %}</dt><dd>{{ application.created_at|date:"d.m.Y H:i" }}</dd>
+            <dt>{% translate "Last updated" %}</dt><dd>{{ application.updated_at|date:"d.m.Y H:i" }}</dd>
+            {% if application.submitted_at %}<dt>{% translate "Submitted" %}</dt><dd>{{ application.submitted_at|date:"d.m.Y H:i" }}</dd>{% endif %}
+          </dl>
+        </div>
+      </section>
     </div>
   </div>
-</section>
+</div>
 {% endblock %}

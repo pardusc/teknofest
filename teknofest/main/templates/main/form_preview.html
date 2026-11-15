@@ -4,26 +4,33 @@
 {% block title %}{{ definition.title }} · {% translate "Form preview" %}{% endblock %}
 
 {% block content %}
-  <section class="container py-5">
-    <div class="form-preview-heading mb-4">
-      <p class="eyebrow mb-2">{{ definition.year.year }} · {{ definition.category.display_name }}</p>
-      <h1 class="mb-2">{{ definition.title }}</h1>
-      {% if definition.description %}<p class="mb-0">{{ definition.description|linebreaksbr }}</p>{% endif %}
+<div class="container site-main">
+  <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
+    <a href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+    <span>{{ definition.title }}</span>
+  </nav>
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">{{ definition.year.year }} · {{ definition.category.display_name }}</span>
+      <h1>{{ definition.title }}</h1>
+      <p>{% translate "This page is a preview of the form definition; submitted answers are not stored." %}</p>
     </div>
-    <div class="card application-form"><div class="card-body p-4 p-lg-5">
-      <p class="small fg-secondary">{% translate "This page is a preview of the form definition; submitted answers are not stored." %}</p>
+  </div>
+  <div class="card section-card">
+    <div class="section-body">
       {% if form.fields %}
         {% for field in form %}
-          <div class="mb-4">
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="fg-danger ms-1">*</span>{% endif %}</label>
+          <div class="form-field">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="required">*</span>{% endif %}</label>
             {{ field }}
             {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>{% endif %}
+            {% if field.errors %}<div class="invalid-feedback">{{ field.errors|join:", " }}</div>{% endif %}
           </div>
         {% endfor %}
       {% else %}
-        <p class="mb-0">{% translate "No fields have been defined for this form yet." %}</p>
+        <p class="fg-secondary mb-0">{% translate "No fields have been defined for this form yet." %}</p>
       {% endif %}
-    </div></div>
-  </section>
+    </div>
+  </div>
+</div>
 {% endblock %}

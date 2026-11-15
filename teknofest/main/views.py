@@ -14,7 +14,7 @@ from django.utils._os import safe_join
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
 from django.views import View
-from django.views.generic import DetailView, ListView, UpdateView
+from django.views.generic import DetailView, ListView, RedirectView, UpdateView
 
 from .dynamic_forms import build_form
 from .forms import ProfileForm
@@ -26,31 +26,53 @@ from .services.reviews import review_stats
 
 
 def home(request):
+    settings = SiteSettings.load()
     categories = Category.objects.filter(is_active=True).order_by("order", "name")
-    return render(
-        request,
-        "main/home.html",
-        {
-            "home_categories": categories,
-            "home_category_count": categories.count(),
-        },
-    )
+    context = {
+        "home_categories": categories,
+        "home_category_count": categories.count(),
+    }
+
+    if request.user.is_authenticated and not is_jury(request.user):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        current_forms = list(
+            FormDefinition.objects.select_related("year", "category")
+            .filter(
+                year__year=settings.current_year,
+                category__is_active=True,
+            )
+            .order_by("category__order")
+        )
+        applications = {
+            application.form_id: application
+            for application in Application.objects.filter(
+                applicant=request.user,
+                form__in=current_forms,
+            ).select_related("form", "year", "category")
+        }
+        context.update(
+            {
+                "profile": profile,
+                "my_applications": Application.objects.filter(
+                    applicant=request.user
+                ).select_related("form", "year", "category")[:5],
+                "form_rows": [
+                    {"form": form, "application": applications.get(form.pk)}
+                    for form in current_forms
+                ],
+                "open_form_count": sum(
+                    1 for form in current_forms if form.is_accepting_submissions
+                ),
+            }
+        )
+
+    return render(request, "main/home.html", context)
 
 
-class ProfileView(ApplicantOnlyMixin, DetailView):
-    model = Profile
-    template_name = "main/profile_detail.html"
-    context_object_name = "profile"
-
-    def get_object(self, queryset=None):
-        profile, _ = Profile.objects.get_or_create(user=self.request.user)
-        return profile
-
-
-class ProfileUpdateView(ApplicantOnlyMixin, UpdateView):
+class ProfileView(ApplicantOnlyMixin, UpdateView):
     model = Profile
     form_class = ProfileForm
-    template_name = "main/profile_edit.html"
+    template_name = "main/profile.html"
     success_url = reverse_lazy("main:profile")
 
     def get_object(self, queryset=None):
@@ -61,6 +83,11 @@ class ProfileUpdateView(ApplicantOnlyMixin, UpdateView):
         response = super().form_valid(form)
         messages.success(self.request, _("Your profile has been updated."))
         return response
+
+
+class ProfileUpdateView(ApplicantOnlyMixin, RedirectView):
+    pattern_name = "main:profile"
+    permanent = False
 
 
 class FormListView(ApplicantOnlyMixin, ListView):
@@ -75,37 +102,49 @@ class FormListView(ApplicantOnlyMixin, ListView):
             .order_by("category__order")
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        forms = list(context["forms"])
+        existing = {
+            application.form_id: application
+            for application in Application.objects.filter(
+                applicant=self.request.user,
+                form__in=forms,
+            )
+        }
+        context["form_rows"] = [
+            {"form": form, "application": existing.get(form.pk)}
+            for form in forms
+        ]
+        return context
 
-class FormDetailView(ApplicantOnlyMixin, DetailView):
-    model = FormDefinition
-    template_name = "main/form_detail.html"
-    context_object_name = "form_definition"
 
-    def get_queryset(self):
+class FormDetailView(ApplicantOnlyMixin, View):
+    """Legacy URL: send applicants straight into the form or their application."""
+
+    def get(self, request, pk):
         settings = SiteSettings.load()
-        return FormDefinition.objects.select_related("year", "category").filter(
+        form_definition = get_object_or_404(
+            FormDefinition.objects.select_related("year", "category"),
+            pk=pk,
             year__year=settings.current_year,
             category__is_active=True,
         )
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        form_definition = self.object
         existing = Application.objects.filter(
-            applicant=self.request.user,
+            applicant=request.user,
             form=form_definition,
         ).first()
+        if existing:
+            return redirect(
+                "main:application_detail",
+                public_id=existing.public_id,
+            )
+        if form_definition.is_accepting_submissions:
+            return redirect("main:application_start", pk=form_definition.pk)
 
-        context.update(
-            {
-                "fields": form_definition.fields.filter(is_active=True),
-                "existing_application": existing,
-                "can_apply": (
-                    form_definition.is_accepting_submissions and existing is None
-                ),
-            }
-        )
-        return context
+        messages.error(request, _("This form is not accepting applications."))
+        return redirect("main:form_list")
 
 
 class ApplicationStartView(ApplicantOnlyMixin, View):
@@ -118,7 +157,7 @@ class ApplicationStartView(ApplicantOnlyMixin, View):
         )
         if not form_definition.is_accepting_submissions:
             messages.error(request, _("This form is not accepting applications."))
-            return redirect("main:form_detail", pk=form_definition.pk)
+            return redirect("main:form_list")
 
         existing = Application.objects.filter(
             applicant=request.user,
@@ -206,7 +245,7 @@ class ApplicationDetailView(ApplicantOnlyMixin, DetailView):
 
 
 class ApplicationUpdateView(ApplicantOnlyMixin, View):
-    template_name = "main/application_edit.html"
+    template_name = "main/application_form.html"
 
     def get(self, request, public_id):
         application = _get_owned_application(request, public_id)
@@ -224,7 +263,7 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
         return TemplateResponse(
             request,
             self.template_name,
-            _edit_context(application, form),
+            _application_form_context(application.form, form, application),
         )
 
     def post(self, request, public_id):
@@ -241,7 +280,7 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
             return TemplateResponse(
                 request,
                 self.template_name,
-                _edit_context(application, form),
+                _application_form_context(application.form, form, application),
             )
 
         try:
@@ -255,7 +294,7 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
             return TemplateResponse(
                 request,
                 self.template_name,
-                _edit_context(application, form),
+                _application_form_context(application.form, form, application),
             )
 
         messages.success(request, _("Your application has been updated."))
@@ -265,28 +304,15 @@ class ApplicationUpdateView(ApplicantOnlyMixin, View):
         )
 
 
-class ApplicationPreviewView(ApplicantOnlyMixin, DetailView):
-    model = Application
-    template_name = "main/application_preview.html"
-    context_object_name = "application"
+class ApplicationPreviewView(ApplicantOnlyMixin, View):
+    """The dedicated preview page was removed; keep old links working."""
 
-    def get_queryset(self):
-        return Application.objects.select_related("form", "year", "category").filter(
-            applicant=self.request.user
+    def get(self, request, public_id):
+        application = _get_owned_application(request, public_id)
+        return redirect(
+            "main:application_edit",
+            public_id=application.public_id,
         )
-
-    def get_object(self, queryset=None):
-        return _get_owned_application(self.request, self.kwargs["public_id"])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(
-            {
-                "field_answers": _field_answers(self.object),
-                "attachments": self.object.attachments.all(),
-            }
-        )
-        return context
 
 
 class ApplicationDeleteView(ApplicantOnlyMixin, View):
@@ -396,38 +422,24 @@ def _initial_answers(application):
     }
 
 
-def _edit_context(application, application_form):
-    policy = application.form.attachment_policy
-    return {
-        "application": application,
-        "application_form": application_form,
-        "required_keys": set(
-            application.form.fields.filter(is_active=True, is_required=True)
-            .values_list("key", flat=True)
-        ),
-        "attachments": application.attachments.all(),
-        "attachment_policy": policy,
-        "accepts_files": policy != FormDefinition.AttachmentPolicy.NONE,
-        "can_add_attachment": (
-            application.is_editable
-            and policy != FormDefinition.AttachmentPolicy.NONE
-        ),
-    }
-
-
-def _application_form_context(form_definition, application_form):
+def _application_form_context(form_definition, application_form, application=None):
     policy = form_definition.attachment_policy
     return {
         "form_definition": form_definition,
+        "application": application,
         "application_form": application_form,
         "required_keys": set(
             form_definition.fields.filter(is_active=True, is_required=True)
             .values_list("key", flat=True)
         ),
-        "attachments": [],
+        "attachments": application.attachments.all() if application else [],
         "attachment_policy": policy,
         "accepts_files": policy != FormDefinition.AttachmentPolicy.NONE,
-        "can_add_attachment": False,
+        "can_add_attachment": bool(
+            application
+            and application.is_editable
+            and policy != FormDefinition.AttachmentPolicy.NONE
+        ),
     }
 
 

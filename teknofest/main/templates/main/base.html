@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#172b4a">
-  <title>{% block title %}Pardus Teknofest{% endblock %}</title>
+  <meta name="theme-color" content="#231f20">
+  <title>{% block title %}{{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}</title>
   <script>
     (() => {
       const preference = window.matchMedia("(prefers-color-scheme: dark)");
@@ -25,47 +25,72 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <nav class="navbar lg:navbar-expand site-navbar">
+  <a class="visually-hidden-focusable" href="#main-content">{% translate "Skip to content" %}</a>
+
+  <nav class="navbar site-navbar">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'main:home' %}">
-        <span class="brand-mark" aria-hidden="true">P</span>
-        <span class="brand-name">Pardus <span>Teknofest</span></span>
+      <a class="brand" href="{% url 'main:home' %}">
+        <img class="brand-logo" src="{% static 'main/img/pardus-logo.svg' %}" alt="Pardus">
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-product">Teknofest</span>
       </a>
+
       <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="{% translate 'Open menu' %}">
         <span class="navbar-toggler-icon" aria-hidden="true"></span>
       </button>
-      <dialog class="drawer drawer-end" tabindex="-1" id="siteNav" aria-labelledby="siteNavTitle">
+
+      <div class="nav-links d-none lg:d-flex">
+        <a href="{% url 'main:home' %}">{% translate "Home" %}</a>
+        {% if user.is_authenticated %}
+          {% if is_jury_member %}
+            <a href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+          {% else %}
+            <a href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+            <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
+            <a href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+          {% endif %}
+          <form method="post" action="{% url 'logout' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="nav-button">{% translate "Log out" %}</button>
+          </form>
+          {% if user.is_staff %}<a href="/admin/">{% translate "Admin" %}</a>{% endif %}
+        {% else %}
+          <a class="nav-cta" href="{% url 'login' %}">{% translate "Log in" %}</a>
+        {% endif %}
+      </div>
+
+      <dialog class="drawer drawer-end site-drawer" tabindex="-1" id="siteNav" aria-labelledby="siteNavTitle">
         <div class="drawer-header">
           <h2 class="drawer-title h5" id="siteNavTitle">{% translate "Menu" %}</h2>
           <button type="button" class="btn-close" data-bs-dismiss="drawer" aria-label="{% translate 'Close menu' %}"></button>
         </div>
         <div class="drawer-body">
-        <div class="navbar-nav ms-auto lg:align-items-center lg:gap-2 py-3 lg:py-0">
-          <a class="nav-link site-nav-link" href="{% url 'main:home' %}">{% translate "Home" %}</a>
-          {% if user.is_authenticated %}
-            {% if is_jury_member %}
-              <a class="nav-link site-nav-link" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+          <div class="navbar-nav">
+            <a class="nav-link" href="{% url 'main:home' %}">{% translate "Home" %}</a>
+            {% if user.is_authenticated %}
+              {% if is_jury_member %}
+                <a class="nav-link" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+              {% else %}
+                <a class="nav-link" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+                <a class="nav-link" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
+                <a class="nav-link" href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+              {% endif %}
+              <form method="post" action="{% url 'logout' %}" class="mt-2">
+                {% csrf_token %}
+                <button type="submit" class="btn-outline theme-inverse w-100">{% translate "Log out" %}</button>
+              </form>
             {% else %}
-              <a class="nav-link site-nav-link" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
-              <a class="nav-link site-nav-link" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
-              <a class="nav-link site-nav-link" href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+              <a class="btn-solid theme-secondary mt-2" href="{% url 'login' %}">{% translate "Log in" %}</a>
             {% endif %}
-            <form method="post" action="{% url 'logout' %}" class="m-0">
-              {% csrf_token %}
-              <button type="submit" class="btn-outline theme-inverse btn-sm lg:ms-2 navbar-logout">{% translate "Log out" %}</button>
-            </form>
-          {% else %}
-            <a class="btn-solid theme-secondary btn-sm lg:ms-2 navbar-login" href="{% url 'login' %}">{% translate "Log in" %}</a>
-          {% endif %}
-        </div>
+          </div>
         </div>
       </dialog>
     </div>
   </nav>
 
-  <main>
+  <main id="main-content">
     {% if messages %}
-      <div class="container pt-3" aria-live="polite">
+      <div class="container pt-3">
         {% for message in messages %}
           <div class="alert site-alert mb-2" role="status">
             {{ message }}
@@ -79,14 +104,12 @@
 
   <footer class="site-footer">
     {% translate "A better Pardus with open source" as default_footer %}
-    <div class="container py-4 d-flex flex-column md:flex-row justify-content-between gap-2">
-      <span><strong>{{ site_settings.site_title|default:"Pardus Teknofest" }}</strong> <span>· {{ home_text.footer_tagline|default:default_footer }}</span></span>
-      <span>
-        {% translate "Competition application and evaluation platform" %}
-        {% if site_settings.contact_email %} · <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>{% endif %}
-      </span>
+    <div class="container footer-inner">
+      <span><strong>{{ site_settings.site_title|default:"Pardus Teknofest" }}</strong>{% if home_text.footer_tagline or default_footer %} · {{ home_text.footer_tagline|default:default_footer }}{% endif %}</span>
+      <span>{% translate "Competition application and evaluation platform" %}{% if site_settings.contact_email %} · <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>{% endif %}</span>
     </div>
   </footer>
+
   <script type="module" src="{% static 'main/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>
