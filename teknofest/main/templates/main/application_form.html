@@ -1,5 +1,5 @@
 {% extends "main/base.html" %}
-{% load i18n %}
+{% load static i18n %}
 
 {% block title %}{{ form_definition.title }} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
@@ -37,14 +37,7 @@
           {% endif %}
 
           {% for field in application_form %}
-            <div class="form-field">
-              <label class="form-label" for="{{ field.id_for_label }}">
-                {{ field.label }}{% if field.name in required_keys %}<span class="required" aria-hidden="true">*</span>{% else %} <span class="small fg-secondary">({% translate "optional" %})</span>{% endif %}
-              </label>
-              {{ field }}
-              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-              {% if field.errors %}<div class="invalid-feedback">{{ field.errors|join:", " }}</div>{% endif %}
-            </div>
+            {% include "main/_dynamic_field.html" with field=field %}
           {% empty %}
             <p class="fg-secondary mb-0">{% translate "There are no fields to fill in this form." %}</p>
           {% endfor %}
@@ -116,4 +109,10 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% include "main/_date_picker.html" %}
+<script type="module" src="{% static 'main/js/form_fields.js' %}"></script>
+<script type="module" src="{% static 'main/js/date_picker.js' %}"></script>
 {% endblock %}

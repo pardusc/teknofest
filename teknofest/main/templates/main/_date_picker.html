@@ -1,0 +1,21 @@
+{% load i18n %}
+<dialog class="date-picker-dialog" id="site-datepicker" aria-label="{% translate 'Choose a date' %}">
+  <div class="date-picker">
+    <div class="date-picker-head">
+      <button type="button" class="date-picker-nav" data-date-prev aria-label="{% translate 'Previous month' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h2 class="date-picker-title" id="site-datepicker-title" aria-live="polite"></h2>
+      <button type="button" class="date-picker-nav" data-date-next aria-label="{% translate 'Next month' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="date-picker-weekdays" data-date-weekdays aria-hidden="true"></div>
+    <div class="date-picker-grid" data-date-grid></div>
+    <div class="date-picker-foot">
+      <button type="button" class="btn-ghost btn-sm" data-date-today>{% translate "Today" %}</button>
+      <button type="button" class="btn-ghost btn-sm" data-date-clear>{% translate "Clear" %}</button>
+      <button type="button" class="btn-solid btn-sm" data-date-close>{% translate "Close" %}</button>
+    </div>
+  </div>
+</dialog>

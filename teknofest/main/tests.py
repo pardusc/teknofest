@@ -8,6 +8,7 @@ from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
+from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core import mail
@@ -571,6 +572,7 @@ class DynamicFormTests(TestCase):
             key="title",
             label="Title",
             field_type=FormField.FieldType.SHORT_TEXT,
+            min_length=3,
             max_length=10,
             order=1,
         )
@@ -652,6 +654,57 @@ class DynamicFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("title", form.errors)
 
+    def test_text_fields_get_a_default_placeholder(self):
+        form = build_form(self.form)
+
+        self.assertEqual(
+            form.fields["title"].widget.attrs["placeholder"],
+            _("Type your answer"),
+        )
+        self.assertEqual(
+            form.fields["repo"].widget.attrs["placeholder"],
+            _("https://example.com"),
+        )
+
+    def test_custom_placeholder_overrides_the_default(self):
+        FormField.objects.filter(key="title").update(placeholder="Project name")
+
+        form = build_form(self.form)
+
+        self.assertEqual(
+            form.fields["title"].widget.attrs["placeholder"],
+            "Project name",
+        )
+
+    def test_text_fields_expose_length_hint_attributes(self):
+        form = build_form(self.form)
+        attrs = form.fields["title"].widget.attrs
+
+        self.assertEqual(attrs["data-maxlength"], "10")
+        self.assertEqual(attrs["data-minlength"], "3")
+        self.assertIn("3", attrs["data-minlength-message"])
+
+    def test_choice_fields_use_bootstrap_6_widgets(self):
+        form = build_form(self.form)
+
+        self.assertIsInstance(form.fields["level"].widget, forms.RadioSelect)
+        self.assertEqual(form.fields["level"].widget.attrs["class"], "radio")
+        self.assertIsInstance(
+            form.fields["topics"].widget,
+            forms.CheckboxSelectMultiple,
+        )
+        self.assertEqual(form.fields["topics"].widget.attrs["class"], "check")
+
+    def test_boolean_field_uses_yes_no_radios(self):
+        form = build_form(self.form)
+        widget = form.fields["confirmed"].widget
+
+        self.assertIsInstance(widget, forms.RadioSelect)
+        self.assertEqual(
+            list(widget.choices),
+            [(True, _("Yes")), (False, _("No"))],
+        )
+
     def test_invalid_select_value_is_rejected(self):
         form = build_form(self.form, data=self.valid_data(level="medium"))
 
@@ -690,6 +743,32 @@ class FormPreviewTests(TestCase):
             key="title",
             label="Project title",
             field_type=FormField.FieldType.SHORT_TEXT,
+            short_description="Write the project title.",
+            placeholder="e.g. My project",
+            max_length=120,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="level",
+            label="Level",
+            field_type=FormField.FieldType.SELECT,
+            choices=[{"value": "low", "label": "Low"}],
+            order=1,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="date",
+            label="Date",
+            field_type=FormField.FieldType.DATE,
+            order=2,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="topics",
+            label="Topics",
+            field_type=FormField.FieldType.MULTI_SELECT,
+            choices=[{"value": "ui", "label": "UI"}],
+            order=3,
         )
 
     def test_preview_requires_staff(self):
@@ -714,6 +793,20 @@ class FormPreviewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Project title")
+        self.assertContains(response, "Write the project title.")
+        self.assertContains(response, 'placeholder="e.g. My project"')
+        self.assertContains(response, "field-description")
+        self.assertContains(response, "choice-grid")
+        self.assertContains(response, "choice-grid--multi")
+        self.assertContains(response, "form-field-card choice-card")
+        self.assertContains(response, 'data-maxlength="120"')
+        self.assertContains(response, "data-maxlength-counter")
+        self.assertContains(response, "data-minlength-warning")
+        self.assertContains(response, "form_fields.js")
+        self.assertContains(response, "date-input-wrap")
+        self.assertContains(response, "data-date-open")
+        self.assertContains(response, 'id="site-datepicker"')
+        self.assertContains(response, "date_picker.js")
 
 
 class AdminTests(TestCase):
@@ -904,7 +997,8 @@ class AdminTests(TestCase):
                 "key": "level",
                 "label": "Level",
                 "field_type": FormField.FieldType.SELECT,
-                "help_text": "",
+                "short_description": "",
+                "placeholder": "",
                 "is_required": "on",
                 "min_length": "",
                 "max_length": "",
