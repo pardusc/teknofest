@@ -90,7 +90,7 @@ Response:
       "status": "submitted",
       "submitted_at": "2026-11-15T06:51:00+00:00",
       "updated_at": "2026-11-15T06:51:00+00:00",
-      "category": {"id": 1, "slug": "bug", "name": "Hata / Öneri"},
+      "category": {"id": 1, "slug": "bug", "name": "Hata Yakalama"},
       "attachment_count": 0,
       "my_score": null,
       "my_completed": false,
