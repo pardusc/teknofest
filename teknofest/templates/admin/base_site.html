@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .ba-language-switcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15rem;
+      margin-inline-start: 0.5rem;
+    }
+    .ba-language-switcher button {
+      min-width: 2rem;
+      padding: 0.25rem 0.35rem;
+      border: 1px solid color-mix(in srgb, var(--ba-topbar-fg) 28%, transparent);
+      border-radius: var(--ba-radius-sm);
+      background: transparent;
+      color: var(--ba-topbar-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+    }
+    .ba-language-switcher button:hover,
+    .ba-language-switcher button:focus-visible {
+      border-color: var(--ba-topbar-fg);
+      color: var(--ba-topbar-fg);
+    }
+    .ba-language-switcher button.active {
+      border-color: var(--ba-gold);
+      background: var(--ba-gold);
+      color: #231f20;
+    }
+  </style>
+{% endblock %}
+
+{% block branding %}
+  <a class="ba-brand" href="{% url 'admin:index' %}">
+    <span class="ba-brand-mark" aria-hidden="true">{{ site_header|default:_('Django administration')|first|upper }}</span>
+    <span class="ba-brand-text">
+      <span class="ba-brand-title">{{ site_header|default:_('Django administration') }}</span>
+      <span class="ba-brand-subtitle">{{ site_title|default:_('Django site admin') }}</span>
+    </span>
+  </a>
+  {% if user.is_anonymous %}
+    {% include "admin/_language_switcher.html" %}
+    {% include "admin/color_theme_toggle.html" %}
+  {% endif %}
+{% endblock %}
+
+{% block nav-global %}
+  {% if user.is_authenticated %}
+    {% include "admin/_language_switcher.html" %}
+  {% endif %}
+{% endblock %}

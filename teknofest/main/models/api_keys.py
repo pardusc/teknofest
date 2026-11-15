@@ -21,18 +21,21 @@ class JuryAPIKey(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="jury_api_keys",
+        verbose_name="Kullanıcı",
     )
-    name = models.CharField(max_length=100)
-    prefix = models.CharField(max_length=16, unique=True)
-    key_hash = models.CharField(max_length=64, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-    revoked_at = models.DateTimeField(null=True, blank=True)
-    last_used_at = models.DateTimeField(null=True, blank=True)
+    name = models.CharField(max_length=100, verbose_name="Ad")
+    prefix = models.CharField(max_length=16, unique=True, verbose_name="Ön ek")
+    key_hash = models.CharField(max_length=64, unique=True, verbose_name="Anahtar özeti")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
+    expires_at = models.DateTimeField(verbose_name="Bitiş")
+    revoked_at = models.DateTimeField(null=True, blank=True, verbose_name="İptal edilme")
+    last_used_at = models.DateTimeField(null=True, blank=True, verbose_name="Son kullanım")
 
     class Meta:
         ordering = ("-created_at", "-id")
         indexes = [models.Index(fields=("user", "expires_at"))]
+        verbose_name = "Jüri API anahtarı"
+        verbose_name_plural = "Jüri API anahtarları"
 
     def __str__(self) -> str:
         return f"{self.user} · {self.name} ({self.prefix}…)"

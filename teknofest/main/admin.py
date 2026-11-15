@@ -1,5 +1,6 @@
 import csv
 
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
@@ -9,6 +10,202 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+
+admin.site.site_header = _("Pardus Teknofest Administration")
+admin.site.site_title = "Pardus Teknofest"
+admin.site.index_title = _("Administration")
+
+ADMIN_FIELD_LABELS = {
+    "user": "Kullanıcı",
+    "phone": "Telefon",
+    "city": "Şehir",
+    "institution": "Kurum",
+    "education_level": "Eğitim seviyesi",
+    "photo": "Fotoğraf",
+    "name": "Ad",
+    "prefix": "Ön ek",
+    "key_hash": "Anahtar özeti",
+    "created_at": "Oluşturulma",
+    "expires_at": "Bitiş",
+    "revoked_at": "İptal edilme",
+    "last_used_at": "Son kullanım",
+    "public_id": "Genel kimlik",
+    "code": "Kod",
+    "applicant": "Başvuru sahibi",
+    "form": "Form",
+    "year": "Yıl",
+    "category": "Kategori",
+    "status": "Durum",
+    "submitted_at": "Gönderilme",
+    "updated_at": "Son güncelleme",
+    "application": "Başvuru",
+    "field": "Alan",
+    "value": "Değer",
+    "file": "Dosya",
+    "original_name": "Özgün ad",
+    "content_type": "İçerik türü",
+    "size": "Boyut",
+    "uploaded_at": "Yüklenme",
+    "last_number": "Son numara",
+    "actor": "İşlemi yapan",
+    "action": "İşlem",
+    "metadata": "Meta veri",
+    "is_active": "Etkin",
+    "slug": "Kısa ad",
+    "description": "Açıklama",
+    "home_description": "Ana sayfa açıklaması",
+    "home_highlights": "Ana sayfa maddeleri",
+    "code_prefix": "Kod ön eki",
+    "order": "Sıra",
+    "language": "Dil",
+    "title": "Başlık",
+    "mask_applicant_identity": "Başvuru sahibi kimliğini gizle",
+    "attachment_policy": "Ek dosya politikası",
+    "submission_override": "Gönderim istisnası",
+    "opens_at": "Açılış",
+    "closes_at": "Kapanış",
+    "key": "Anahtar",
+    "label": "Etiket",
+    "field_type": "Alan türü",
+    "short_description": "Kısa açıklama",
+    "placeholder": "Yer tutucu",
+    "help_text": "Yardım metni",
+    "is_required": "Zorunlu",
+    "min_length": "En az uzunluk",
+    "max_length": "En fazla uzunluk",
+    "regex": "Düzenli ifade",
+    "regex_error_message": "Düzenli ifade hata mesajı",
+    "choices": "Seçenekler",
+    "review_visibility": "İnceleme görünürlüğü",
+    "juror": "Jüri üyesi",
+    "score": "Puan",
+    "note": "Not",
+    "completed_at": "Tamamlanma",
+    "site_title": "Site başlığı",
+    "competition_name": "Yarışma adı",
+    "application_status": "Başvuru durumu",
+    "application_opens_at": "Başvuru açılışı",
+    "application_closes_at": "Başvuru kapanışı",
+    "hero_eyebrow": "Hero üst etiketi",
+    "hero_title": "Hero başlığı",
+    "hero_lead": "Hero açıklaması",
+    "announcement": "Duyuru",
+    "announcement_active": "Duyuru etkin",
+    "calendar_note": "Takvim notu",
+    "contact_email": "İletişim e-postası",
+    "footer_tagline": "Alt bilgi sloganı",
+    "settings": "Ayarlar",
+}
+
+ADMIN_CHOICE_LABELS = {
+    "Application submitted": "Başvuru gönderildi",
+    "Application updated": "Başvuru güncellendi",
+    "Application deleted": "Başvuru silindi",
+    "Application status changed": "Başvuru durumu değişti",
+    "Attachment added": "Ek dosya eklendi",
+    "Attachment removed": "Ek dosya kaldırıldı",
+    "Review submitted": "Değerlendirme gönderildi",
+    "Review updated": "Değerlendirme güncellendi",
+    "Form status changed": "Form durumu değişti",
+    "API key created": "API anahtarı oluşturuldu",
+    "API key revoked": "API anahtarı iptal edildi",
+    "Submitted": "Gönderildi",
+    "In review": "İncelemede",
+    "Evaluated": "Değerlendirildi",
+    "Open": "Açık",
+    "Closed": "Kapalı",
+    "Upcoming": "Yaklaşan",
+    "No attachments": "Ek dosya yok",
+    "Optional": "İsteğe bağlı",
+    "Required": "Zorunlu",
+    "Short text": "Kısa metin",
+    "Long text": "Uzun metin",
+    "Markdown": "Markdown",
+    "Single choice": "Tek seçim",
+    "Multiple choice": "Çoklu seçim",
+    "Number": "Sayı",
+    "E-mail": "E-posta",
+    "URL": "URL",
+    "Yes / No": "Evet / Hayır",
+    "Date": "Tarih",
+    "Visible": "Görünür",
+    "Masked": "Gizli",
+    "Hidden": "Gizli",
+}
+
+ADMIN_HELP_TEXT_LABELS = {
+    "Assigned when the application is submitted.": (
+        "Başvuru gönderildiğinde atanır."
+    ),
+    "One item per line, shown on the home page.": (
+        "Ana sayfada gösterilecek maddeler, her satıra bir tane."
+    ),
+    "Prefix used in application codes, for example BUG.": (
+        "Başvuru kodlarında kullanılan ön ek, örneğin BUG."
+    ),
+    "Hide the applicant's name and e-mail from the jury.": (
+        "Başvuru sahibinin adını ve e-postasını jüriden gizle."
+    ),
+    "Allow submissions even when the global application period is closed. "
+    "The form's own dates still apply.": (
+        "Genel başvuru dönemi kapalı olsa bile başvuru kabul et. "
+        "Formun kendi tarihleri yine uygulanır."
+    ),
+    "Identifier used in submitted data, for example steps_to_reproduce.": (
+        "Gönderilen veride kullanılan tanımlayıcı, örneğin steps_to_reproduce."
+    ),
+    "Optional regular expression the answer must match.": (
+        "Yanıtın uyması gereken isteğe bağlı düzenli ifade."
+    ),
+    'List of objects like {"value": "low", "label": "Low"}.': (
+        '{"value": "low", "label": "Low"} gibi nesnelerden oluşan liste.'
+    ),
+    "What the jury can see for this field.": (
+        "Jürinin bu alanda neleri görebileceği."
+    ),
+    "Shown under the question title.": (
+        "Soru başlığının altında gösterilir."
+    ),
+    "Hint shown inside empty text fields. "
+    "Leave blank to use a default hint.": (
+        "Boş metin alanlarında gösterilen ipucu. "
+        "Varsayılan ipucu için boş bırakın."
+    ),
+}
+
+
+def _apply_admin_labels(fields):
+    for name, field in fields.items():
+        label = ADMIN_FIELD_LABELS.get(name)
+        if label:
+            field.label = label
+        if (
+            not isinstance(field, forms.ModelChoiceField)
+            and getattr(field, "choices", None)
+        ):
+            field.choices = [
+                (value, ADMIN_CHOICE_LABELS.get(str(choice), choice))
+                for value, choice in field.choices
+            ]
+        if field.help_text:
+            field.help_text = ADMIN_HELP_TEXT_LABELS.get(
+                str(field.help_text),
+                field.help_text,
+            )
+
+
+class AdminFieldLabelsMixin:
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        _apply_admin_labels(form.base_fields)
+        return form
+
+
+class AdminFormsetLabelsMixin:
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        _apply_admin_labels(formset.form.base_fields)
+        return formset
 
 from .forms import FormDefinitionAdminForm, FormFieldAdminForm, ProfileAdminForm
 from .models import (
@@ -37,7 +234,7 @@ class UserCreationForm(BaseUserCreationForm):
         fields = ("username", "email")
 
 
-class ProfileInline(admin.StackedInline):
+class ProfileInline(AdminFormsetLabelsMixin, admin.StackedInline):
     model = Profile
     form = ProfileAdminForm
     can_delete = False
@@ -47,7 +244,7 @@ class ProfileInline(admin.StackedInline):
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(AdminFieldLabelsMixin, BaseUserAdmin):
     add_form = UserCreationForm
     inlines = (ProfileInline,)
     fieldsets = BaseUserAdmin.fieldsets + (
@@ -67,7 +264,7 @@ class UserAdmin(BaseUserAdmin):
 
 
 @admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
+class ProfileAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     form = ProfileAdminForm
     list_display = ("user", "city", "institution", "education_level", "updated_at")
     list_filter = ("education_level",)
@@ -76,20 +273,20 @@ class ProfileAdmin(admin.ModelAdmin):
 
 
 @admin.register(CompetitionYear)
-class CompetitionYearAdmin(admin.ModelAdmin):
+class CompetitionYearAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     list_display = ("year", "is_active", "created_at")
     list_filter = ("is_active",)
     ordering = ("-year",)
 
 
-class CategoryTranslationInline(admin.StackedInline):
+class CategoryTranslationInline(AdminFormsetLabelsMixin, admin.StackedInline):
     model = CategoryTranslation
     extra = 0
     fields = ("language", "name", "description", "home_description", "home_highlights")
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     inlines = (CategoryTranslationInline,)
     list_display = ("name", "slug", "code_prefix", "order", "is_active")
     list_editable = ("order", "is_active")
@@ -118,7 +315,7 @@ class FormFieldInlineFormSet(BaseInlineFormSet):
             )
 
 
-class FormFieldInline(admin.StackedInline):
+class FormFieldInline(AdminFormsetLabelsMixin, admin.StackedInline):
     model = FormField
     form = FormFieldAdminForm
     formset = FormFieldInlineFormSet
@@ -140,7 +337,7 @@ class FormFieldInline(admin.StackedInline):
 
 
 @admin.register(FormDefinition)
-class FormDefinitionAdmin(admin.ModelAdmin):
+class FormDefinitionAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     form = FormDefinitionAdminForm
     inlines = (FormFieldInline,)
     fields = (
@@ -179,12 +376,12 @@ class FormDefinitionAdmin(admin.ModelAdmin):
             obj.year = CompetitionYear.current()
         super().save_model(request, obj, form, change)
 
-    @admin.display(description="Preview")
+    @admin.display(description=_("Preview"))
     def preview_link(self, obj):
         if not obj.pk:
             return "—"
         url = reverse("main:form_preview", args=[obj.pk])
-        return format_html('<a href="{}">Preview</a>', url)
+        return format_html('<a href="{}">{}</a>', url, _("Preview"))
 
     def _change_form_status(self, request, queryset, status):
         changed = 0
@@ -211,33 +408,42 @@ class FormDefinitionAdmin(admin.ModelAdmin):
                 )
         return changed, synced
 
-    @admin.action(description="Mark selected forms as open")
+    @admin.action(description=_("Mark selected forms as open"))
     def mark_open(self, request, queryset):
         changed, _ = self._change_form_status(
             request, queryset, FormDefinition.Status.OPEN
         )
-        self.message_user(request, f"{changed} form(s) marked as open.")
+        self.message_user(
+            request,
+            _("%(count)s form(s) marked as open.") % {"count": changed},
+        )
 
-    @admin.action(description="Put selected forms in review")
+    @admin.action(description=_("Put selected forms in review"))
     def mark_in_review(self, request, queryset):
         changed, synced = self._change_form_status(
             request, queryset, FormDefinition.Status.IN_REVIEW
         )
         self.message_user(
             request,
-            f"{changed} form(s) put in review; {synced} application(s) synced.",
+            _(
+                "%(changed)s form(s) put in review; %(synced)s application(s) synced."
+            )
+            % {"changed": changed, "synced": synced},
         )
 
-    @admin.action(description="Close selected forms")
+    @admin.action(description=_("Close selected forms"))
     def mark_closed(self, request, queryset):
         changed, _ = self._change_form_status(
             request, queryset, FormDefinition.Status.CLOSED
         )
-        self.message_user(request, f"{changed} form(s) closed.")
+        self.message_user(
+            request,
+            _("%(count)s form(s) closed.") % {"count": changed},
+        )
 
 
 @admin.register(FormField)
-class FormFieldAdmin(admin.ModelAdmin):
+class FormFieldAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     form = FormFieldAdminForm
     list_display = (
         "label",
@@ -260,7 +466,7 @@ class FormFieldAdmin(admin.ModelAdmin):
     ordering = ("form", "order")
 
 
-class ApplicationAnswerInline(admin.TabularInline):
+class ApplicationAnswerInline(AdminFormsetLabelsMixin, admin.TabularInline):
     model = ApplicationAnswer
     extra = 0
     can_delete = False
@@ -268,7 +474,7 @@ class ApplicationAnswerInline(admin.TabularInline):
     readonly_fields = fields
 
 
-class AttachmentInline(admin.TabularInline):
+class AttachmentInline(AdminFormsetLabelsMixin, admin.TabularInline):
     model = Attachment
     extra = 0
     can_delete = False
@@ -277,7 +483,7 @@ class AttachmentInline(admin.TabularInline):
 
 
 @admin.register(Application)
-class ApplicationAdmin(admin.ModelAdmin):
+class ApplicationAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     inlines = (ApplicationAnswerInline, AttachmentInline)
     list_display = ("code", "applicant", "category", "year", "status", "submitted_at")
     list_filter = ("status", "category", "year", "form")
@@ -322,24 +528,27 @@ class ApplicationAdmin(admin.ModelAdmin):
             workflow.set_application_status(application, status, request.user)
             for application in queryset
         )
+        status_label = dict(Application.Status.choices).get(status, status)
+        status_label = ADMIN_CHOICE_LABELS.get(status_label, status_label)
         self.message_user(
             request,
-            f"{changed} application(s) updated to {status}.",
+            _("%(count)s application(s) updated to %(status)s.")
+            % {"count": changed, "status": status_label},
         )
 
-    @admin.action(description="Start review")
+    @admin.action(description=_("Start review"))
     def start_review(self, request, queryset):
         self._set_status(request, queryset, Application.Status.IN_REVIEW)
 
-    @admin.action(description="Mark evaluated")
+    @admin.action(description=_("Mark evaluated"))
     def mark_evaluated(self, request, queryset):
         self._set_status(request, queryset, Application.Status.EVALUATED)
 
-    @admin.action(description="Reopen for review")
+    @admin.action(description=_("Reopen for review"))
     def reopen(self, request, queryset):
         self._set_status(request, queryset, Application.Status.IN_REVIEW)
 
-    @admin.action(description="Export selected applications as CSV")
+    @admin.action(description=_("Export selected applications as CSV"))
     def export_csv(self, request, queryset):
         response = HttpResponse(content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = 'attachment; filename="applications.csv"'
@@ -387,7 +596,7 @@ class ApplicationAdmin(admin.ModelAdmin):
 
 
 @admin.register(Review)
-class ReviewAdmin(admin.ModelAdmin):
+class ReviewAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     list_display = ("application", "juror", "score", "completed_at", "updated_at")
     list_filter = ("completed_at", "juror")
     search_fields = ("application__code", "juror__email", "juror__username")
@@ -395,7 +604,7 @@ class ReviewAdmin(admin.ModelAdmin):
 
 
 @admin.register(JuryAPIKey)
-class JuryAPIKeyAdmin(admin.ModelAdmin):
+class JuryAPIKeyAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     list_display = (
         "user",
         "name",
@@ -422,11 +631,11 @@ class JuryAPIKeyAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
-    @admin.display(description="Status")
+    @admin.display(description=_("Status"))
     def status_display(self, obj):
         return obj.status
 
-    @admin.action(description="Revoke selected API keys")
+    @admin.action(description=_("Revoke selected API keys"))
     def revoke_keys(self, request, queryset):
         revoked = 0
         for key in queryset.filter(revoked_at__isnull=True):
@@ -438,11 +647,14 @@ class JuryAPIKeyAdmin(admin.ModelAdmin):
                 prefix=key.prefix,
             )
             revoked += 1
-        self.message_user(request, f"{revoked} API key(s) revoked.")
+        self.message_user(
+            request,
+            _("%(count)s API key(s) revoked.") % {"count": revoked},
+        )
 
 
 @admin.register(AuditEvent)
-class AuditEventAdmin(admin.ModelAdmin):
+class AuditEventAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     list_display = ("created_at", "action", "actor", "application", "form")
     list_filter = ("action", "created_at")
     search_fields = ("actor__email", "application__code", "form__title")
@@ -459,7 +671,7 @@ class AuditEventAdmin(admin.ModelAdmin):
         return False
 
 
-class SiteSettingsTranslationInline(admin.StackedInline):
+class SiteSettingsTranslationInline(AdminFormsetLabelsMixin, admin.StackedInline):
     model = SiteSettingsTranslation
     extra = 0
     fields = (
@@ -474,11 +686,11 @@ class SiteSettingsTranslationInline(admin.StackedInline):
 
 
 @admin.register(SiteSettings)
-class SiteSettingsAdmin(admin.ModelAdmin):
+class SiteSettingsAdmin(AdminFieldLabelsMixin, admin.ModelAdmin):
     inlines = (SiteSettingsTranslationInline,)
     fieldsets = (
         (
-            "General",
+            _("General"),
             {
                 "fields": (
                     "site_title",
@@ -489,7 +701,7 @@ class SiteSettingsAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Application period",
+            _("Application period"),
             {
                 "fields": (
                     "application_status",
@@ -499,7 +711,7 @@ class SiteSettingsAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Home page",
+            _("Home page"),
             {
                 "fields": (
                     "hero_eyebrow",
@@ -511,7 +723,7 @@ class SiteSettingsAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Meta", {"fields": ("updated_at",)}),
+        (_("Meta"), {"fields": ("updated_at",)}),
     )
     readonly_fields = ("updated_at",)
 

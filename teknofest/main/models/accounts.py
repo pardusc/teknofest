@@ -39,23 +39,29 @@ class Profile(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="profile",
+        verbose_name="Kullanıcı",
     )
-    phone = models.CharField(max_length=20, blank=True)
-    city = models.CharField(max_length=64, blank=True)
-    institution = models.CharField(max_length=255, blank=True)
+    phone = models.CharField(max_length=20, blank=True, verbose_name="Telefon")
+    city = models.CharField(max_length=64, blank=True, verbose_name="Şehir")
+    institution = models.CharField(max_length=255, blank=True, verbose_name="Kurum")
     education_level = models.CharField(
         max_length=16,
         choices=EducationLevel.choices,
         blank=True,
+        verbose_name="Eğitim seviyesi",
     )
-    photo = models.ImageField(upload_to="profiles/%Y/", blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    photo = models.ImageField(upload_to="profiles/%Y/", blank=True, verbose_name="Fotoğraf")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Son güncelleme")
 
     REQUIRED_FIELDS = ("phone", "city", "institution", "education_level")
 
     def __str__(self) -> str:
         return f"{self.user} profile"
+
+    class Meta:
+        verbose_name = "Profil"
+        verbose_name_plural = "Profiller"
 
     @property
     def is_complete(self) -> bool:

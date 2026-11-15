@@ -10,24 +10,29 @@ class Review(models.Model):
         "Application",
         on_delete=models.CASCADE,
         related_name="reviews",
+        verbose_name="Başvuru",
     )
     juror = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="reviews",
+        verbose_name="Jüri üyesi",
     )
     score = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name="Puan",
     )
-    note = models.TextField(blank=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    note = models.TextField(blank=True, verbose_name="Not")
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Tamamlanma")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Son güncelleme")
 
     class Meta:
         ordering = ("-created_at",)
+        verbose_name = "Değerlendirme"
+        verbose_name_plural = "Değerlendirmeler"
         constraints = [
             models.UniqueConstraint(
                 fields=("application", "juror"),

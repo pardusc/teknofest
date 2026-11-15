@@ -9,37 +9,63 @@ class SiteSettings(models.Model):
     """Singleton with competition-wide and home-page settings."""
 
     class ApplicationStatus(models.TextChoices):
-        UPCOMING = "upcoming", "Upcoming"
-        OPEN = "open", "Open"
-        IN_REVIEW = "in_review", "In review"
-        CLOSED = "closed", "Closed"
+        UPCOMING = "upcoming", "Yaklaşan"
+        OPEN = "open", "Açık"
+        IN_REVIEW = "in_review", "İncelemede"
+        CLOSED = "closed", "Kapalı"
 
-    site_title = models.CharField(max_length=128, default="Pardus Teknofest")
+    site_title = models.CharField(
+        max_length=128,
+        default="Pardus Teknofest",
+        verbose_name="Site başlığı",
+    )
     competition_name = models.CharField(
         max_length=255,
         default="Pardus Hata Yakalama ve Geliştirme Yarışması",
+        verbose_name="Yarışma adı",
     )
     application_status = models.CharField(
         max_length=16,
         choices=ApplicationStatus.choices,
         default=ApplicationStatus.OPEN,
+        verbose_name="Başvuru durumu",
     )
-    application_opens_at = models.DateTimeField(null=True, blank=True)
-    application_closes_at = models.DateTimeField(null=True, blank=True)
+    application_opens_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Başvuru açılışı",
+    )
+    application_closes_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Başvuru kapanışı",
+    )
 
-    hero_eyebrow = models.CharField(max_length=255, blank=True)
-    hero_title = models.CharField(max_length=255, blank=True)
-    hero_lead = models.TextField(blank=True)
-    announcement = models.TextField(blank=True)
-    announcement_active = models.BooleanField(default=False)
-    calendar_note = models.TextField(blank=True)
-    contact_email = models.EmailField(blank=True)
-    footer_tagline = models.CharField(max_length=255, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    hero_eyebrow = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Hero üst etiketi",
+    )
+    hero_title = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Hero başlığı",
+    )
+    hero_lead = models.TextField(blank=True, verbose_name="Hero açıklaması")
+    announcement = models.TextField(blank=True, verbose_name="Duyuru")
+    announcement_active = models.BooleanField(default=False, verbose_name="Duyuru etkin")
+    calendar_note = models.TextField(blank=True, verbose_name="Takvim notu")
+    contact_email = models.EmailField(blank=True, verbose_name="İletişim e-postası")
+    footer_tagline = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Alt bilgi sloganı",
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Son güncelleme")
 
     class Meta:
-        verbose_name = "site settings"
-        verbose_name_plural = "site settings"
+        verbose_name = "Site ayarları"
+        verbose_name_plural = "Site ayarları"
 
     def __str__(self) -> str:
         return self.site_title
@@ -119,6 +145,8 @@ class SiteSettingsTranslation(models.Model):
     footer_tagline = models.CharField(max_length=255, blank=True)
 
     class Meta:
+        verbose_name = "Site ayarları çevirisi"
+        verbose_name_plural = "Site ayarları çevirileri"
         constraints = [
             models.UniqueConstraint(
                 fields=("settings", "language"),

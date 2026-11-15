@@ -860,6 +860,32 @@ class AdminTests(TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
+    def test_admin_dashboard_is_turkish_and_has_language_switcher(self):
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertContains(response, "Yarışma")
+        self.assertContains(response, "Başvurular")
+        self.assertContains(response, "ba-language-switcher")
+        self.assertNotContains(response, "Powered by Django")
+
+    def test_admin_form_labels_are_turkish(self):
+        response = self.client.get(reverse("admin:main_formdefinition_add"))
+
+        self.assertContains(response, "Yıl:")
+        self.assertContains(response, "Kategori:")
+        self.assertContains(response, "Başlık:")
+        self.assertContains(response, "Durum:")
+
+    def test_admin_language_can_be_switched_to_english(self):
+        response = self.client.post(
+            reverse("set_language"),
+            {"language": "en", "next": reverse("admin:index")},
+        )
+
+        self.assertRedirects(response, reverse("admin:index"))
+        response = self.client.get(reverse("admin:index"))
+        self.assertContains(response, "Site administration")
+
     def test_admin_profile_forms_validate_photo_type(self):
         self.assertIs(ProfileAdmin.form, ProfileAdminForm)
         self.assertIs(ProfileInline.form, ProfileAdminForm)
