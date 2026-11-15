@@ -432,10 +432,6 @@ def _application_form_context(form_definition, application_form, application=Non
         "form_definition": form_definition,
         "application": application,
         "application_form": application_form,
-        "required_keys": set(
-            form_definition.fields.filter(is_active=True, is_required=True)
-            .values_list("key", flat=True)
-        ),
         "attachments": application.attachments.all() if application else [],
         "attachment_policy": policy,
         "accepts_files": policy != FormDefinition.AttachmentPolicy.NONE,
