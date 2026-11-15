@@ -63,7 +63,7 @@
             <a href="{% url 'main:jury_api_keys' %}">{% translate "API keys" %}</a>
           {% else %}
             <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
-            <a href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+            <a href="{% url 'main:profile' %}">{% translate "My profile" %} ({{ user.username }})</a>
           {% endif %}
           <form method="post" action="{% url 'logout' %}" class="m-0">
             {% csrf_token %}
@@ -106,7 +106,7 @@
                 <a class="nav-link" href="{% url 'main:jury_api_keys' %}">{% translate "API keys" %}</a>
               {% else %}
                 <a class="nav-link" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
-                <a class="nav-link" href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+                <a class="nav-link" href="{% url 'main:profile' %}">{% translate "My profile" %} ({{ user.username }})</a>
               {% endif %}
               <form method="post" action="{% url 'logout' %}" class="mt-2">
                 {% csrf_token %}
