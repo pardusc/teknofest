@@ -857,21 +857,11 @@ msgstr "Başvuru formlarını görüntüle"
 msgid "Open application"
 msgstr "Başvuruyu aç"
 
-#: main/templates/main/application_list.html:47
-#: main/templates/main/home.html:56
-msgid "You have no applications yet"
-msgstr "Henüz başvurunuz yok"
-
 #: main/templates/main/application_list.html:48
 msgid ""
 "You can create a new application by reviewing the open application forms."
 msgstr ""
 "Açık başvuru formlarını inceleyerek yeni bir başvuru oluşturabilirsiniz."
-
-#: main/templates/main/application_list.html:49
-#: main/templates/main/home.html:58
-msgid "Browse application forms"
-msgstr "Başvuru formlarını incele"
 
 #: main/templates/main/base.html:48
 msgid "Skip to content"
@@ -1237,11 +1227,10 @@ msgstr ""
 "Başvurularınızı takip edin ve aşağıdaki açık formlardan yeni başvuru "
 "oluşturun."
 
-msgid "Choose an open form below to create your first application."
-msgstr ""
-"İlk başvurunuzu oluşturmak için aşağıdaki açık formlardan birini seçin."
-
 msgid "%(counter)s application"
 msgid_plural "%(counter)s applications"
 msgstr[0] "%(counter)s başvuru"
 msgstr[1] "%(counter)s başvuru"
+
+msgid "Your applications will appear here after you submit one."
+msgstr "Başvuru oluşturduğunuzda başvurularınız burada listelenecek."
