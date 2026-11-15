@@ -6,6 +6,7 @@
   --site-blue-wash: #eaf0f7;
   --site-gold: #c99b54;
   --site-text: #243247;
+  --site-heading: #172b45;
   --site-muted: #66758a;
   --site-border: #dce3eb;
   --site-paper: #f4f6f9;
@@ -25,7 +26,7 @@ main { flex: 1; }
 .container { max-width: 1080px; }
 main > .container,
 main > section.container { padding-top: 3.5rem !important; padding-bottom: 3.5rem !important; }
-main h1, main h2, main h3 { color: var(--site-ink); letter-spacing: -.025em; }
+main h1, main h2, main h3 { color: var(--site-heading); letter-spacing: -.025em; }
 main h1 { font-size: clamp(1.9rem, 3vw, 2.45rem); line-height: 1.15; }
 main p { color: var(--site-muted); }
 .fg-primary, .link-primary { color: var(--site-blue-dark) !important; }
@@ -60,7 +61,7 @@ main p { color: var(--site-muted); }
 .site-navbar .navbar-toggler { color: #fff; border-color: rgb(255 255 255 / 24%); }
 .site-navbar .navbar-toggler-icon { filter: brightness(0) invert(1); }
 .site-navbar .drawer { color: var(--site-text); }
-.site-navbar .drawer-title { color: var(--site-ink); }
+.site-navbar .drawer-title { color: var(--site-heading); }
 .site-navbar .drawer .nav-link { color: var(--site-text); }
 .site-navbar .drawer .nav-link:hover, .site-navbar .drawer .nav-link:focus { color: var(--site-blue); }
 .site-navbar .drawer .navbar-nav { align-items: stretch; }
@@ -215,7 +216,7 @@ main .container > .d-flex:first-child > div > p { max-width: 64ch; }
 .login-card { max-width: 100%; }
 .form-preview-heading { max-width: 68ch; }
 .site-footer { margin-top: 2.5rem; border-top: 1px solid var(--site-border); background: #fff; color: var(--site-muted); font-size: .88rem; }
-.site-footer strong { color: var(--site-ink); }
+.site-footer strong { color: var(--site-heading); }
 
 @media (min-width: 1024px) {
   .site-navbar .drawer {
@@ -265,6 +266,7 @@ main .container > .d-flex:first-child > div > p { max-width: 64ch; }
     --site-blue-wash: #23364b;
     --site-gold: #d6b46f;
     --site-text: #e5ebf2;
+    --site-heading: #edf2f8;
     --site-muted: #aab6c5;
     --site-border: #344357;
     --site-paper: #111923;
@@ -364,7 +366,7 @@ main .container > .d-flex:first-child > div > p { max-width: 64ch; }
     background-color: #151f2c;
     color: var(--site-muted);
   }
-  .site-footer strong { color: var(--site-text); }
+  .site-footer strong { color: var(--site-heading); }
   .site-navbar .drawer {
     border-color: var(--site-border);
     background-color: #1b2837;
