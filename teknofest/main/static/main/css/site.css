@@ -287,8 +287,9 @@ hr { border-color: var(--p-border); opacity: 1; }
   font-size: 0.9rem;
 }
 .form-control:focus, .form-select:focus {
+  outline: 0;
   border-color: var(--p-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-accent) 18%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-accent) 28%, transparent);
 }
 .form-text { color: var(--p-muted); font-size: 0.78rem; }
 .form-field { margin-bottom: 1.15rem; }
@@ -536,3 +537,5 @@ input[type="file"].form-control::file-selector-button:hover {
 @media (max-width: 991.98px) {
   .nav-actions { margin-left: auto; }
 }
+
+[data-bs-theme="dark"] .auth-brand img { filter: brightness(0) invert(1); }
