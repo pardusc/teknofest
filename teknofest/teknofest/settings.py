@@ -61,7 +61,7 @@ LOGOUT_REDIRECT_URL = 'main:home'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
+    'main.middleware.DefaultLocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -79,6 +79,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'main.context_processors.account_navigation',
@@ -124,8 +125,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
+# Turkish is the default site language. DefaultLocaleMiddleware only honors an
+# explicit language choice so the browser's Accept-Language header cannot switch
+# part of the UI to English.
 LANGUAGE_CODE = 'tr'
-
 LANGUAGES = [
     ('tr', 'Türkçe'),
     ('en', 'English'),

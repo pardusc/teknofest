@@ -1,0 +1,11 @@
+{% load i18n %}
+{% if previous_application_id or next_application_id %}
+  <nav class="jury-detail-nav" aria-label="{% translate 'Application navigation' %}">
+    {% if previous_application_id %}
+      <a class="btn-outline" rel="prev" href="{% url 'main:jury_application_detail' previous_application_id %}{% if queue_query %}?{{ queue_query }}{% endif %}">← {% translate "Previous application" %}</a>
+    {% endif %}
+    {% if next_application_id %}
+      <a class="btn-solid" rel="next" href="{% url 'main:jury_application_detail' next_application_id %}{% if queue_query %}?{{ queue_query }}{% endif %}">{% translate "Next application" %} →</a>
+    {% endif %}
+  </nav>
+{% endif %}

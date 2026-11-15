@@ -44,7 +44,15 @@ from .services.applications import (
     update_application,
 )
 from .services.reviews import submit_review
-from .admin import ApplicationAdmin, AuditEventAdmin, SiteSettingsAdmin
+from .admin import (
+    ApplicationAdmin,
+    AuditEventAdmin,
+    FormDefinitionAdmin,
+    ProfileAdmin,
+    ProfileInline,
+    SiteSettingsAdmin,
+)
+from .forms import FormDefinitionAdminForm, ProfileAdminForm
 from .views import (
     MASKED_FIELD_MESSAGE,
     ApplicationDetailView,
@@ -57,10 +65,10 @@ from .views import (
 )
 
 
-def make_image(name="photo.png", image_format="PNG"):
+def make_image(name="photo.png", image_format="PNG", content_type=None):
     buffer = BytesIO()
     Image.new("RGB", (10, 10), "white").save(buffer, format=image_format)
-    content_type = {
+    content_type = content_type or {
         "PNG": "image/png",
         "JPEG": "image/jpeg",
         "GIF": "image/gif",
@@ -164,7 +172,7 @@ class ProfileTests(MediaTestCase):
         self.assertContains(response, self.user.email)
 
     def test_profile_update_saves_required_fields(self):
-        response = self.client.post(reverse("main:profile_edit"), self.valid_data())
+        response = self.client.post(reverse("main:profile"), self.valid_data())
 
         self.assertRedirects(response, reverse("main:profile"))
         profile = Profile.objects.get(user=self.user)
@@ -173,7 +181,7 @@ class ProfileTests(MediaTestCase):
         self.assertTrue(profile.is_complete)
 
     def test_photo_is_optional(self):
-        response = self.client.post(reverse("main:profile_edit"), self.valid_data())
+        response = self.client.post(reverse("main:profile"), self.valid_data())
 
         self.assertRedirects(response, reverse("main:profile"))
         self.assertFalse(Profile.objects.get(user=self.user).photo)
@@ -182,7 +190,7 @@ class ProfileTests(MediaTestCase):
         data = self.valid_data()
         data["photo"] = make_image()
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertRedirects(response, reverse("main:profile"))
         self.assertTrue(Profile.objects.get(user=self.user).photo.name.startswith("profiles/"))
@@ -191,11 +199,45 @@ class ProfileTests(MediaTestCase):
         data = self.valid_data()
         data["photo"] = make_image(name="photo.gif", image_format="GIF")
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
-            response.context["form"], "photo", "Upload a JPG or PNG image."
+            response.context["form"], "photo", _("Upload a JPG or PNG image.")
+        )
+
+    def test_spoofed_photo_type_is_rejected(self):
+        data = self.valid_data()
+        data["photo"] = make_image(
+            name="photo.png",
+            image_format="GIF",
+            content_type="image/png",
+        )
+
+        response = self.client.post(reverse("main:profile"), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"], "photo", _("Upload a JPG or PNG image.")
+        )
+
+    def test_jpeg_photo_is_accepted(self):
+        data = self.valid_data()
+        data["photo"] = make_image(name="photo.jpg", image_format="JPEG")
+
+        response = self.client.post(reverse("main:profile"), data)
+
+        self.assertRedirects(response, reverse("main:profile"))
+        self.assertTrue(
+            Profile.objects.get(user=self.user).photo.name.endswith(".jpg")
+        )
+
+    def test_profile_photo_input_limits_accept_types(self):
+        response = self.client.get(reverse("main:profile"))
+
+        self.assertContains(
+            response,
+            'accept="image/png,image/jpeg,.png,.jpg,.jpeg"',
         )
 
     @patch("main.forms.MAX_PHOTO_SIZE", 10)
@@ -203,25 +245,25 @@ class ProfileTests(MediaTestCase):
         data = self.valid_data()
         data["photo"] = make_image()
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
-            response.context["form"], "photo", "The photo must be 1 MB or smaller."
+            response.context["form"], "photo", _("The photo must be 1 MB or smaller.")
         )
 
     def test_missing_required_field_is_rejected(self):
         data = self.valid_data()
         del data["city"]
 
-        response = self.client.post(reverse("main:profile_edit"), data)
+        response = self.client.post(reverse("main:profile"), data)
 
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response.context["form"], "city", _("This field is required."))
 
     def test_invalid_phone_is_rejected(self):
         response = self.client.post(
-            reverse("main:profile_edit"),
+            reverse("main:profile"),
             self.valid_data(phone="not-a-phone"),
         )
 
@@ -258,7 +300,7 @@ class CompetitionModelTests(TestCase):
         self.year = CompetitionYear.objects.create(year=2026)
         self.category, _ = Category.objects.get_or_create(
             slug="bug",
-            defaults={"name": "Bug / Suggestion", "order": 1},
+            defaults={"name": "Hata / Öneri", "order": 1},
         )
 
     def make_form(self, **overrides):
@@ -581,6 +623,86 @@ class AdminTests(TestCase):
         for url in urls:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_admin_profile_forms_validate_photo_type(self):
+        self.assertIs(ProfileAdmin.form, ProfileAdminForm)
+        self.assertIs(ProfileInline.form, ProfileAdminForm)
+
+    def test_admin_form_definition_requires_deadline(self):
+        self.assertIs(FormDefinitionAdmin.form, FormDefinitionAdminForm)
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        self.assertTrue(response.context["adminform"].form.fields["closes_at"].required)
+        category = Category.objects.create(slug="deadline", name="Deadline")
+        data = {
+            "year": self.year.pk,
+            "category": category.pk,
+            "title": "Deadline required",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "",
+            "opens_at_1": "",
+            "closes_at_0": "",
+            "closes_at_1": "",
+            f"{prefix}-TOTAL_FORMS": "0",
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+            "_save": "Save",
+        }
+
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("closes_at", response.context["adminform"].form.errors)
+        self.assertFalse(
+            FormDefinition.objects.filter(title="Deadline required").exists()
+        )
+
+        closes_at = timezone.localtime() + timedelta(days=5)
+        data["closes_at_0"] = closes_at.strftime("%d/%m/%Y")
+        data["closes_at_1"] = closes_at.strftime("%H:%M")
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 302)
+        form = FormDefinition.objects.get(title="Deadline required")
+        self.assertIsNotNone(form.closes_at)
+
+    def test_admin_form_definition_deadline_optional_with_global_deadline(self):
+        settings = SiteSettings.load()
+        settings.application_closes_at = timezone.now() + timedelta(days=30)
+        settings.save(update_fields=["application_closes_at"])
+
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        self.assertFalse(
+            response.context["adminform"].form.fields["closes_at"].required
+        )
+
+        category = Category.objects.create(slug="global-deadline", name="Global")
+        data = {
+            "year": self.year.pk,
+            "category": category.pk,
+            "title": "Deadline optional",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "",
+            "opens_at_1": "",
+            "closes_at_0": "",
+            "closes_at_1": "",
+            f"{prefix}-TOTAL_FORMS": "0",
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+            "_save": "Save",
+        }
+
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 302)
+        form = FormDefinition.objects.get(title="Deadline optional")
+        self.assertIsNone(form.closes_at)
 
     def test_admin_can_create_select_field_with_choices(self):
         response = self.client.post(
@@ -953,19 +1075,23 @@ class ApplicationViewTests(MediaTestCase):
 
         self.assertIn(self.form, response.context["forms"])
 
-    def test_form_detail_context_allows_applying(self):
+    def test_form_detail_redirects_to_application_form(self):
         response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
 
-        self.assertTrue(response.context["can_apply"])
-        self.assertIn(self.title_field, response.context["fields"])
+        self.assertRedirects(
+            response,
+            reverse("main:application_start", args=[self.form.pk]),
+        )
 
-    def test_form_detail_disables_applying_when_application_exists(self):
+    def test_form_detail_redirects_to_existing_application(self):
         application = self.make_application()
 
         response = self.client.get(reverse("main:form_detail", args=[self.form.pk]))
 
-        self.assertFalse(response.context["can_apply"])
-        self.assertEqual(response.context["existing_application"], application)
+        self.assertRedirects(
+            response,
+            reverse("main:application_detail", args=[application.public_id]),
+        )
 
     def test_apply_page_renders_empty_form(self):
         response = self.client.get(
@@ -1034,10 +1160,7 @@ class ApplicationViewTests(MediaTestCase):
             reverse("main:application_start", args=[self.form.pk])
         )
 
-        self.assertRedirects(
-            response,
-            reverse("main:form_detail", args=[self.form.pk]),
-        )
+        self.assertRedirects(response, reverse("main:form_list"))
 
     def test_application_list_and_detail_context(self):
         application = self.make_application()
@@ -1053,6 +1176,33 @@ class ApplicationViewTests(MediaTestCase):
             detail.context["field_answers"][0]["value"],
             "A bug report",
         )
+
+    def test_applicant_pages_do_not_expose_internal_status(self):
+        application = self.make_application()
+
+        for status in Application.Status.values:
+            application.status = status
+            application.save(update_fields=["status"])
+
+            urls = [
+                reverse("main:home"),
+                reverse("main:form_list"),
+                reverse("main:application_list"),
+                reverse("main:application_detail", args=[application.public_id]),
+            ]
+            if application.is_editable:
+                urls.append(
+                    reverse("main:application_edit", args=[application.public_id])
+                )
+
+            for url in urls:
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200, f"{status} {url}")
+                content = response.content.decode()
+                for label in ("Submitted", "In review", "Evaluated"):
+                    self.assertNotIn(
+                        label, content, f"{label} leaked on {url} ({status})"
+                    )
 
     def test_other_user_cannot_access_application(self):
         application = self.make_application(user=self.other_user)
@@ -1183,16 +1333,16 @@ class ApplicationViewTests(MediaTestCase):
         self.assertFalse(Application.objects.filter(pk=application.pk).exists())
         self.assertFalse(path.exists())
 
-    def test_preview_context(self):
+    def test_preview_redirects_to_edit(self):
         application = self.make_application()
 
         response = self.client.get(
             reverse("main:application_preview", args=[application.public_id])
         )
 
-        self.assertEqual(
-            response.context["field_answers"][0]["value"],
-            "A bug report",
+        self.assertRedirects(
+            response,
+            reverse("main:application_edit", args=[application.public_id]),
         )
 
 
@@ -1481,6 +1631,99 @@ class JuryTests(MediaTestCase):
         self.form.save()
         self.assertFalse(self.client.get(url).context["can_review"])
 
+    def test_detail_navigation_follows_current_queue(self):
+        newer = self.make_application(code="BUG-2026-00002")
+        Application.objects.filter(pk=newer.pk).update(
+            submitted_at=timezone.now() + timedelta(minutes=5)
+        )
+        older = self.make_application(code="BUG-2026-00003")
+        Application.objects.filter(pk=older.pk).update(
+            submitted_at=timezone.now() - timedelta(minutes=5)
+        )
+
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            )
+        )
+
+        self.assertEqual(
+            response.context["previous_application_id"],
+            newer.public_id,
+        )
+        self.assertEqual(
+            response.context["next_application_id"],
+            older.public_id,
+        )
+
+    def test_detail_navigation_keeps_queue_filters(self):
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            ),
+            {"mine": "pending", "ordering": "submitted_at"},
+        )
+
+        self.assertEqual(
+            response.context["queue_query"],
+            "mine=pending&ordering=submitted_at",
+        )
+
+    def test_list_links_keep_filters_for_detail_navigation(self):
+        response = self.client.get(
+            reverse("main:jury_application_list", args=[self.form.pk]),
+            {"mine": "pending", "ordering": "submitted_at"},
+        )
+
+        self.assertContains(response, "mine=pending")
+        self.assertContains(response, "ordering=submitted_at")
+
+    def test_submit_review_moves_to_next_application(self):
+        next_application = self.make_application(code="BUG-2026-00002")
+        Application.objects.filter(pk=next_application.pk).update(
+            submitted_at=timezone.now() - timedelta(minutes=5)
+        )
+
+        response = self.client.post(
+            reverse(
+                "main:jury_review_submit",
+                args=[self.application.public_id],
+            )
+            + "?mine=pending&ordering=-submitted_at",
+            {"score": "90"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "main:jury_application_detail",
+                args=[next_application.public_id],
+            )
+            + "?mine=pending&ordering=-submitted_at",
+        )
+
+    def test_submit_review_returns_to_list_when_queue_is_finished(self):
+        response = self.client.post(
+            reverse(
+                "main:jury_review_submit",
+                args=[self.application.public_id],
+            ),
+            {"score": "90"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("main:jury_application_list", args=[self.form.pk]),
+        )
+        self.assertTrue(
+            Review.objects.filter(
+                application=self.application,
+                juror=self.jury,
+            ).exists()
+        )
+
     def test_submit_review_requires_score(self):
         response = self.client.post(
             reverse("main:jury_review_submit", args=[self.application.public_id]),
@@ -1549,7 +1792,7 @@ class JuryTests(MediaTestCase):
             reverse("main:application_list"),
             reverse("main:application_detail", args=[self.application.public_id]),
             reverse("main:profile"),
-            reverse("main:profile_edit"),
+            reverse("main:profile"),
         )
 
         for url in urls:
@@ -1728,6 +1971,46 @@ class TranslationTests(TestCase):
         error = ValidationError("Plain message")
 
         self.assertEqual(_validation_message(error), "Plain message")
+
+
+class LanguageSwitcherTests(TestCase):
+    def test_browser_language_is_ignored_by_default(self):
+        response = self.client.get(
+            reverse("main:home"),
+            HTTP_ACCEPT_LANGUAGE="en-US,en;q=0.9",
+        )
+
+        self.assertContains(response, "Ana sayfa")
+        self.assertNotContains(response, "Home")
+        self.assertContains(response, 'class="language-switcher"')
+        self.assertContains(response, 'name="language" value="en"')
+
+    def test_language_switcher_sets_and_persists_language(self):
+        response = self.client.post(
+            reverse("set_language"),
+            {"language": "en", "next": reverse("main:home")},
+        )
+
+        self.assertRedirects(response, reverse("main:home"))
+        self.assertEqual(response.cookies["django_language"].value, "en")
+
+        response = self.client.get(reverse("main:home"))
+        self.assertContains(response, "Home")
+        self.assertContains(response, "Log in")
+
+        self.client.post(
+            reverse("set_language"),
+            {"language": "tr", "next": reverse("main:home")},
+        )
+        response = self.client.get(reverse("main:home"))
+        self.assertContains(response, "Ana sayfa")
+
+    def test_invalid_language_cookie_falls_back_to_turkish(self):
+        self.client.cookies["django_language"] = "xx"
+
+        response = self.client.get(reverse("main:home"))
+
+        self.assertContains(response, "Ana sayfa")
 
 
 class AuditWorkflowTests(MediaTestCase):
@@ -2300,11 +2583,14 @@ class SiteSettingsTests(TestCase):
     def test_localized_uses_translation_and_falls_back_to_base(self):
         self.settings.hero_lead = "Base lead"
         self.settings.save()
-        SiteSettingsTranslation.objects.create(
+        SiteSettingsTranslation.objects.update_or_create(
             settings=self.settings,
             language="en",
-            hero_title="English hero",
-            hero_lead="",
+            defaults={
+                "hero_eyebrow": "",
+                "hero_title": "English hero",
+                "hero_lead": "",
+            },
         )
 
         localized = self.settings.localized("en")
@@ -2317,33 +2603,35 @@ class SiteSettingsTests(TestCase):
         )
 
     def test_home_uses_english_translation(self):
-        SiteSettingsTranslation.objects.create(
+        SiteSettingsTranslation.objects.update_or_create(
             settings=self.settings,
             language="en",
-            hero_title="English hero",
-            hero_lead="English lead",
+            defaults={
+                "hero_title": "English hero",
+                "hero_lead": "English lead",
+            },
         )
         self.settings.hero_title = "Turkish hero"
         self.settings.hero_lead = "Turkish lead"
         self.settings.save()
 
-        response = self.client.get(
-            reverse("main:home"),
-            HTTP_ACCEPT_LANGUAGE="en",
-        )
+        self.client.cookies["django_language"] = "en"
+        response = self.client.get(reverse("main:home"))
 
         self.assertContains(response, "English hero")
         self.assertContains(response, "English lead")
         self.assertNotContains(response, "Turkish hero")
 
     def test_category_translation_overrides_display(self):
-        CategoryTranslation.objects.create(
+        CategoryTranslation.objects.update_or_create(
             category=self.category,
             language="en",
-            name="English category",
-            description="English description",
-            home_description="English home",
-            home_highlights="One\nTwo",
+            defaults={
+                "name": "English category",
+                "description": "English description",
+                "home_description": "English home",
+                "home_highlights": "One\nTwo",
+            },
         )
 
         from django.utils import translation
@@ -2361,11 +2649,15 @@ class SiteSettingsTests(TestCase):
             self.assertEqual(self.category.highlight_list, ["One", "Two"])
 
     def test_category_translation_falls_back_to_base(self):
-        CategoryTranslation.objects.create(
+        CategoryTranslation.objects.update_or_create(
             category=self.category,
             language="en",
-            name="",
-            description="",
+            defaults={
+                "name": "",
+                "description": "",
+                "home_description": "",
+                "home_highlights": "",
+            },
         )
 
         from django.utils import translation
@@ -2382,17 +2674,17 @@ class SiteSettingsTests(TestCase):
             )
 
     def test_home_uses_category_translation(self):
-        CategoryTranslation.objects.create(
+        CategoryTranslation.objects.update_or_create(
             category=self.category,
             language="en",
-            name="English category",
-            home_description="English category description",
+            defaults={
+                "name": "English category",
+                "home_description": "English category description",
+            },
         )
 
-        response = self.client.get(
-            reverse("main:home"),
-            HTTP_ACCEPT_LANGUAGE="en",
-        )
+        self.client.cookies["django_language"] = "en"
+        response = self.client.get(reverse("main:home"))
 
         self.assertContains(response, "English category")
         self.assertContains(response, "English category description")

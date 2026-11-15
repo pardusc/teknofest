@@ -4,20 +4,40 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#172b4a">
-  <title>{% block title %}Pardus Teknofest{% endblock %}</title>
+  <meta name="theme-color" content="#231f20">
+  <title>{% block title %}{{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}</title>
   <script>
     (() => {
-      const preference = window.matchMedia("(prefers-color-scheme: dark)");
-      const applyTheme = () => {
-        document.documentElement.dataset.bsTheme = preference.matches ? "dark" : "light";
+      const key = "pardus-theme";
+      const media = window.matchMedia("(prefers-color-scheme: dark)");
+      let stored = null;
+      try { stored = localStorage.getItem(key); } catch (error) { stored = null; }
+      if (stored !== "light" && stored !== "dark") stored = null;
+      const apply = (theme, persist) => {
+        document.documentElement.dataset.bsTheme = theme;
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+          button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+        });
+        if (persist) {
+          try { localStorage.setItem(key, theme); } catch (error) { /* storage unavailable */ }
+        }
       };
-      applyTheme();
-      if (preference.addEventListener) {
-        preference.addEventListener("change", applyTheme);
-      } else {
-        preference.addListener(applyTheme);
-      }
+      apply(stored || (media.matches ? "dark" : "light"), false);
+      const followSystem = () => {
+        let current = null;
+        try { current = localStorage.getItem(key); } catch (error) { current = null; }
+        if (!current) apply(media.matches ? "dark" : "light", false);
+      };
+      if (media.addEventListener) media.addEventListener("change", followSystem);
+      else media.addListener(followSystem);
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const next = document.documentElement.dataset.bsTheme === "dark" ? "light" : "dark";
+            apply(next, true);
+          });
+        });
+      });
     })();
   </script>
   <link rel="stylesheet" href="{% static 'main/vendor/bootstrap/css/bootstrap.min.css' %}">
@@ -25,47 +45,94 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <nav class="navbar lg:navbar-expand site-navbar">
+  <a class="visually-hidden-focusable" href="#main-content">{% translate "Skip to content" %}</a>
+
+  <nav class="navbar site-navbar">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'main:home' %}">
-        <span class="brand-mark" aria-hidden="true">P</span>
-        <span class="brand-name">Pardus <span>Teknofest</span></span>
+      <a class="brand" href="{% url 'main:home' %}">
+        <img class="brand-logo" src="{% static 'main/img/pardus-logo.svg' %}" alt="Pardus">
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-product">Teknofest</span>
       </a>
-      <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="{% translate 'Open menu' %}">
-        <span class="navbar-toggler-icon" aria-hidden="true"></span>
-      </button>
-      <dialog class="drawer drawer-end" tabindex="-1" id="siteNav" aria-labelledby="siteNavTitle">
+
+      <div class="nav-links">
+        <a href="{% url 'main:home' %}">{% translate "Home" %}</a>
+        {% if user.is_authenticated %}
+          {% if is_jury_member %}
+            <a href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+          {% else %}
+            <a href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+            <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
+            <a href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+          {% endif %}
+          <form method="post" action="{% url 'logout' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="nav-button">{% translate "Log out" %}</button>
+          </form>
+          {% if user.is_staff %}<a href="/admin/">{% translate "Admin" %}</a>{% endif %}
+        {% else %}
+          <a class="nav-cta" href="{% url 'login' %}">{% translate "Log in" %}</a>
+        {% endif %}
+      </div>
+
+      <div class="nav-actions">
+        {% get_current_language as CURRENT_LANGUAGE %}
+        <form class="language-switcher" action="{% url 'set_language' %}" method="post" aria-label="{% translate 'Language' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="lang-option{% if CURRENT_LANGUAGE == 'tr' %} active{% endif %}" type="submit" name="language" value="tr" lang="tr" aria-label="{% translate 'Turkish' %}" aria-pressed="{% if CURRENT_LANGUAGE == 'tr' %}true{% else %}false{% endif %}" title="{% translate 'Turkish' %}">TR</button>
+          <button class="lang-option{% if CURRENT_LANGUAGE == 'en' %} active{% endif %}" type="submit" name="language" value="en" lang="en" aria-label="{% translate 'English' %}" aria-pressed="{% if CURRENT_LANGUAGE == 'en' %}true{% else %}false{% endif %}" title="{% translate 'English' %}">EN</button>
+        </form>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="{% translate 'Switch theme' %}" aria-pressed="false" title="{% translate 'Switch theme' %}">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+        <button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="{% translate 'Open menu' %}">
+          <span class="navbar-toggler-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <dialog class="drawer drawer-end site-drawer" tabindex="-1" id="siteNav" aria-labelledby="siteNavTitle">
         <div class="drawer-header">
           <h2 class="drawer-title h5" id="siteNavTitle">{% translate "Menu" %}</h2>
           <button type="button" class="btn-close" data-bs-dismiss="drawer" aria-label="{% translate 'Close menu' %}"></button>
         </div>
         <div class="drawer-body">
-        <div class="navbar-nav ms-auto lg:align-items-center lg:gap-2 py-3 lg:py-0">
-          <a class="nav-link site-nav-link" href="{% url 'main:home' %}">{% translate "Home" %}</a>
-          {% if user.is_authenticated %}
-            {% if is_jury_member %}
-              <a class="nav-link site-nav-link" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+          <div class="navbar-nav">
+            <a class="nav-link" href="{% url 'main:home' %}">{% translate "Home" %}</a>
+            {% if user.is_authenticated %}
+              {% if is_jury_member %}
+                <a class="nav-link" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+              {% else %}
+                <a class="nav-link" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
+                <a class="nav-link" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
+                <a class="nav-link" href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+              {% endif %}
+              <form method="post" action="{% url 'logout' %}" class="mt-2">
+                {% csrf_token %}
+                <button type="submit" class="btn-outline theme-inverse w-100">{% translate "Log out" %}</button>
+              </form>
             {% else %}
-              <a class="nav-link site-nav-link" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
-              <a class="nav-link site-nav-link" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
-              <a class="nav-link site-nav-link" href="{% url 'main:profile' %}">{% translate "My profile" %}</a>
+              <a class="btn-solid theme-secondary mt-2" href="{% url 'login' %}">{% translate "Log in" %}</a>
             {% endif %}
-            <form method="post" action="{% url 'logout' %}" class="m-0">
-              {% csrf_token %}
-              <button type="submit" class="btn-outline theme-inverse btn-sm lg:ms-2 navbar-logout">{% translate "Log out" %}</button>
-            </form>
-          {% else %}
-            <a class="btn-solid theme-secondary btn-sm lg:ms-2 navbar-login" href="{% url 'login' %}">{% translate "Log in" %}</a>
-          {% endif %}
-        </div>
+          </div>
         </div>
       </dialog>
     </div>
   </nav>
 
-  <main>
+  {% if user.is_authenticated and not is_jury_member and not site_settings.is_application_open %}
+    <div class="period-banner">
+      <div class="container">
+        <span>{% translate "Closed for applications" %} · {{ site_settings.current_year }}</span>
+        {% if site_settings.application_closes_at %}<span>{% translate "Deadline" %}: {{ site_settings.application_closes_at|date:"d.m.Y H:i" }}</span>{% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <main id="main-content">
     {% if messages %}
-      <div class="container pt-3" aria-live="polite">
+      <div class="container pt-3">
         {% for message in messages %}
           <div class="alert site-alert mb-2" role="status">
             {{ message }}
@@ -79,14 +146,26 @@
 
   <footer class="site-footer">
     {% translate "A better Pardus with open source" as default_footer %}
-    <div class="container py-4 d-flex flex-column md:flex-row justify-content-between gap-2">
-      <span><strong>{{ site_settings.site_title|default:"Pardus Teknofest" }}</strong> <span>· {{ home_text.footer_tagline|default:default_footer }}</span></span>
-      <span>
-        {% translate "Competition application and evaluation platform" %}
-        {% if site_settings.contact_email %} · <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>{% endif %}
-      </span>
+    <div class="container footer-inner">
+      <span><strong>{{ site_settings.site_title|default:"Pardus Teknofest" }}</strong>{% if home_text.footer_tagline or default_footer %} · {{ home_text.footer_tagline|default:default_footer }}{% endif %}</span>
+      <span>{% translate "Competition application and evaluation platform" %}{% if site_settings.contact_email %} · <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>{% endif %}</span>
     </div>
   </footer>
+
+  <script>
+    (() => {
+      const desktop = window.matchMedia("(min-width: 1200px)");
+      const closeDrawer = () => {
+        if (window.innerWidth < 1200) return;
+        const drawer = document.getElementById("siteNav");
+        if (drawer && drawer.open) drawer.close();
+      };
+      if (desktop.addEventListener) desktop.addEventListener("change", closeDrawer);
+      else desktop.addListener(closeDrawer);
+      window.addEventListener("resize", closeDrawer, { passive: true });
+      closeDrawer();
+    })();
+  </script>
   <script type="module" src="{% static 'main/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>

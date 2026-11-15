@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .forms import FormFieldAdminForm
+from .forms import FormDefinitionAdminForm, FormFieldAdminForm, ProfileAdminForm
 from .models import (
     Application,
     ApplicationAnswer,
@@ -35,6 +35,7 @@ class UserCreationForm(BaseUserCreationForm):
 
 class ProfileInline(admin.StackedInline):
     model = Profile
+    form = ProfileAdminForm
     can_delete = False
     extra = 0
     fields = ("phone", "city", "institution", "education_level", "photo")
@@ -63,6 +64,7 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
+    form = ProfileAdminForm
     list_display = ("user", "city", "institution", "education_level", "updated_at")
     list_filter = ("education_level",)
     search_fields = ("user__username", "user__email", "city", "institution")
@@ -113,6 +115,7 @@ class FormFieldInline(admin.StackedInline):
 
 @admin.register(FormDefinition)
 class FormDefinitionAdmin(admin.ModelAdmin):
+    form = FormDefinitionAdminForm
     inlines = (FormFieldInline,)
     list_display = (
         "year",

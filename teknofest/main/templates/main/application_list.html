@@ -1,48 +1,53 @@
 {% extends "main/base.html" %}
 {% load i18n %}
 
-{% block title %}{% translate "My applications" %} · Pardus Teknofest{% endblock %}
+{% block title %}{% translate "My applications" %} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
-<section class="container py-5">
-  <div class="d-flex flex-column sm:flex-row justify-content-between sm:align-items-end gap-3 mb-4">
+<div class="container site-main">
+  <div class="page-header">
     <div>
-      <span class="eyebrow fg-primary">{% translate "Account area" %}</span>
-      <h1 class="h2 fw-bold mt-2 mb-1">{% translate "My applications" %}</h1>
-      <p class="fg-secondary mb-0">{% translate "You can edit your applications and follow their status here." %}</p>
+      <span class="eyebrow">{% translate "Account area" %}</span>
+      <h1>{% translate "My applications" %}</h1>
+      <p>{% translate "Follow your applications and continue editing until the deadline." %}</p>
     </div>
-    <a class="btn-solid theme-primary" href="{% url 'main:form_list' %}">{% translate "View application forms" %}</a>
+    <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "View application forms" %}</a>
   </div>
 
   {% if applications %}
-    <div class="application-list d-grid gap-3">
-      {% for application in applications %}
-        <article class="card application-card">
-          <div class="card-body p-4 d-flex flex-column md:flex-row justify-content-between md:align-items-center gap-3">
-            <div>
-              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                <span class="badge rounded-pill badge-profile-complete">
-                  {% if application.status == 'submitted' %}{% translate "Submitted" %}{% elif application.status == 'in_review' %}{% translate "In review" %}{% elif application.status == 'evaluated' %}{% translate "Evaluated" %}{% else %}{{ application.get_status_display }}{% endif %}
-                </span>
-                {% if application.code %}<span class="small fw-semibold fg-secondary">{{ application.code }}</span>{% endif %}
-              </div>
-              <h2 class="h5 fw-bold mb-1">{{ application.form.title }}</h2>
-              <p class="fg-secondary mb-0">{{ application.year.year }} · {{ application.category.display_name }} · {% blocktranslate with updated_at=application.updated_at|date:"d.m.Y H:i" %}Last updated {{ updated_at }}{% endblocktranslate %}</p>
-            </div>
-            <a class="btn-outline theme-primary flex-shrink-0" href="{% url 'main:application_detail' application.public_id %}">{% translate "View application" %}</a>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-  {% else %}
-    <section class="card empty-state text-center">
-      <div class="card-body p-4 p-lg-5">
-        <p class="eyebrow fg-primary mb-2">{% translate "Applications" %}</p>
-        <h2 class="h4 fw-bold mt-3">{% translate "You have no applications yet" %}</h2>
-        <p class="fg-secondary mx-auto mb-4">{% translate "You can create a new application by reviewing the open application forms." %}</p>
-        <a class="btn-solid theme-primary" href="{% url 'main:form_list' %}">{% translate "Browse application forms" %}</a>
+    <section class="card section-card">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{% translate "Application" %}</th>
+              <th class="hide-sm">{% translate "Last updated" %}</th>
+              <th class="text-end">{% translate "Action" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for application in applications %}
+              <tr>
+                <td>
+                  <a class="row-link" href="{% url 'main:application_detail' application.public_id %}">
+                    <span class="row-title">{{ application.form.title }}</span>
+                    <span class="row-meta">{{ application.year.year }} · {{ application.category.display_name }} · {{ application.code }}</span>
+                  </a>
+                </td>
+                <td class="small fg-secondary hide-sm">{{ application.updated_at|date:"d.m.Y H:i" }}</td>
+                <td class="text-end"><a class="btn-outline btn-sm" href="{% url 'main:application_detail' application.public_id %}">{% translate "Open application" %}</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </section>
+  {% else %}
+    <section class="card empty-state">
+      <h2>{% translate "You have no applications yet" %}</h2>
+      <p>{% translate "You can create a new application by reviewing the open application forms." %}</p>
+      <a class="btn-solid" href="{% url 'main:form_list' %}">{% translate "Browse application forms" %}</a>
+    </section>
   {% endif %}
-</section>
+</div>
 {% endblock %}

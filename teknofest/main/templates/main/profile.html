@@ -1,0 +1,87 @@
+{% extends "main/base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "My profile" %} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
+
+{% block content %}
+<div class="container site-main">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">{% translate "Account area" %}</span>
+      <h1>{% translate "My profile" %}</h1>
+      <p>{% translate "Keep your contact and education information up to date. Required fields are marked with an asterisk." %}</p>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="lg:col-4">
+      <section class="card section-card">
+        <div class="section-body">
+          <div class="profile-summary">
+            {% if profile.photo %}
+              <img class="avatar" src="{{ profile.photo.url }}" alt="{% translate 'Profile photo' %}">
+            {% else %}
+              <span class="avatar avatar-placeholder" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</span>
+            {% endif %}
+            <div class="min-w-0">
+              <h2 class="h6 fw-bold mb-0">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</h2>
+              <p class="small fg-secondary mb-0 text-break">{{ user.email }}</p>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="d-flex justify-content-between small mb-2">
+              <span class="fg-secondary">{% translate "Profile completeness" %}</span>
+              <span>{% if profile.is_complete %}<span class="chip chip-success">{% translate "Profile complete" %}</span>{% else %}<span class="chip chip-warning">{% translate "Missing information" %}</span>{% endif %}</span>
+            </div>
+            <div class="completeness"><span style="width: {% if profile.is_complete %}100{% else %}60{% endif %}%"></span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="lg:col-8">
+      <form method="post" enctype="multipart/form-data" class="card section-card">
+        {% csrf_token %}
+        <div class="section-head"><h2>{% translate "Profile details" %}</h2></div>
+        <div class="section-body">
+          {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+          <div class="row g-3">
+            <div class="md:col-6">
+              <label class="form-label" for="{{ form.phone.id_for_label }}">{% translate "Phone" %}<span class="required">*</span></label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<div class="invalid-feedback">{{ form.phone.errors|join:", " }}</div>{% endif %}
+              <div class="form-text">{% translate "Example: +90 555 111 22 33" %}</div>
+            </div>
+            <div class="md:col-6">
+              <label class="form-label" for="{{ form.city.id_for_label }}">{% translate "City" %}<span class="required">*</span></label>
+              {{ form.city }}
+              {% if form.city.errors %}<div class="invalid-feedback">{{ form.city.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="md:col-6">
+              <label class="form-label" for="{{ form.institution.id_for_label }}">{% translate "School / institution" %}<span class="required">*</span></label>
+              {{ form.institution }}
+              {% if form.institution.errors %}<div class="invalid-feedback">{{ form.institution.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="md:col-6">
+              <label class="form-label" for="{{ form.education_level.id_for_label }}">{% translate "Education level" %}<span class="required">*</span></label>
+              {{ form.education_level }}
+              {% if form.education_level.errors %}<div class="invalid-feedback">{{ form.education_level.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.photo.id_for_label }}">{% translate "Profile photo" %} <span class="small fg-secondary">({% translate "optional" %})</span></label>
+              {{ form.photo }}
+              {% if form.photo.errors %}<div class="invalid-feedback">{{ form.photo.errors|join:", " }}</div>{% endif %}
+              <div class="form-text">{% translate "JPG or PNG · max 1 MB" %}</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <span class="hint">{% translate "Information is stored in the profile record linked to your account." %}</span>
+          <button class="btn-solid" type="submit">{% translate "Save changes" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

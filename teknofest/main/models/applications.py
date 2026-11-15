@@ -4,6 +4,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
+from django.utils.translation import gettext_lazy as _
 from django.dispatch import receiver
 
 
@@ -70,6 +71,22 @@ class Application(models.Model):
 
     def __str__(self) -> str:
         return self.code or f"Draft {self.public_id}"
+
+    @property
+    def status_label(self):
+        return {
+            self.Status.SUBMITTED: _("Submitted"),
+            self.Status.IN_REVIEW: _("In review"),
+            self.Status.EVALUATED: _("Evaluated"),
+        }.get(self.status, self.get_status_display())
+
+    @property
+    def status_tone(self) -> str:
+        return {
+            self.Status.SUBMITTED: "chip-neutral",
+            self.Status.IN_REVIEW: "chip-warning",
+            self.Status.EVALUATED: "chip-success",
+        }.get(self.status, "chip-neutral")
 
     @property
     def is_editable(self) -> bool:
