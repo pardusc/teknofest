@@ -74,7 +74,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--p-ink); letter-spacing: -0.015em; }
 p { color: var(--p-muted); }
 hr { border-color: var(--p-border); opacity: 1; }
 .container { max-width: 1180px; }
-.site-main { padding: 2rem 0 3.5rem; }
+.site-main { padding-block: 2rem 3.5rem; }
 .fg-primary, .link-primary { color: var(--p-accent-text) !important; }
 .fg-secondary { color: var(--p-muted) !important; }
 .fg-danger { color: var(--p-danger) !important; }
@@ -94,8 +94,8 @@ hr { border-color: var(--p-border); opacity: 1; }
 .brand-logo { height: 28px; width: auto; filter: brightness(0) invert(1); }
 .brand-divider { width: 1px; height: 22px; background: rgb(255 255 255 / 22%); }
 .brand-product { color: #fff; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
-.nav-links { align-items: center; gap: 0.25rem; margin-left: auto; }
-@media (min-width: 992px) {
+.nav-links { display: none; align-items: center; gap: 0.25rem; margin-left: auto; }
+@media (min-width: 1200px) {
   .nav-links { display: flex; }
 }
 .nav-links a, .nav-links .nav-button {
@@ -430,8 +430,9 @@ hr { border-color: var(--p-border); opacity: 1; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1200px) {
   .site-navbar .navbar-toggler { display: none !important; }
+  .site-drawer { display: none !important; }
 }
 
 
@@ -525,13 +526,19 @@ input[type="file"].form-control::file-selector-button:hover {
 [data-bs-theme="dark"] .theme-toggle .icon-moon { display: none; }
 .navbar-toggler { margin-left: 0; }
 
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
   .nav-actions { margin-left: auto; }
 }
 
 @media (max-width: 575.98px) {
   .brand-divider, .brand-product { display: none; }
   .lang-option { min-width: 31px; }
+  .hide-sm { display: none !important; }
+  .page-header { gap: 0.75rem; }
+  .page-header .btn-solid, .page-header .btn-outline { width: 100%; }
+  .data-table .row-title { font-size: 0.88rem; }
+  .data-table .row-meta { font-size: 0.74rem; }
+  .data-table .btn-sm { padding-inline: 0.55rem; }
 }
 
 [data-bs-theme="dark"] .auth-brand img { filter: brightness(0) invert(1); }

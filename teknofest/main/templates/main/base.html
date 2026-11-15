@@ -55,7 +55,7 @@
         <span class="brand-product">Teknofest</span>
       </a>
 
-      <div class="nav-links d-none lg:d-flex">
+      <div class="nav-links">
         <a href="{% url 'main:home' %}">{% translate "Home" %}</a>
         {% if user.is_authenticated %}
           {% if is_jury_member %}
@@ -152,6 +152,20 @@
     </div>
   </footer>
 
+  <script>
+    (() => {
+      const desktop = window.matchMedia("(min-width: 1200px)");
+      const closeDrawer = () => {
+        if (window.innerWidth < 1200) return;
+        const drawer = document.getElementById("siteNav");
+        if (drawer && drawer.open) drawer.close();
+      };
+      if (desktop.addEventListener) desktop.addEventListener("change", closeDrawer);
+      else desktop.addListener(closeDrawer);
+      window.addEventListener("resize", closeDrawer, { passive: true });
+      closeDrawer();
+    })();
+  </script>
   <script type="module" src="{% static 'main/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>

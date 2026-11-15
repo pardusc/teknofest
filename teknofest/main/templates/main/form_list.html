@@ -20,7 +20,7 @@
           <thead>
             <tr>
               <th>{% translate "Form" %}</th>
-              <th>{% translate "Deadline" %}</th>
+              <th class="hide-sm">{% translate "Deadline" %}</th>
               <th>{% translate "Status" %}</th>
               <th class="text-end">{% translate "Action" %}</th>
             </tr>
@@ -44,7 +44,7 @@
                     <span class="row-meta">{{ row.form.category.display_name }}</span>
                   {% endif %}
                 </td>
-                <td class="small fg-secondary">{% if row.form.closes_at %}{{ row.form.closes_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
+                <td class="small fg-secondary hide-sm">{% if row.form.closes_at %}{{ row.form.closes_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
                 <td>
                   {% if row.application %}
                     <span class="chip chip-neutral">{% translate "Application received" %}</span>
