@@ -1543,6 +1543,24 @@ class ApplicationViewTests(MediaTestCase):
             reverse("main:application_detail", args=[application.public_id]),
         )
 
+    def test_edit_form_does_not_nest_attachment_delete_form(self):
+        application = self.make_application(files=[make_image()])
+        attachment = application.attachments.get()
+        delete_url = reverse(
+            "main:attachment_delete",
+            args=[application.public_id, attachment.pk],
+        )
+
+        response = self.client.get(
+            reverse("main:application_edit", args=[application.public_id])
+        )
+
+        self.assertContains(response, f'formaction="{delete_url}"')
+        self.assertNotContains(
+            response,
+            f'<form method="post" action="{delete_url}"',
+        )
+
     def test_apply_post_with_file(self):
         response = self.client.post(
             reverse("main:application_start", args=[self.form.pk]),

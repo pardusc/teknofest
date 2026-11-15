@@ -56,10 +56,10 @@
                       <a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a>
                       <span class="attachment-meta">{{ attachment.size|filesizeformat }}</span>
                     </span>
-                    <form method="post" action="{% url 'main:attachment_delete' application.public_id attachment.pk %}" onsubmit="return confirm('{{ delete_file_confirm|escapejs }}')">
-                      {% csrf_token %}
-                      <button class="btn-ghost btn-sm" type="submit">{% translate "Delete" %}</button>
-                    </form>
+                    <button class="btn-ghost btn-sm" type="submit"
+                            formaction="{% url 'main:attachment_delete' application.public_id attachment.pk %}"
+                            formmethod="post" formnovalidate
+                            onclick="return confirm('{{ delete_file_confirm|escapejs }}')">{% translate "Delete" %}</button>
                   </li>
                 {% endfor %}
               </ul>
