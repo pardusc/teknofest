@@ -1,0 +1,147 @@
+{% extends "main/base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "API keys" %} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
+
+{% block content %}
+{% translate "Revoke this API key? Applications using it will lose access immediately." as revoke_confirm %}
+{% translate "Try it with curl:" as try_curl_label %}
+<div class="container site-main">
+  <nav class="breadcrumbs" aria-label="{% translate 'Breadcrumb' %}">
+    <a href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+    <span>{% translate "API keys" %}</span>
+  </nav>
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">{% translate "Jury area" %}</span>
+      <h1>{% translate "API keys" %}</h1>
+      <p>{% translate "Create personal keys for the jury API. Each key expires automatically and can be revoked at any time." %}</p>
+    </div>
+    <a class="btn-outline" href="{% url 'main:jury_dashboard' %}">{% translate "Back to jury panel" %}</a>
+  </div>
+
+  {% if new_key %}
+    <section class="card section-card api-key-reveal">
+      <div class="section-body">
+        <h2 class="h6 fw-bold">{% translate "Your new API key" %}</h2>
+        <p class="small fg-secondary">{% translate "Copy this key now. For security reasons it will not be shown again." %}</p>
+        <div class="api-key-value-row">
+          <code id="new-api-key">{{ new_key }}</code>
+          <button class="btn-outline btn-sm" type="button" data-copy-target="#new-api-key">{% translate "Copy" %}</button>
+        </div>
+        <p class="small fg-secondary mt-3 mb-1">{{ try_curl_label }}</p>
+        <pre class="api-key-curl"><code>curl -H "Authorization: Bearer {{ new_key }}" {{ request.scheme }}://{{ request.get_host }}/api/jury/me/</code></pre>
+      </div>
+    </section>
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="lg:col-4">
+      <section class="card section-card">
+        <div class="section-head"><h2>{% translate "Create a key" %}</h2></div>
+        <div class="section-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="form-field">
+              <label class="form-label" for="{{ form.name.id_for_label }}">{{ form.name.label }} <span class="required">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="invalid-feedback">{{ form.name.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="{{ form.duration_days.id_for_label }}">{{ form.duration_days.label }} <span class="required">*</span></label>
+              {{ form.duration_days }}
+              {% if form.duration_days.errors %}<div class="invalid-feedback">{{ form.duration_days.errors|join:", " }}</div>{% endif %}
+              <div class="form-text">{% translate "The key expires automatically after this period." %}</div>
+            </div>
+            <button class="btn-solid w-100" type="submit">{% translate "Create API key" %}</button>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <div class="lg:col-8">
+      <section class="card section-card">
+        <div class="section-head">
+          <h2>{% translate "Your keys" %}</h2>
+          <span class="small fg-secondary">{{ api_keys|length }} {% translate "keys" %}</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{% translate "Name" %}</th>
+                <th>{% translate "Key" %}</th>
+                <th>{% translate "Status" %}</th>
+                <th>{% translate "Created" %}</th>
+                <th>{% translate "Expires" %}</th>
+                <th>{% translate "Last used" %}</th>
+                <th class="text-end">{% translate "Action" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for key in api_keys %}
+                <tr>
+                  <td><span class="row-title">{{ key.name }}</span></td>
+                  <td><code class="api-key-prefix">{{ key.prefix }}…</code></td>
+                  <td>
+                    {% if key.status == 'active' %}<span class="chip chip-success">{% translate "Active" %}</span>
+                    {% elif key.status == 'expired' %}<span class="chip chip-warning">{% translate "Expired" %}</span>
+                    {% else %}<span class="chip chip-neutral">{% translate "Revoked" %}</span>{% endif %}
+                  </td>
+                  <td class="small fg-secondary">{{ key.created_at|date:"d.m.Y H:i" }}</td>
+                  <td class="small fg-secondary">{{ key.expires_at|date:"d.m.Y H:i" }}</td>
+                  <td class="small fg-secondary">{{ key.last_used_at|date:"d.m.Y H:i"|default:"—" }}</td>
+                  <td class="text-end">
+                    {% if key.status == 'active' %}
+                      <form method="post" action="{% url 'main:jury_api_key_revoke' key.pk %}" class="m-0" onsubmit="return confirm('{{ revoke_confirm|escapejs }}')">
+                        {% csrf_token %}
+                        <button class="btn-danger btn-outline btn-sm" type="submit">{% translate "Revoke" %}</button>
+                      </form>
+                    {% else %}
+                      <span class="small fg-secondary">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="7"><p class="small fg-secondary mb-0">{% translate "You have not created an API key yet." %}</p></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {% translate "Copied" as copied_label %}
+  {% translate "Copy the key manually:" as copy_manual_label %}
+  <script>
+    (() => {
+      const copiedLabel = "{{ copied_label|escapejs }}";
+      const copyManualLabel = "{{ copy_manual_label|escapejs }}";
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("reveal")) {
+        url.searchParams.delete("reveal");
+        window.history.replaceState({}, "", url.pathname + url.search);
+      }
+      document.querySelectorAll("[data-copy-target]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const target = document.querySelector(button.dataset.copyTarget);
+          if (!target) return;
+          const value = target.textContent.trim();
+          try {
+            await navigator.clipboard.writeText(value);
+            button.textContent = copiedLabel;
+          } catch (error) {
+            window.prompt(copyManualLabel, value);
+          }
+        });
+      });
+    })();
+  </script>
+{% endblock %}

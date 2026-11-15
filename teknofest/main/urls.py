@@ -52,6 +52,16 @@ urlpatterns = [
     ),
     path("jury/", views.JuryDashboardView.as_view(), name="jury_dashboard"),
     path(
+        "jury/api-keys/",
+        views.JuryAPIKeyListView.as_view(),
+        name="jury_api_keys",
+    ),
+    path(
+        "jury/api-keys/<int:pk>/revoke/",
+        views.JuryAPIKeyRevokeView.as_view(),
+        name="jury_api_key_revoke",
+    ),
+    path(
         "jury/forms/<int:pk>/",
         views.JuryApplicationListView.as_view(),
         name="jury_application_list",

@@ -50,6 +50,7 @@ class ProfileCompletionMiddleware:
             "/admin/",
             "/jury/",
             "/staff/",
+            "/api/",
         )
 
     def __call__(self, request):

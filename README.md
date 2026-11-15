@@ -82,6 +82,12 @@ cd teknofest
 
 Commit both `django.po` and `django.mo`.
 
+## Jury API
+
+Jury members can create personal API keys from `/jury/api-keys/` and use them
+with the JSON API. See [docs/api.md](docs/api.md) for authentication, endpoints
+and examples.
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE).

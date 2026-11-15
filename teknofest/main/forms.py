@@ -4,7 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from .models import FormDefinition, FormField, Profile, SiteSettings
+from .models import FormDefinition, FormField, JuryAPIKey, Profile, SiteSettings
 from .validators import validate_image_upload
 
 MAX_PHOTO_SIZE = 1 * 1024 * 1024
@@ -66,6 +66,35 @@ class ProfileAdminForm(forms.ModelForm):
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")
         return _validate_profile_photo(photo)
+
+
+class JuryAPIKeyForm(forms.ModelForm):
+    duration_days = forms.TypedChoiceField(
+        choices=JuryAPIKey.Duration.choices,
+        coerce=int,
+        initial=JuryAPIKey.Duration.THIRTY_DAYS,
+        label=_("Duration"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    class Meta:
+        model = JuryAPIKey
+        fields = ("name",)
+        labels = {"name": _("Key name")}
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": _("e.g. Review script"),
+                }
+            ),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        if not name:
+            raise ValidationError(_("Enter a name for this key."))
+        return name
 
 
 class FormDefinitionAdminForm(forms.ModelForm):

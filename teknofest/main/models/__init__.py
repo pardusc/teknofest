@@ -1,4 +1,5 @@
 from .accounts import Profile, User
+from .api_keys import JuryAPIKey
 from .applications import Application, ApplicationAnswer, ApplicationSequence, Attachment
 from .audit import AuditEvent
 from .competitions import (
@@ -22,6 +23,7 @@ __all__ = [
     "CompetitionYear",
     "FormDefinition",
     "FormField",
+    "JuryAPIKey",
     "Profile",
     "Review",
     "SiteSettings",

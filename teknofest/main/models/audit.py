@@ -18,6 +18,8 @@ class AuditEvent(models.Model):
         REVIEW_SUBMITTED = "review_submitted", "Review submitted"
         REVIEW_UPDATED = "review_updated", "Review updated"
         FORM_STATUS_CHANGED = "form_status_changed", "Form status changed"
+        API_KEY_CREATED = "api_key_created", "API key created"
+        API_KEY_REVOKED = "api_key_revoked", "API key revoked"
 
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,

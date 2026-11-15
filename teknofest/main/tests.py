@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import shutil
 import tempfile
 from datetime import timedelta
@@ -31,6 +33,7 @@ from .models import (
     CompetitionYear,
     FormDefinition,
     FormField,
+    JuryAPIKey,
     Profile,
     Review,
     SiteSettings,
@@ -2004,6 +2007,320 @@ class JuryTests(MediaTestCase):
         self.assertNotIn("Top secret", values)
         self.assertNotIn("Hidden answer", values)
         self.assertIn("Visible answer", values)
+
+
+class JuryAPITests(MediaTestCase):
+    def setUp(self):
+        self.jury = get_user_model().objects.create_user(
+            username="api-jury",
+            email="api-jury@example.com",
+            password="secret123",
+        )
+        self.jury.groups.add(Group.objects.get(name="jury"))
+        self.other_jury = get_user_model().objects.create_user(
+            username="api-jury-2",
+            email="api-jury-2@example.com",
+            password="secret123",
+        )
+        self.other_jury.groups.add(Group.objects.get(name="jury"))
+        self.applicant = get_user_model().objects.create_user(
+            username="api-applicant",
+            email="api-applicant@example.com",
+            password="secret123",
+            first_name="Ada",
+            last_name="Lovelace",
+        )
+
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="API form",
+            status=FormDefinition.Status.IN_REVIEW,
+        )
+        self.visible_field = FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+            review_visibility=FormField.ReviewVisibility.VISIBLE,
+            order=1,
+        )
+        self.masked_field = FormField.objects.create(
+            form=self.form,
+            key="secret",
+            label="Secret",
+            field_type=FormField.FieldType.SHORT_TEXT,
+            review_visibility=FormField.ReviewVisibility.MASKED,
+            order=2,
+        )
+        self.application = Application.objects.create(
+            applicant=self.applicant,
+            form=self.form,
+            year=self.year,
+            category=self.category,
+            status=Application.Status.SUBMITTED,
+            code="BUG-2026-00001",
+            submitted_at=timezone.now(),
+        )
+        ApplicationAnswer.objects.create(
+            application=self.application,
+            field=self.visible_field,
+            value="Visible answer",
+        )
+        ApplicationAnswer.objects.create(
+            application=self.application,
+            field=self.masked_field,
+            value="Hidden answer",
+        )
+
+        self.key, self.raw_key = JuryAPIKey.create_key(
+            self.jury,
+            "CLI key",
+            JuryAPIKey.Duration.THIRTY_DAYS,
+        )
+        self.auth = {"HTTP_AUTHORIZATION": f"Bearer {self.raw_key}"}
+
+    def test_session_auth_is_not_enough(self):
+        self.client.force_login(self.jury)
+
+        response = self.client.get(reverse("jury_api_me"))
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_valid_key_returns_identity_and_updates_last_used(self):
+        response = self.client.get(reverse("jury_api_me"), **self.auth)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["user"]["username"], "api-jury")
+        self.assertEqual(data["api_key"]["name"], "CLI key")
+        self.key.refresh_from_db()
+        self.assertIsNotNone(self.key.last_used_at)
+
+    def test_invalid_expired_and_revoked_keys_are_rejected(self):
+        invalid = {"HTTP_AUTHORIZATION": "Bearer not-a-real-key"}
+        self.assertEqual(
+            self.client.get(reverse("jury_api_me"), **invalid).status_code,
+            401,
+        )
+
+        expired = JuryAPIKey.objects.create(
+            user=self.jury,
+            name="Expired",
+            prefix="ptj_expired",
+            key_hash=JuryAPIKey.hash_key("expired-key"),
+            expires_at=timezone.now() - timedelta(minutes=1),
+        )
+        expired_auth = {"HTTP_AUTHORIZATION": "Bearer expired-key"}
+        self.assertEqual(
+            self.client.get(reverse("jury_api_me"), **expired_auth).status_code,
+            401,
+        )
+
+        self.key.revoke()
+        self.assertEqual(
+            self.client.get(reverse("jury_api_me"), **self.auth).status_code,
+            401,
+        )
+
+    def test_non_jury_key_is_rejected(self):
+        _, raw_key = JuryAPIKey.create_key(
+            self.applicant,
+            "Applicant key",
+            JuryAPIKey.Duration.ONE_DAY,
+        )
+
+        response = self.client.get(
+            reverse("jury_api_me"),
+            HTTP_AUTHORIZATION=f"Bearer {raw_key}",
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_forms_endpoint_lists_jury_forms(self):
+        response = self.client.get(reverse("jury_api_forms"), **self.auth)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["id"], self.form.pk)
+        self.assertEqual(data[0]["application_count"], 1)
+        self.assertEqual(data[0]["my_completed_count"], 0)
+
+    def test_applications_endpoint_filters_by_my_review(self):
+        url = reverse("jury_api_applications", args=[self.form.pk])
+
+        all_rows = self.client.get(url, **self.auth).json()
+        self.assertEqual(all_rows["count"], 1)
+        self.assertEqual(all_rows["results"][0]["code"], "BUG-2026-00001")
+
+        pending = self.client.get(url, {"mine": "pending"}, **self.auth).json()
+        self.assertEqual(pending["count"], 1)
+
+        completed = self.client.get(
+            url, {"mine": "completed"}, **self.auth
+        ).json()
+        self.assertEqual(completed["count"], 0)
+
+        submit_review(self.application, self.jury, score=80)
+
+        completed = self.client.get(
+            url, {"mine": "completed"}, **self.auth
+        ).json()
+        self.assertEqual(completed["count"], 1)
+
+    def test_application_detail_masks_identity_and_fields(self):
+        self.form.mask_applicant_identity = True
+        self.form.save()
+
+        response = self.client.get(
+            reverse("jury_api_application", args=[self.application.public_id]),
+            **self.auth,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["applicant"]["masked"])
+        self.assertIsNone(data["applicant"]["email"])
+        values = {item["key"]: item["value"] for item in data["answers"]}
+        self.assertEqual(values["title"], "Visible answer")
+        self.assertIsNone(values["secret"])
+        self.assertTrue(data["can_review"])
+
+    def test_review_can_be_created_and_updated(self):
+        url = reverse("jury_api_review", args=[self.application.public_id])
+
+        response = self.client.post(
+            url,
+            data=json.dumps({"score": 90, "note": "Good"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        review = Review.objects.get(application=self.application, juror=self.jury)
+        self.assertEqual(review.score, 90)
+        self.assertEqual(review.note, "Good")
+
+        response = self.client.post(
+            url,
+            data=json.dumps({"score": 95, "note": "Updated"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        review.refresh_from_db()
+        self.assertEqual(review.score, 95)
+        self.assertEqual(review.note, "Updated")
+
+        detail = self.client.get(
+            reverse("jury_api_application", args=[self.application.public_id]),
+            **self.auth,
+        ).json()
+        self.assertEqual(detail["my_review"]["score"], 95)
+
+    def test_review_validation_errors_return_400(self):
+        url = reverse("jury_api_review", args=[self.application.public_id])
+
+        for payload in ({"note": "No score"}, {"score": 101}):
+            with self.subTest(payload=payload):
+                response = self.client.post(
+                    url,
+                    data=json.dumps(payload),
+                    content_type="application/json",
+                    **self.auth,
+                )
+                self.assertEqual(response.status_code, 400)
+
+    def test_attachment_download_requires_key(self):
+        attachment = Attachment.objects.create(
+            application=self.application,
+            file=SimpleUploadedFile(
+                "attachment.png",
+                b"image-bytes",
+                content_type="image/png",
+            ),
+            original_name="attachment.png",
+            content_type="image/png",
+            size=11,
+        )
+        url = reverse(
+            "jury_api_attachment",
+            args=[self.application.public_id, attachment.pk],
+        )
+
+        self.assertEqual(self.client.get(url).status_code, 401)
+        response = self.client.get(url, **self.auth)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+
+    def test_jury_can_create_and_revoke_key_in_ui(self):
+        self.client.force_login(self.jury)
+
+        response = self.client.post(
+            reverse("main:jury_api_keys"),
+            {"name": "UI key", "duration_days": "7"},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        key = JuryAPIKey.objects.get(user=self.jury, name="UI key")
+        self.assertContains(response, "UI key")
+        match = re.search(
+            r'<code id="new-api-key">([^<]+)</code>',
+            response.content.decode(),
+        )
+        self.assertIsNotNone(match)
+        raw_key = match.group(1)
+
+        response = self.client.get(reverse("main:jury_api_keys"))
+        self.assertNotContains(response, raw_key)
+
+        revoke = self.client.post(
+            reverse("main:jury_api_key_revoke", args=[key.pk])
+        )
+        self.assertRedirects(revoke, reverse("main:jury_api_keys"))
+        key.refresh_from_db()
+        self.assertIsNotNone(key.revoked_at)
+
+        response = self.client.get(reverse("main:jury_api_keys"))
+        self.assertNotContains(response, "UI key")
+
+    def test_expired_key_is_hidden_in_ui(self):
+        self.client.force_login(self.jury)
+        expired, _ = JuryAPIKey.create_key(
+            self.jury,
+            "Expired UI",
+            JuryAPIKey.Duration.ONE_DAY,
+        )
+        JuryAPIKey.objects.filter(pk=expired.pk).update(
+            expires_at=timezone.now() - timedelta(minutes=1)
+        )
+
+        response = self.client.get(reverse("main:jury_api_keys"))
+
+        self.assertNotContains(response, "Expired UI")
+        self.assertContains(response, "CLI key")
+
+    def test_juror_cannot_revoke_another_jurors_key(self):
+        self.client.force_login(self.other_jury)
+
+        response = self.client.post(
+            reverse("main:jury_api_key_revoke", args=[self.key.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.key.refresh_from_db()
+        self.assertIsNone(self.key.revoked_at)
+
+    def test_applicant_cannot_access_key_management(self):
+        self.client.force_login(self.applicant)
+
+        response = self.client.get(reverse("main:jury_api_keys"))
+
+        self.assertEqual(response.status_code, 403)
 
 
 class TranslationTests(TestCase):

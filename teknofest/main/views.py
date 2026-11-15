@@ -1,15 +1,17 @@
 import mimetypes
 import os
+import secrets
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.cache import cache
 from django.core.exceptions import SuspiciousFileOperation, ValidationError
-from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Q, Subquery
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils._os import safe_join
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
@@ -17,11 +19,28 @@ from django.views import View
 from django.views.generic import DetailView, ListView, RedirectView, UpdateView
 
 from .dynamic_forms import build_form
-from .forms import ProfileForm
-from .models import Application, Attachment, Category, FormDefinition, FormField, Profile, Review, SiteSettings
+from .forms import JuryAPIKeyForm, ProfileForm
+from .models import (
+    Application,
+    Attachment,
+    AuditEvent,
+    Category,
+    FormDefinition,
+    FormField,
+    JuryAPIKey,
+    Profile,
+    SiteSettings,
+)
 from .permissions import ApplicantOnlyMixin, JuryRequiredMixin, is_jury
 from .services import applications as application_service
+from .services import audit as audit_service
 from .services import reviews as review_service
+from .services.jury import (
+    REVIEWABLE_APPLICATION_STATUSES,
+    jury_application_queue,
+    jury_application_queryset,
+    jury_form_queryset,
+)
 from .services.reviews import review_stats
 
 
@@ -457,106 +476,12 @@ def _validation_message(error):
     return " ".join(str(message) for message in error.messages)
 
 
-REVIEWABLE_APPLICATION_STATUSES = (
-    Application.Status.SUBMITTED,
-    Application.Status.IN_REVIEW,
-    Application.Status.EVALUATED,
-)
-
-REVIEW_ORDERING = {
-    "submitted_at",
-    "-submitted_at",
-    "my_score",
-    "-my_score",
-    "average",
-    "-average",
-}
-
-
 class JuryDashboardView(JuryRequiredMixin, ListView):
     template_name = "jury/dashboard.html"
     context_object_name = "forms"
 
     def get_queryset(self):
-        user = self.request.user
-        return (
-            FormDefinition.objects.select_related("year", "category")
-            .filter(year__is_active=True, category__is_active=True)
-            .annotate(
-                application_count=Count(
-                    "applications",
-                    filter=Q(
-                        applications__status__in=REVIEWABLE_APPLICATION_STATUSES
-                    ),
-                    distinct=True,
-                ),
-                my_completed_count=Count(
-                    "applications__reviews",
-                    filter=Q(
-                        applications__reviews__juror=user,
-                        applications__reviews__completed_at__isnull=False,
-                    ),
-                    distinct=True,
-                ),
-            )
-            .order_by("-year__year", "category__order")
-        )
-
-
-def _jury_application_queryset(form_definition, request):
-    my_reviews = Review.objects.filter(
-        application=OuterRef("pk"),
-        juror=request.user,
-    )
-    average_reviews = (
-        Review.objects.filter(application=OuterRef("pk"))
-        .values("application")
-        .annotate(value=Avg("score"))
-        .values("value")
-    )
-
-    queryset = (
-        Application.objects.select_related("form", "year", "category")
-        .filter(
-            form=form_definition,
-            status__in=REVIEWABLE_APPLICATION_STATUSES,
-        )
-        .annotate(
-            my_score=Subquery(my_reviews.values("score")[:1]),
-            my_completed=Exists(my_reviews),
-            average=Subquery(average_reviews, output_field=FloatField()),
-            attachment_count=Count("attachments", distinct=True),
-        )
-    )
-
-    mine = request.GET.get("mine")
-    if mine == "completed":
-        queryset = queryset.filter(my_completed=True)
-    elif mine == "pending":
-        queryset = queryset.filter(my_completed=False)
-
-    if request.GET.get("files") == "1":
-        queryset = queryset.filter(attachment_count__gt=0)
-
-    query = request.GET.get("q", "").strip()
-    if query:
-        conditions = Q(code__icontains=query)
-        if not form_definition.mask_applicant_identity:
-            conditions |= Q(applicant__email__icontains=query)
-        queryset = queryset.filter(conditions)
-
-    ordering = request.GET.get("ordering", "-submitted_at")
-    if ordering not in REVIEW_ORDERING:
-        ordering = "-submitted_at"
-    return queryset.order_by(ordering, "pk")
-
-
-def _jury_application_queue(form_definition, request):
-    return list(
-        _jury_application_queryset(form_definition, request)
-        .values_list("public_id", flat=True)
-        .distinct()
-    )
+        return jury_form_queryset(self.request.user)
 
 
 class JuryApplicationListView(JuryRequiredMixin, ListView):
@@ -569,7 +494,11 @@ class JuryApplicationListView(JuryRequiredMixin, ListView):
             FormDefinition.objects.select_related("year", "category"),
             pk=self.kwargs["pk"],
         )
-        return _jury_application_queryset(self.form_definition, self.request)
+        return jury_application_queryset(
+            self.form_definition,
+            self.request.user,
+            self.request.GET,
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -611,7 +540,11 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
         applicant = application.applicant
         masked = application.form.mask_applicant_identity
 
-        queue = _jury_application_queue(application.form, self.request)
+        queue = jury_application_queue(
+            application.form,
+            self.request.user,
+            self.request.GET,
+        )
         try:
             index = queue.index(application.public_id)
         except ValueError:
@@ -647,7 +580,11 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
 class JuryReviewSubmitView(JuryRequiredMixin, View):
     def post(self, request, public_id):
         application = _get_reviewable_application(request, public_id)
-        queue = _jury_application_queue(application.form, request)
+        queue = jury_application_queue(
+            application.form,
+            request.user,
+            request.GET,
+        )
         try:
             index = queue.index(application.public_id)
         except ValueError:
@@ -703,6 +640,74 @@ class JuryReviewSubmitView(JuryRequiredMixin, View):
 
 def _with_query(url, query):
     return f"{url}?{query}" if query else url
+
+
+class JuryAPIKeyListView(JuryRequiredMixin, ListView):
+    template_name = "jury/api_keys.html"
+    context_object_name = "api_keys"
+
+    def get_queryset(self):
+        return self.request.user.jury_api_keys.filter(
+            revoked_at__isnull=True,
+            expires_at__gt=timezone.now(),
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault("form", JuryAPIKeyForm())
+        context.setdefault("new_key", None)
+
+        token = self.request.GET.get("reveal")
+        if token:
+            cache_key = f"jury-api-key-reveal:{self.request.user.pk}:{token}"
+            new_key = cache.get(cache_key)
+            cache.delete(cache_key)
+            if not new_key:
+                new_key = self.request.session.pop("new_jury_api_key", None)
+            else:
+                self.request.session.pop("new_jury_api_key", None)
+            context["new_key"] = new_key
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = JuryAPIKeyForm(request.POST)
+        if form.is_valid():
+            key, raw_key = JuryAPIKey.create_key(
+                request.user,
+                form.cleaned_data["name"],
+                form.cleaned_data["duration_days"],
+            )
+            audit_service.record(
+                AuditEvent.Action.API_KEY_CREATED,
+                actor=request.user,
+                name=key.name,
+                prefix=key.prefix,
+                expires_at=key.expires_at.isoformat(),
+            )
+            token = secrets.token_urlsafe(16)
+            request.session["new_jury_api_key"] = raw_key
+            cache.set(
+                f"jury-api-key-reveal:{request.user.pk}:{token}",
+                raw_key,
+                timeout=120,
+            )
+            return redirect(f"{reverse('main:jury_api_keys')}?reveal={token}")
+        self.object_list = self.get_queryset()
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+class JuryAPIKeyRevokeView(JuryRequiredMixin, View):
+    def post(self, request, pk):
+        key = get_object_or_404(JuryAPIKey, pk=pk, user=request.user)
+        key.revoke()
+        audit_service.record(
+            AuditEvent.Action.API_KEY_REVOKED,
+            actor=request.user,
+            name=key.name,
+            prefix=key.prefix,
+        )
+        messages.success(request, _("API key revoked."))
+        return redirect("main:jury_api_keys")
 
 
 def _get_reviewable_application(request, public_id):

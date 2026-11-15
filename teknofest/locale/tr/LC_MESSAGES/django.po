@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Pardus Teknofest\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-15 07:19+0300\n"
+"POT-Creation-Date: 2026-11-15 09:04+0300\n"
 "PO-Revision-Date: 2026-11-15 04:00+0300\n"
 "Last-Translator: Pardus Teknofest <no-reply@example.com>\n"
 "Language-Team: Turkish\n"
@@ -15,37 +15,87 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: main/forms.py:21
-msgid "e.g. Ankara"
-msgstr "Örn. Ankara"
+#: main/api/authentication.py:24
+msgid "Invalid Authorization header."
+msgstr "Geçersiz Authorization başlığı."
 
-#: main/forms.py:23
-msgid "e.g. Gazi University"
-msgstr "Örn. Gazi Üniversitesi"
+#: main/api/authentication.py:29
+msgid "Invalid API key."
+msgstr "Geçersiz API anahtarı."
 
-#: main/forms.py:38 main/tests.py:230
-msgid "Enter a valid phone number."
-msgstr "Geçerli bir telefon numarası girin."
+#: main/api/authentication.py:37
+msgid "Invalid or expired API key."
+msgstr "Geçersiz veya süresi dolmuş API anahtarı."
 
-#: main/forms.py:47 main/tests.py:210
+#: main/api/authentication.py:39
+msgid "This API key does not have jury access."
+msgstr "Bu API anahtarının jüri erişimi yok."
+
+#: main/forms.py:18 main/tests.py:310
 msgid "The photo must be 1 MB or smaller."
 msgstr "Fotoğraf en fazla 1 MB olabilir."
 
-#: main/forms.py:49 main/services/applications.py:301
-#: main/services/applications.py:306 main/tests.py:198 main/tests.py:826
-msgid "Upload a JPG or PNG image."
-msgstr "JPG veya PNG biçiminde bir görsel yükleyin."
+#: main/forms.py:31
+msgid "e.g. Ankara"
+msgstr "Örn. Ankara"
 
-#: main/forms.py:92
+#: main/forms.py:33
+msgid "e.g. Gazi University"
+msgstr "Örn. Gazi Üniversitesi"
+
+#: main/forms.py:53 main/tests.py:330
+msgid "Enter a valid phone number."
+msgstr "Geçerli bir telefon numarası girin."
+
+#: main/forms.py:76
+msgid "Duration"
+msgstr "Süre"
+
+#: main/forms.py:83
+msgid "Key name"
+msgstr "Anahtar adı"
+
+#: main/forms.py:88
+msgid "e.g. Review script"
+msgstr "Örn. Değerlendirme betiği"
+
+#: main/forms.py:96
+msgid "Enter a name for this key."
+msgstr "Bu anahtar için bir ad girin."
+
+#: main/forms.py:113
+msgid "Optional. The global application deadline applies when this is empty."
+msgstr "İsteğe bağlı. Boş bırakılırsa genel başvuru bitiş tarihi uygulanır."
+
+#: main/forms.py:117
+msgid "Required because no global application deadline is configured."
+msgstr "Genel başvuru bitiş tarihi tanımlı olmadığı için zorunludur."
+
+#: main/forms.py:160
 msgid "Choices must be unique."
 msgstr "Seçenekler benzersiz olmalı."
 
-#: main/forms.py:94
+#: main/forms.py:162
 msgid "Choose at least one option for this field type."
 msgstr "Bu alan türü için en az bir seçenek girin."
 
+#: main/models/api_keys.py:15
+msgid "1 day"
+msgstr "1 gün"
+
+#: main/models/api_keys.py:16
+msgid "7 days"
+msgstr "7 gün"
+
+#: main/models/api_keys.py:17
+msgid "30 days"
+msgstr "30 gün"
+
+#: main/models/api_keys.py:18
+msgid "90 days"
+msgstr "90 gün"
+
 #: main/models/applications.py:78 main/templates/jury/application_list.html:67
-#: main/templates/main/application_detail.html:77
 msgid "Submitted"
 msgstr "Gönderildi"
 
@@ -85,50 +135,56 @@ msgstr "Tekli ve çoklu seçim alanları en az bir seçenek gerektirir."
 msgid "Jury accounts cannot apply."
 msgstr "Jüri hesapları başvuru yapamaz."
 
-#: main/services/applications.py:40 main/tests.py:1698 main/tests.py:1709
-#: main/tests.py:2226 main/views.py:150 main/views.py:163
+#: main/services/applications.py:40 main/tests.py:2013 main/tests.py:2024
+#: main/tests.py:2581 main/views.py:166 main/views.py:179
 msgid "This form is not accepting applications."
 msgstr "Bu form şu anda başvuru kabul etmiyor."
 
-#: main/services/applications.py:42 main/tests.py:769
+#: main/services/applications.py:42 main/tests.py:957
 msgid "You already have an application for this form."
 msgstr "Bu form için zaten bir başvurunuz var."
 
 #: main/services/applications.py:162 main/services/applications.py:228
-#: main/tests.py:743 main/tests.py:862
+#: main/tests.py:931 main/tests.py:1050
 msgid "At least one attachment is required for this form."
 msgstr "Bu form için en az bir ek dosya yükleyin."
 
-#: main/services/applications.py:179 main/tests.py:1601 main/tests.py:1603
-#: main/tests.py:1720
+#: main/services/applications.py:179 main/tests.py:1916 main/tests.py:1918
+#: main/tests.py:2035
 msgid "Jury accounts cannot submit applications."
 msgstr "Jüri hesapları başvuru gönderemez."
 
-#: main/services/applications.py:184 main/tests.py:780 main/tests.py:782
-#: main/views.py:257 main/views.py:276
+#: main/services/applications.py:184 main/tests.py:968 main/tests.py:970
+#: main/views.py:273 main/views.py:292
 msgid "This application can no longer be edited."
 msgstr "Bu başvuru artık düzenlenemez."
 
-#: main/services/applications.py:190 main/tests.py:736
+#: main/services/applications.py:190 main/tests.py:924
 msgid "Complete your profile before submitting."
 msgstr "Başvuruyu göndermeden önce profil bilgilerinizi tamamlayın."
 
-#: main/services/applications.py:225 main/tests.py:753
+#: main/services/applications.py:225 main/tests.py:941
 msgid "This form does not accept attachments."
 msgstr "Bu form ek dosya kabul etmiyor."
 
-#: main/services/applications.py:235 main/tests.py:843
+#: main/services/applications.py:235 main/tests.py:1031
 #, python-format
 msgid "At most %(limit)s files can be uploaded per application."
 msgstr "Başvuru başına en fazla %(limit)s dosya yüklenebilir."
 
-#: main/services/applications.py:244 main/tests.py:833
+#: main/services/applications.py:244 main/tests.py:1021
 msgid "Each file must be 2 MB or smaller."
 msgstr "Her dosya en fazla 2 MB olabilir."
 
-#: main/services/applications.py:250 main/tests.py:838
+#: main/services/applications.py:250 main/tests.py:1026
 msgid "Total attachment size must be 10 MB or smaller."
 msgstr "Ek dosyaların toplam boyutu en fazla 10 MB olabilir."
+
+#: main/services/applications.py:301 main/services/applications.py:306
+#: main/tests.py:264 main/tests.py:279 main/tests.py:1014
+#: main/validators.py:15 main/validators.py:20
+msgid "Upload a JPG or PNG image."
+msgstr "JPG veya PNG biçiminde bir görsel yükleyin."
 
 #: main/services/applications.py:312
 #, python-format
@@ -158,11 +214,166 @@ msgstr "Değerlendirmeyi göndermeden önce bir puan girin."
 
 #: main/services/reviews.py:70
 msgid "Reviews can only be edited while the form is in review."
-msgstr "Değerlendirmeler yalnızca form inceleme aşamasındayken düzenlenebilir."
+msgstr ""
+"Değerlendirmeler yalnızca form inceleme aşamasındayken düzenlenebilir."
 
 #: main/services/reviews.py:80 main/services/reviews.py:82
 msgid "Enter a whole number between 0 and 100."
 msgstr "0 ile 100 arasında bir tam sayı girin."
+
+#: main/templates/jury/_application_nav.html:3
+msgid "Application navigation"
+msgstr "Başvuru gezinmesi"
+
+#: main/templates/jury/_application_nav.html:5
+msgid "Previous application"
+msgstr "Önceki başvuru"
+
+#: main/templates/jury/_application_nav.html:8
+msgid "Next application"
+msgstr "Sonraki başvuru"
+
+#: main/templates/jury/api_keys.html:4 main/templates/jury/api_keys.html:11
+#: main/templates/jury/api_keys.html:17 main/templates/jury/dashboard.html:14
+#: main/templates/main/base.html:63 main/templates/main/base.html:107
+msgid "API keys"
+msgstr "API anahtarları"
+
+#: main/templates/jury/api_keys.html:7
+msgid ""
+"Revoke this API key? Applications using it will lose access immediately."
+msgstr ""
+"Bu API anahtarı iptal edilsin mi? Kullanan uygulamaların erişimi hemen "
+"kesilir."
+
+#: main/templates/jury/api_keys.html:9
+#: main/templates/jury/application_detail.html:8
+#: main/templates/jury/application_list.html:9
+#: main/templates/main/application_detail.html:9
+#: main/templates/main/application_form.html:9
+#: main/templates/main/form_preview.html:8
+msgid "Breadcrumb"
+msgstr "Sayfa yolu"
+
+#: main/templates/jury/api_keys.html:10
+#: main/templates/jury/application_detail.html:9
+#: main/templates/jury/application_list.html:10
+#: main/templates/jury/dashboard.html:4 main/templates/main/base.html:62
+#: main/templates/main/base.html:106 main/templates/main/home.html:130
+msgid "Jury panel"
+msgstr "Jüri paneli"
+
+#: main/templates/jury/api_keys.html:16 main/templates/jury/dashboard.html:10
+msgid "Jury area"
+msgstr "Jüri alanı"
+
+#: main/templates/jury/api_keys.html:18
+msgid ""
+"Create personal keys for the jury API. Each key expires automatically and "
+"can be revoked at any time."
+msgstr ""
+"Jüri API'si için kişisel anahtarlar oluşturun. Her anahtar otomatik olarak "
+"sona erer ve istediğiniz zaman iptal edilebilir."
+
+#: main/templates/jury/api_keys.html:20
+msgid "Back to jury panel"
+msgstr "Jüri paneline dön"
+
+#: main/templates/jury/api_keys.html:26
+msgid "Your new API key"
+msgstr "Yeni API anahtarınız"
+
+#: main/templates/jury/api_keys.html:27
+msgid "Copy this key now. For security reasons it will not be shown again."
+msgstr ""
+"Bu anahtarı şimdi kopyalayın. Güvenlik nedeniyle tekrar gösterilmeyecektir."
+
+#: main/templates/jury/api_keys.html:30
+msgid "Copy"
+msgstr "Kopyala"
+
+#: main/templates/jury/api_keys.html:39
+msgid "Create a key"
+msgstr "Anahtar oluştur"
+
+#: main/templates/jury/api_keys.html:52
+msgid "The key expires automatically after this period."
+msgstr "Anahtar bu sürenin sonunda otomatik olarak sona erer."
+
+#: main/templates/jury/api_keys.html:54
+msgid "Create API key"
+msgstr "API anahtarı oluştur"
+
+#: main/templates/jury/api_keys.html:63
+msgid "Your keys"
+msgstr "Anahtarlarınız"
+
+#: main/templates/jury/api_keys.html:64
+msgid "keys"
+msgstr "anahtar"
+
+#: main/templates/jury/api_keys.html:70
+msgid "Name"
+msgstr "Ad"
+
+#: main/templates/jury/api_keys.html:71
+msgid "Key"
+msgstr "Anahtar"
+
+#: main/templates/jury/api_keys.html:72 main/templates/jury/dashboard.html:32
+#: main/templates/main/form_list.html:24
+msgid "Status"
+msgstr "Durum"
+
+#: main/templates/jury/api_keys.html:73
+#: main/templates/main/application_detail.html:75
+msgid "Created"
+msgstr "Oluşturulma"
+
+#: main/templates/jury/api_keys.html:74
+msgid "Expires"
+msgstr "Bitiş"
+
+#: main/templates/jury/api_keys.html:75
+msgid "Last used"
+msgstr "Son kullanım"
+
+#: main/templates/jury/api_keys.html:76
+#: main/templates/jury/application_list.html:72
+#: main/templates/jury/dashboard.html:32
+#: main/templates/main/application_list.html:25
+#: main/templates/main/form_list.html:25 main/templates/main/home.html:42
+#: main/templates/main/home.html:68
+msgid "Action"
+msgstr "İşlem"
+
+#: main/templates/jury/api_keys.html:85
+msgid "Active"
+msgstr "Etkin"
+
+#: main/templates/jury/api_keys.html:86
+msgid "Expired"
+msgstr "Süresi doldu"
+
+#: main/templates/jury/api_keys.html:87
+msgid "Revoked"
+msgstr "İptal edildi"
+
+#: main/templates/jury/api_keys.html:96
+msgid "Revoke"
+msgstr "İptal et"
+
+#: main/templates/jury/api_keys.html:105
+msgid "You have not created an API key yet."
+msgstr "Henüz bir API anahtarı oluşturmadınız."
+
+#: main/templates/jury/api_keys.html:118
+msgid "Copied"
+msgstr "Kopyalandı"
+
+#: main/templates/jury/api_keys.html:119
+msgid "Copy the key manually:"
+msgstr "Anahtarı elle kopyalayın:"
 
 #: main/templates/jury/application_detail.html:4
 #: main/templates/jury/application_detail.html:11
@@ -177,129 +388,124 @@ msgstr "Başvuru"
 msgid "Jury review"
 msgstr "Jüri incelemesi"
 
-#: main/templates/jury/application_detail.html:8
-#: main/templates/jury/application_list.html:9
-#: main/templates/main/application_detail.html:9
-#: main/templates/main/application_form.html:9
-#: main/templates/main/form_preview.html:8
-msgid "Breadcrumb"
-msgstr "Sayfa yolu"
-
-#: main/templates/jury/application_detail.html:9
-#: main/templates/jury/application_list.html:10
-#: main/templates/jury/dashboard.html:4 main/templates/main/base.html:62
-#: main/templates/main/base.html:98 main/templates/main/home.html:130
-msgid "Jury panel"
-msgstr "Jüri paneli"
-
-#: main/templates/jury/application_detail.html:27
+#: main/templates/jury/application_detail.html:28
 msgid "Identity information is hidden"
 msgstr "Kimlik bilgileri gizli"
 
-#: main/templates/jury/application_detail.html:27
+#: main/templates/jury/application_detail.html:28
 msgid "Applicant identity is hidden from jury review for this form."
-msgstr "Bu formda başvuru sahibinin kimlik bilgileri jüri değerlendirmesinden gizlenmiştir."
+msgstr ""
+"Bu formda başvuru sahibinin kimlik bilgileri jüri değerlendirmesinden "
+"gizlenmiştir."
 
-#: main/templates/jury/application_detail.html:33
+#: main/templates/jury/application_detail.html:34
 msgid "Application content"
 msgstr "Başvuru içeriği"
 
-#: main/templates/jury/application_detail.html:33
+#: main/templates/jury/application_detail.html:34
 #: main/templates/main/application_detail.html:36
 msgid "Answers"
 msgstr "Yanıtlar"
 
-#: main/templates/jury/application_detail.html:39
+#: main/templates/jury/application_detail.html:40
 msgid "This field is hidden during review."
 msgstr "Bu alan değerlendirme sırasında gizlenmiştir."
 
-#: main/templates/jury/application_detail.html:41
+#: main/templates/jury/application_detail.html:42
 msgid "Not answered."
 msgstr "Yanıt verilmemiş."
 
-#: main/templates/jury/application_detail.html:47
+#: main/templates/jury/application_detail.html:48
 msgid "No answers available to show the jury."
 msgstr "Jüriye gösterilebilecek yanıt bulunmuyor."
 
-#: main/templates/jury/application_detail.html:53
+#: main/templates/jury/application_detail.html:54
 #: main/templates/jury/application_list.html:68
 #: main/templates/main/application_detail.html:52
 #: main/templates/main/application_form.html:55
 msgid "Attachments"
 msgstr "Ek dosyalar"
 
-#: main/templates/jury/application_detail.html:60
+#: main/templates/jury/application_detail.html:61
 msgid "Download"
 msgstr "İndir"
 
-#: main/templates/jury/application_detail.html:65
+#: main/templates/jury/application_detail.html:66
 msgid "No attachments in this application."
 msgstr "Bu başvuruda ek dosya yok."
 
-#: main/templates/jury/application_detail.html:73
+#: main/templates/jury/application_detail.html:74
 msgid "Applicant"
 msgstr "Başvuru sahibi"
 
-#: main/templates/jury/application_detail.html:76
+#: main/templates/jury/application_detail.html:77
 msgid "Name and e-mail are hidden."
 msgstr "Ad ve e-posta bilgileri gizlidir."
 
-#: main/templates/jury/application_detail.html:81
+#: main/templates/jury/application_detail.html:82
 msgid "Score and note"
 msgstr "Puan ve not"
 
-#: main/templates/jury/application_detail.html:85
-msgid "Your evaluation has been submitted. You can update it while the form remains in review."
-msgstr "Değerlendirmeniz gönderildi. Form incelemede kaldığı sürece puanınızı güncelleyebilirsiniz."
+#: main/templates/jury/application_detail.html:86
+msgid ""
+"Your evaluation has been submitted. You can update it while the form remains"
+" in review."
+msgstr ""
+"Değerlendirmeniz gönderildi. Form incelemede kaldığı sürece puanınızı "
+"güncelleyebilirsiniz."
 
-#: main/templates/jury/application_detail.html:87
-msgid "Submit your score and note. You can update them while the form remains in review."
-msgstr "Puanınızı ve notunuzu gönderin. Form incelemede kaldığı sürece bunları güncelleyebilirsiniz."
+#: main/templates/jury/application_detail.html:88
+msgid ""
+"Submit your score and note. You can update them while the form remains in "
+"review."
+msgstr ""
+"Puanınızı ve notunuzu gönderin. Form incelemede kaldığı sürece bunları "
+"güncelleyebilirsiniz."
 
-#: main/templates/jury/application_detail.html:92
+#: main/templates/jury/application_detail.html:93
 msgid "Score"
 msgstr "Puan"
 
-#: main/templates/jury/application_detail.html:96
+#: main/templates/jury/application_detail.html:97
 msgid "Evaluation note"
 msgstr "Değerlendirme notu"
 
-#: main/templates/jury/application_detail.html:96
+#: main/templates/jury/application_detail.html:97
 msgid "Optional"
 msgstr "İsteğe bağlı"
 
-#: main/templates/jury/application_detail.html:97
+#: main/templates/jury/application_detail.html:98
 msgid "Write a short justification supporting your score"
 msgstr "Puanınızı destekleyen kısa gerekçeyi yazın"
 
-#: main/templates/jury/application_detail.html:99
+#: main/templates/jury/application_detail.html:100
 msgid "Submit evaluation"
 msgstr "Değerlendirmeyi gönder"
 
-#: main/templates/jury/application_detail.html:102
+#: main/templates/jury/application_detail.html:103
 msgid "This form is not accepting reviews right now."
 msgstr "Bu form şu anda değerlendirme kabul etmiyor."
 
-#: main/templates/jury/application_detail.html:104
+#: main/templates/jury/application_detail.html:105
 msgid "Your saved score"
 msgstr "Kayıtlı puanınız"
 
-#: main/templates/jury/application_detail.html:112
+#: main/templates/jury/application_detail.html:113
 msgid "Evaluation summary"
 msgstr "Değerlendirme özeti"
 
-#: main/templates/jury/application_detail.html:114
+#: main/templates/jury/application_detail.html:115
 msgid "Current average"
 msgstr "Güncel ortalama"
 
-#: main/templates/jury/application_detail.html:115
+#: main/templates/jury/application_detail.html:116
 #, python-format
 msgid "%(counter)s completed review"
 msgid_plural "%(counter)s completed reviews"
 msgstr[0] "%(counter)s tamamlanmış değerlendirme"
 msgstr[1] "%(counter)s tamamlanmış değerlendirme"
 
-#: main/templates/jury/application_detail.html:127
+#: main/templates/jury/application_detail.html:128
 msgid "No other completed reviews yet."
 msgstr "Henüz başka tamamlanmış değerlendirme yok."
 
@@ -312,18 +518,18 @@ msgid "Review applications and save your own evaluation."
 msgstr "Başvuruları inceleyin ve kendi değerlendirmenizi kaydedin."
 
 #: main/templates/jury/application_list.html:21
-#: main/templates/jury/dashboard.html:37
+#: main/templates/jury/dashboard.html:38
 msgid "Review open"
 msgstr "Değerlendirme açık"
 
 #: main/templates/jury/application_list.html:21
-#: main/templates/jury/dashboard.html:38 main/templates/main/home.html:96
+#: main/templates/jury/dashboard.html:39 main/templates/main/home.html:96
 #: main/templates/main/home.html:140
 msgid "Application period"
 msgstr "Başvuru dönemi"
 
 #: main/templates/jury/application_list.html:21
-#: main/templates/jury/dashboard.html:39 main/templates/main/form_list.html:63
+#: main/templates/jury/dashboard.html:40 main/templates/main/form_list.html:63
 #: main/templates/main/home.html:80 main/templates/main/home.html:141
 msgid "Closed"
 msgstr "Kapalı"
@@ -399,7 +605,7 @@ msgid "Apply filters"
 msgstr "Filtreleri uygula"
 
 #: main/templates/jury/application_list.html:57
-#: main/templates/jury/dashboard.html:31
+#: main/templates/jury/dashboard.html:32
 msgid "Applications"
 msgstr "Başvurular"
 
@@ -423,14 +629,6 @@ msgstr "Ortalama"
 msgid "Review"
 msgstr "Değerlendirme"
 
-#: main/templates/jury/application_list.html:72
-#: main/templates/jury/dashboard.html:31
-#: main/templates/main/application_list.html:25
-#: main/templates/main/form_list.html:25 main/templates/main/home.html:42
-#: main/templates/main/home.html:68
-msgid "Action"
-msgstr "İşlem"
-
 #: main/templates/jury/application_list.html:92
 #, python-format
 msgid "Page %(number)s / %(total)s"
@@ -450,55 +648,52 @@ msgstr "Bu ölçütlere uygun başvuru bulunamadı"
 
 #: main/templates/jury/application_list.html:102
 msgid "You can change the filters or check again later."
-msgstr "Filtreleri değiştirebilir veya daha sonra yeniden kontrol edebilirsiniz."
-
-#: main/templates/jury/dashboard.html:10
-msgid "Jury area"
-msgstr "Jüri alanı"
+msgstr ""
+"Filtreleri değiştirebilir veya daha sonra yeniden kontrol edebilirsiniz."
 
 #: main/templates/jury/dashboard.html:11
 msgid "Evaluation panel"
 msgstr "Değerlendirme paneli"
 
 #: main/templates/jury/dashboard.html:12
-msgid "Review applications submitted to competition forms and save your evaluation."
-msgstr "Yarışma formlarına gelen başvuruları inceleyin ve değerlendirmenizi kaydedin."
+msgid ""
+"Review applications submitted to competition forms and save your evaluation."
+msgstr ""
+"Yarışma formlarına gelen başvuruları inceleyin ve değerlendirmenizi "
+"kaydedin."
 
-#: main/templates/jury/dashboard.html:22
+#: main/templates/jury/dashboard.html:23
 msgid "applications"
 msgstr "başvuru"
 
-#: main/templates/jury/dashboard.html:22
+#: main/templates/jury/dashboard.html:23
 msgid "reviewed by you"
 msgstr "tarafınızdan değerlendirildi"
 
-#: main/templates/jury/dashboard.html:28
+#: main/templates/jury/dashboard.html:29
 msgid "Forms"
 msgstr "Formlar"
 
-#: main/templates/jury/dashboard.html:31 main/templates/main/form_list.html:22
+#: main/templates/jury/dashboard.html:32 main/templates/main/form_list.html:22
 #: main/templates/main/home.html:68
 msgid "Form"
 msgstr "Form"
 
-#: main/templates/jury/dashboard.html:31 main/templates/main/form_list.html:24
-msgid "Status"
-msgstr "Durum"
-
-#: main/templates/jury/dashboard.html:31
+#: main/templates/jury/dashboard.html:32
 msgid "My reviews"
 msgstr "Değerlendirmelerim"
 
-#: main/templates/jury/dashboard.html:43
+#: main/templates/jury/dashboard.html:44
 msgid "Open applications"
 msgstr "Başvuruları aç"
 
-#: main/templates/jury/dashboard.html:52
+#: main/templates/jury/dashboard.html:53
 msgid "No forms to review yet"
 msgstr "Henüz değerlendirilecek form yok"
 
-#: main/templates/jury/dashboard.html:53
-msgid "Forms linked to active competition years and categories are listed here."
+#: main/templates/jury/dashboard.html:54
+msgid ""
+"Forms linked to active competition years and categories are listed here."
 msgstr "Aktif yarışma yılı ve kategorilere bağlı formlar burada listelenir."
 
 #: main/templates/main/application_detail.html:7
@@ -508,7 +703,7 @@ msgstr "Bu başvuruyu ve eklerini kalıcı olarak silmek istiyor musunuz?"
 #: main/templates/main/application_detail.html:10
 #: main/templates/main/application_list.html:4
 #: main/templates/main/application_list.html:11
-#: main/templates/main/base.html:65 main/templates/main/base.html:101
+#: main/templates/main/base.html:66 main/templates/main/base.html:110
 #: main/templates/main/home.html:36
 msgid "My applications"
 msgstr "Başvurularım"
@@ -543,10 +738,6 @@ msgstr "Henüz ek dosya yüklenmedi."
 msgid "Application history"
 msgstr "Başvuru geçmişi"
 
-#: main/templates/main/application_detail.html:75
-msgid "Created"
-msgstr "Oluşturulma"
-
 #: main/templates/main/application_detail.html:76
 #: main/templates/main/application_list.html:24
 #: main/templates/main/home.html:42
@@ -558,7 +749,7 @@ msgid "Delete this file?"
 msgstr "Bu dosya silinsin mi?"
 
 #: main/templates/main/application_form.html:10
-#: main/templates/main/base.html:64 main/templates/main/base.html:100
+#: main/templates/main/base.html:65 main/templates/main/base.html:109
 #: main/templates/main/form_list.html:4 main/templates/main/form_list.html:11
 #: main/templates/main/form_preview.html:9 main/templates/main/home.html:28
 #: main/templates/main/home.html:64
@@ -570,7 +761,7 @@ msgid "Back to application"
 msgstr "Başvuruya dön"
 
 #: main/templates/main/application_form.html:42
-#: main/templates/main/profile.html:72
+#: main/templates/main/profile.html:78
 msgid "optional"
 msgstr "isteğe bağlı"
 
@@ -599,7 +790,7 @@ msgid "Cancel"
 msgstr "İptal"
 
 #: main/templates/main/application_form.html:86
-#: main/templates/main/profile.html:81
+#: main/templates/main/profile.html:87
 msgid "Save changes"
 msgstr "Değişiklikleri kaydet"
 
@@ -620,7 +811,7 @@ msgid "Category"
 msgstr "Kategori"
 
 #: main/templates/main/application_form.html:99
-#: main/templates/main/base.html:121 main/templates/main/form_list.html:23
+#: main/templates/main/base.html:130 main/templates/main/form_list.html:23
 #: main/templates/main/home.html:68
 msgid "Deadline"
 msgstr "Son başvuru"
@@ -652,14 +843,17 @@ msgstr "Hesap alanı"
 
 #: main/templates/main/application_list.html:12
 msgid "Follow your applications and continue editing until the deadline."
-msgstr "Başvurularınızı takip edin ve son başvuru tarihine kadar düzenlemeye devam edin."
+msgstr ""
+"Başvurularınızı takip edin ve son başvuru tarihine kadar düzenlemeye devam "
+"edin."
 
 #: main/templates/main/application_list.html:14
 msgid "View application forms"
 msgstr "Başvuru formlarını görüntüle"
 
 #: main/templates/main/application_list.html:38
-#: main/templates/main/form_list.html:59 main/templates/main/home.html:76
+#: main/templates/main/form_list.html:59 main/templates/main/home.html:48
+#: main/templates/main/home.html:76
 msgid "Open application"
 msgstr "Başvuruyu aç"
 
@@ -669,8 +863,10 @@ msgid "You have no applications yet"
 msgstr "Henüz başvurunuz yok"
 
 #: main/templates/main/application_list.html:48
-msgid "You can create a new application by reviewing the open application forms."
-msgstr "Açık başvuru formlarını inceleyerek yeni bir başvuru oluşturabilirsiniz."
+msgid ""
+"You can create a new application by reviewing the open application forms."
+msgstr ""
+"Açık başvuru formlarını inceleyerek yeni bir başvuru oluşturabilirsiniz."
 
 #: main/templates/main/application_list.html:49
 #: main/templates/main/home.html:58
@@ -681,60 +877,72 @@ msgstr "Başvuru formlarını incele"
 msgid "Skip to content"
 msgstr "İçeriğe geç"
 
-#: main/templates/main/base.html:59 main/templates/main/base.html:95
+#: main/templates/main/base.html:59 main/templates/main/base.html:103
 #: main/templates/main/home.html:4
 msgid "Home"
 msgstr "Ana sayfa"
 
-#: main/templates/main/base.html:66 main/templates/main/base.html:102
+#: main/templates/main/base.html:67 main/templates/main/base.html:111
 #: main/templates/main/profile.html:4 main/templates/main/profile.html:11
 msgid "My profile"
 msgstr "Profilim"
 
-#: main/templates/main/base.html:70 main/templates/main/base.html:106
+#: main/templates/main/base.html:71 main/templates/main/base.html:115
 msgid "Log out"
 msgstr "Çıkış yap"
 
-#: main/templates/main/base.html:72
+#: main/templates/main/base.html:73
 msgid "Admin"
 msgstr "Yönetim"
 
-#: main/templates/main/base.html:74 main/templates/main/base.html:109
+#: main/templates/main/base.html:75 main/templates/main/base.html:118
 #: main/templates/main/home.html:132 main/templates/registration/login.html:4
 #: main/templates/registration/login.html:30
 msgid "Log in"
 msgstr "Giriş yap"
 
-#: main/templates/main/base.html:79
+#: main/templates/main/base.html:81
+msgid "Language"
+msgstr "Dil"
+
+#: main/templates/main/base.html:84
+msgid "Turkish"
+msgstr "Türkçe"
+
+#: main/templates/main/base.html:85
+msgid "English"
+msgstr "İngilizce"
+
+#: main/templates/main/base.html:87
 msgid "Switch theme"
 msgstr "Temayı değiştir"
 
-#: main/templates/main/base.html:83
+#: main/templates/main/base.html:91
 msgid "Open menu"
 msgstr "Menüyü aç"
 
-#: main/templates/main/base.html:90
+#: main/templates/main/base.html:98
 msgid "Menu"
 msgstr "Menü"
 
-#: main/templates/main/base.html:91
+#: main/templates/main/base.html:99
 msgid "Close menu"
 msgstr "Menüyü kapat"
 
-#: main/templates/main/base.html:120 main/templates/main/form_list.html:54
+#: main/templates/main/base.html:129 main/templates/main/form_list.html:54
 #: main/templates/main/home.html:99
 msgid "Closed for applications"
 msgstr "Başvuruya kapalı"
 
-#: main/templates/main/base.html:132
+#: main/templates/main/base.html:141
 msgid "Close"
 msgstr "Kapat"
 
-#: main/templates/main/base.html:141
+#: main/templates/main/base.html:150
 msgid "A better Pardus with open source"
 msgstr "Açık kaynakla daha iyi bir Pardus"
 
-#: main/templates/main/base.html:144
+#: main/templates/main/base.html:153
 msgid "Competition application and evaluation platform"
 msgstr "Yarışma başvuruları ve değerlendirme platformu"
 
@@ -744,8 +952,12 @@ msgid "Competition applications"
 msgstr "Yarışma başvuruları"
 
 #: main/templates/main/form_list.html:12
-msgid "Choose a form and continue. If you already applied, your application opens directly."
-msgstr "Bir form seçin ve devam edin. Daha önce başvurduysanız başvurunuz doğrudan açılır."
+msgid ""
+"Choose a form and continue. If you already applied, your application opens "
+"directly."
+msgstr ""
+"Bir form seçin ve devam edin. Daha önce başvurduysanız başvurunuz doğrudan "
+"açılır."
 
 #: main/templates/main/form_list.html:50
 msgid "Application received"
@@ -772,8 +984,11 @@ msgid "Form preview"
 msgstr "Form önizlemesi"
 
 #: main/templates/main/form_preview.html:16
-msgid "This page is a preview of the form definition; submitted answers are not stored."
-msgstr "Bu sayfa form tanımının önizlemesidir; gönderilen yanıtlar kaydedilmez."
+msgid ""
+"This page is a preview of the form definition; submitted answers are not "
+"stored."
+msgstr ""
+"Bu sayfa form tanımının önizlemesidir; gönderilen yanıtlar kaydedilmez."
 
 #: main/templates/main/form_preview.html:31
 msgid "No fields have been defined for this form yet."
@@ -784,8 +999,12 @@ msgid "Pardus Bug Finding and Suggestion Competition"
 msgstr "Pardus Hata Yakalama ve Öneri Yarışması"
 
 #: main/templates/main/home.html:8
-msgid "Submit your bug reports, suggestions and development work as a competition application."
-msgstr "Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı yarışma başvurusu olarak iletin."
+msgid ""
+"Submit your bug reports, suggestions and development work as a competition "
+"application."
+msgstr ""
+"Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı yarışma "
+"başvurusu olarak iletin."
 
 #: main/templates/main/home.html:9
 msgid "Included in form details"
@@ -807,10 +1026,6 @@ msgstr "Başvuruya devam et"
 #: main/templates/main/home.html:37
 msgid "View all"
 msgstr "Tümünü gör"
-
-#: main/templates/main/home.html:48 main/templates/main/home.html:141
-msgid "Open"
-msgstr "Açık"
 
 #: main/templates/main/home.html:57
 msgid "Choose an open form to create your first application."
@@ -844,17 +1059,21 @@ msgstr "Profil"
 msgid "Edit"
 msgstr "Düzenle"
 
-#: main/templates/main/home.html:112 main/templates/main/profile.html:35
+#: main/templates/main/home.html:112 main/templates/main/profile.html:41
 msgid "Profile complete"
 msgstr "Profil tamamlandı"
 
-#: main/templates/main/home.html:112 main/templates/main/profile.html:35
+#: main/templates/main/home.html:112 main/templates/main/profile.html:41
 msgid "Missing information"
 msgstr "Bilgiler eksik"
 
 #: main/templates/main/home.html:133 main/templates/main/home.html:156
 msgid "Application categories"
 msgstr "Başvuru kategorileri"
+
+#: main/templates/main/home.html:141
+msgid "Open"
+msgstr "Açık"
 
 #: main/templates/main/home.html:145
 msgid "Application category"
@@ -876,46 +1095,55 @@ msgid "No categories are published yet."
 msgstr "Henüz yayımlanmış kategori yok."
 
 #: main/templates/main/profile.html:12
-msgid "Keep your contact and education information up to date. Required fields are marked with an asterisk."
-msgstr "İletişim ve eğitim bilgilerinizi güncel tutun. Yıldızla işaretli alanlar zorunludur."
+msgid ""
+"Keep your contact and education information up to date. Required fields are "
+"marked with an asterisk."
+msgstr ""
+"İletişim ve eğitim bilgilerinizi güncel tutun. Yıldızla işaretli alanlar "
+"zorunludur."
 
-#: main/templates/main/profile.html:22 main/templates/main/profile.html:72
+#: main/templates/main/profile.html:18
+msgid "Complete the required fields below to continue using the site."
+msgstr ""
+"Siteyi kullanmaya devam etmek için aşağıdaki zorunlu alanları doldurun."
+
+#: main/templates/main/profile.html:28 main/templates/main/profile.html:78
 msgid "Profile photo"
 msgstr "Profil fotoğrafı"
 
-#: main/templates/main/profile.html:34
+#: main/templates/main/profile.html:40
 msgid "Profile completeness"
 msgstr "Profil tamamlanma durumu"
 
-#: main/templates/main/profile.html:46
+#: main/templates/main/profile.html:52
 msgid "Profile details"
 msgstr "Profil detayları"
 
-#: main/templates/main/profile.html:51
+#: main/templates/main/profile.html:57
 msgid "Phone"
 msgstr "Telefon"
 
-#: main/templates/main/profile.html:54
+#: main/templates/main/profile.html:60
 msgid "Example: +90 555 111 22 33"
 msgstr "Örnek: +90 555 111 22 33"
 
-#: main/templates/main/profile.html:57
+#: main/templates/main/profile.html:63
 msgid "City"
 msgstr "Şehir"
 
-#: main/templates/main/profile.html:62
+#: main/templates/main/profile.html:68
 msgid "School / institution"
 msgstr "Okul / kurum"
 
-#: main/templates/main/profile.html:67
+#: main/templates/main/profile.html:73
 msgid "Education level"
 msgstr "Eğitim seviyesi"
 
-#: main/templates/main/profile.html:75
+#: main/templates/main/profile.html:81
 msgid "JPG or PNG · max 1 MB"
 msgstr "JPG veya PNG · en fazla 1 MB"
 
-#: main/templates/main/profile.html:80
+#: main/templates/main/profile.html:86
 msgid "Information is stored in the profile record linked to your account."
 msgstr "Bilgiler hesabınıza bağlı profil kaydında saklanır."
 
@@ -928,8 +1156,11 @@ msgid "Use your competition account to continue."
 msgstr "Devam etmek için yarışma hesabınızı kullanın."
 
 #: main/templates/registration/login.html:17
-msgid "The username or password is incorrect. Check your information and try again."
-msgstr "Kullanıcı adı veya parola hatalı. Bilgilerinizi kontrol edip yeniden deneyin."
+msgid ""
+"The username or password is incorrect. Check your information and try again."
+msgstr ""
+"Kullanıcı adı veya parola hatalı. Bilgilerinizi kontrol edip yeniden "
+"deneyin."
 
 #: main/templates/registration/login.html:22
 msgid "Username"
@@ -940,90 +1171,67 @@ msgid "Password"
 msgstr "Parola"
 
 #: main/templates/registration/login.html:32
-msgid "If you have trouble signing in, contact the competition coordination team."
-msgstr "Giriş sorunu yaşıyorsanız yarışma koordinasyon ekibiyle iletişime geçin."
+msgid ""
+"If you have trouble signing in, contact the competition coordination team."
+msgstr ""
+"Giriş sorunu yaşıyorsanız yarışma koordinasyon ekibiyle iletişime geçin."
 
-#: main/tests.py:220
+#: main/tests.py:320
 msgid "This field is required."
 msgstr "Bu alan zorunludur."
 
-#: main/tests.py:1621 main/views.py:614
+#: main/tests.py:1936 main/views.py:564
 msgid "Hidden applicant"
 msgstr "Gizli başvuru sahibi"
 
-#: main/views.py:88
+#: main/views.py:104
 msgid "Your profile has been updated."
 msgstr "Profiliniz güncellendi."
 
-#: main/views.py:207
+#: main/views.py:223
 #, python-format
 msgid "Your application has been received. Application code: %(code)s"
 msgstr "Başvurunuz alındı. Başvuru kodunuz: %(code)s"
 
-#: main/views.py:304
+#: main/views.py:320
 msgid "Your application has been updated."
 msgstr "Başvurunuz güncellendi."
 
-#: main/views.py:335
+#: main/views.py:351
 msgid "Application deleted."
 msgstr "Başvuru silindi."
 
-#: main/views.py:345
+#: main/views.py:361
 msgid "Choose a file to upload."
 msgstr "Yüklenecek bir dosya seçin."
 
-#: main/views.py:356
+#: main/views.py:372
 msgid "File uploaded."
 msgstr "Dosya yüklendi."
 
-#: main/views.py:374
+#: main/views.py:390
 msgid "File deleted."
 msgstr "Dosya silindi."
 
-#: main/views.py:638
+#: main/views.py:613
 msgid "Review submitted."
 msgstr "Değerlendirme gönderildi."
 
-#: main/views.py:655
-msgid "This field is hidden from jury review."
-msgstr "Bu alan jüri değerlendirmesinde gizlenmiştir."
-
-#: main/forms.py
-msgid "Optional. The global application deadline applies when this is empty."
-msgstr "İsteğe bağlı. Boş bırakılırsa genel başvuru bitiş tarihi uygulanır."
-
-#: main/forms.py
-msgid "Required because no global application deadline is configured."
-msgstr "Genel başvuru bitiş tarihi tanımlı olmadığı için zorunludur."
-
-#: main/templates/main/base.html
-msgid "Language"
-msgstr "Dil"
-
-#: main/templates/main/base.html
-msgid "Turkish"
-msgstr "Türkçe"
-
-#: main/templates/main/base.html
-msgid "English"
-msgstr "İngilizce"
-
-#: main/templates/jury/_application_nav.html
-msgid "Application navigation"
-msgstr "Başvuru gezinmesi"
-
-#: main/templates/jury/_application_nav.html
-msgid "Previous application"
-msgstr "Önceki başvuru"
-
-#: main/templates/jury/_application_nav.html
-msgid "Next application"
-msgstr "Sonraki başvuru"
-
-#: main/views.py
+#: main/views.py:626
 msgid "No more applications in this queue."
 msgstr "Bu kuyrukta başka başvuru yok."
 
-#: main/templates/main/profile.html
-msgid "Complete the required fields below to continue using the site."
-msgstr "Siteyi kullanmaya devam etmek için aşağıdaki zorunlu alanları doldurun."
+#: main/views.py:673
+msgid "API key created. Copy it now; it will not be shown again."
+msgstr "API anahtarı oluşturuldu. Şimdi kopyalayın; tekrar gösterilmeyecek."
+
+#: main/views.py:689
+msgid "API key revoked."
+msgstr "API anahtarı iptal edildi."
+
+#: main/views.py:702
+msgid "This field is hidden from jury review."
+msgstr "Bu alan jüri değerlendirmesinde gizlenmiştir."
+
+msgid "Try it with curl:"
+msgstr "curl ile deneyin:"

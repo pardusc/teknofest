@@ -18,6 +18,7 @@ from .models import (
     CompetitionYear,
     FormDefinition,
     FormField,
+    JuryAPIKey,
     Profile,
     Review,
     SiteSettings,
@@ -344,6 +345,53 @@ class ReviewAdmin(admin.ModelAdmin):
     list_filter = ("completed_at", "juror")
     search_fields = ("application__code", "juror__email", "juror__username")
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(JuryAPIKey)
+class JuryAPIKeyAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "name",
+        "prefix",
+        "status_display",
+        "created_at",
+        "expires_at",
+        "last_used_at",
+    )
+    list_filter = ("created_at", "expires_at", "revoked_at")
+    search_fields = ("user__username", "user__email", "name", "prefix")
+    readonly_fields = (
+        "user",
+        "name",
+        "prefix",
+        "key_hash",
+        "created_at",
+        "expires_at",
+        "revoked_at",
+        "last_used_at",
+    )
+    actions = ("revoke_keys",)
+
+    def has_add_permission(self, request):
+        return False
+
+    @admin.display(description="Status")
+    def status_display(self, obj):
+        return obj.status
+
+    @admin.action(description="Revoke selected API keys")
+    def revoke_keys(self, request, queryset):
+        revoked = 0
+        for key in queryset.filter(revoked_at__isnull=True):
+            key.revoke()
+            audit.record(
+                AuditEvent.Action.API_KEY_REVOKED,
+                actor=request.user,
+                name=key.name,
+                prefix=key.prefix,
+            )
+            revoked += 1
+        self.message_user(request, f"{revoked} API key(s) revoked.")
 
 
 @admin.register(AuditEvent)

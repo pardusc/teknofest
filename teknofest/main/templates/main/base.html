@@ -60,6 +60,7 @@
         {% if user.is_authenticated %}
           {% if is_jury_member %}
             <a href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+            <a href="{% url 'main:jury_api_keys' %}">{% translate "API keys" %}</a>
           {% else %}
             <a href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
             <a href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
@@ -103,6 +104,7 @@
             {% if user.is_authenticated %}
               {% if is_jury_member %}
                 <a class="nav-link" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
+                <a class="nav-link" href="{% url 'main:jury_api_keys' %}">{% translate "API keys" %}</a>
               {% else %}
                 <a class="nav-link" href="{% url 'main:form_list' %}">{% translate "Application forms" %}</a>
                 <a class="nav-link" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>

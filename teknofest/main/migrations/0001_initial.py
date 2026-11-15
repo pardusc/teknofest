@@ -283,7 +283,7 @@ class Migration(migrations.Migration):
             name='AuditEvent',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('action', models.CharField(choices=[('application_submitted', 'Application submitted'), ('application_updated', 'Application updated'), ('application_deleted', 'Application deleted'), ('application_status_changed', 'Application status changed'), ('attachment_added', 'Attachment added'), ('attachment_removed', 'Attachment removed'), ('review_submitted', 'Review submitted'), ('review_updated', 'Review updated'), ('form_status_changed', 'Form status changed')], max_length=32)),
+                ('action', models.CharField(choices=[('application_submitted', 'Application submitted'), ('application_updated', 'Application updated'), ('application_deleted', 'Application deleted'), ('application_status_changed', 'Application status changed'), ('attachment_added', 'Attachment added'), ('attachment_removed', 'Attachment removed'), ('review_submitted', 'Review submitted'), ('review_updated', 'Review updated'), ('form_status_changed', 'Form status changed'), ('api_key_created', 'API key created'), ('api_key_revoked', 'API key revoked')], max_length=32)),
                 ('metadata', models.JSONField(blank=True, default=dict)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('actor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='audit_events', to=settings.AUTH_USER_MODEL)),
@@ -292,6 +292,24 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ('-created_at', '-id'),
+            },
+        ),
+        migrations.CreateModel(
+            name='JuryAPIKey',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100)),
+                ('prefix', models.CharField(max_length=16, unique=True)),
+                ('key_hash', models.CharField(max_length=64, unique=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('expires_at', models.DateTimeField()),
+                ('revoked_at', models.DateTimeField(blank=True, null=True)),
+                ('last_used_at', models.DateTimeField(blank=True, null=True)),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='jury_api_keys', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ('-created_at', '-id'),
+                'indexes': [models.Index(fields=['user', 'expires_at'], name='main_juryap_user_id_947c83_idx')],
             },
         ),
         migrations.AddField(
