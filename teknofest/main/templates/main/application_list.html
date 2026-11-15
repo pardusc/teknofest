@@ -27,7 +27,7 @@
                 {% if application.code %}<span class="small fw-semibold fg-secondary">{{ application.code }}</span>{% endif %}
               </div>
               <h2 class="h5 fw-bold mb-1">{{ application.form.title }}</h2>
-              <p class="fg-secondary mb-0">{{ application.year.year }} · {{ application.category.name }} · {% blocktranslate with updated_at=application.updated_at|date:"d.m.Y H:i" %}Last updated {{ updated_at }}{% endblocktranslate %}</p>
+              <p class="fg-secondary mb-0">{{ application.year.year }} · {{ application.category.display_name }} · {% blocktranslate with updated_at=application.updated_at|date:"d.m.Y H:i" %}Last updated {{ updated_at }}{% endblocktranslate %}</p>
             </div>
             <a class="btn-outline theme-primary flex-shrink-0" href="{% url 'main:application_detail' application.public_id %}">{% translate "View application" %}</a>
           </div>

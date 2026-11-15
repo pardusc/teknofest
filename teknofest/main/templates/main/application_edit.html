@@ -6,7 +6,7 @@
 {% block content %}
 {% translate "Delete this file?" as delete_file_confirm %}
 <section class="container py-5">
-  <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:application_detail' application.public_id %}">{% translate "Back to application details" %}</a><p class="eyebrow fg-primary mt-4 mb-2">{{ application.year.year }} · {{ application.category.name }}</p><h1 class="h2 fw-bold mb-2">{{ application.form.title }}</h1>{% if application.form.description %}<p class="fg-secondary mb-0">{{ application.form.description }}</p>{% else %}<p class="fg-secondary mb-0">{% translate "Enter your information. Your application is saved when you submit it." %}</p>{% endif %}</div>
+  <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:application_detail' application.public_id %}">{% translate "Back to application details" %}</a><p class="eyebrow fg-primary mt-4 mb-2">{{ application.year.year }} · {{ application.category.display_name }}</p><h1 class="h2 fw-bold mb-2">{{ application.form.title }}</h1>{% if application.form.description %}<p class="fg-secondary mb-0">{{ application.form.description }}</p>{% else %}<p class="fg-secondary mb-0">{% translate "Enter your information. Your application is saved when you submit it." %}</p>{% endif %}</div>
   <div class="row g-4"><div class="lg:col-8">
     <form method="post" class="card application-form" enctype="multipart/form-data">
       {% csrf_token %}<div class="card-body p-4 p-lg-5">

@@ -9,7 +9,7 @@
     <a class="jury-back-link" href="{% url 'main:jury_application_list' form_definition.pk %}">{% translate "Back to application list" %}</a>
     <div class="jury-page-title-row mt-3">
       <div>
-        <p class="eyebrow mb-2">{{ application.year.year }} · {{ application.category.name }}</p>
+        <p class="eyebrow mb-2">{{ application.year.year }} · {{ application.category.display_name }}</p>
         <h1 class="mb-2">{% if application.code %}{{ application.code }}{% else %}{% translate "Application details" %}{% endif %}</h1>
         <p class="mb-0">{{ form_definition.title }} · {% if application.submitted_at %}{{ application.submitted_at|date:"d.m.Y H:i" }}{% else %}{% translate "No submission date" %}{% endif %}</p>
       </div>

@@ -18,7 +18,7 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from .dynamic_forms import build_form
 from .forms import ProfileForm
-from .models import Application, Attachment, FormDefinition, FormField, Profile, Review
+from .models import Application, Attachment, Category, FormDefinition, FormField, Profile, Review, SiteSettings
 from .permissions import ApplicantOnlyMixin, JuryRequiredMixin, is_jury
 from .services import applications as application_service
 from .services import reviews as review_service
@@ -26,7 +26,15 @@ from .services.reviews import review_stats
 
 
 def home(request):
-    return render(request, "main/home.html")
+    categories = Category.objects.filter(is_active=True).order_by("order", "name")
+    return render(
+        request,
+        "main/home.html",
+        {
+            "home_categories": categories,
+            "home_category_count": categories.count(),
+        },
+    )
 
 
 class ProfileView(ApplicantOnlyMixin, DetailView):
@@ -60,10 +68,11 @@ class FormListView(ApplicantOnlyMixin, ListView):
     context_object_name = "forms"
 
     def get_queryset(self):
+        settings = SiteSettings.load()
         return (
             FormDefinition.objects.select_related("year", "category")
-            .filter(year__is_active=True, category__is_active=True)
-            .order_by("-year__year", "category__order")
+            .filter(year__year=settings.current_year, category__is_active=True)
+            .order_by("category__order")
         )
 
 
@@ -73,8 +82,9 @@ class FormDetailView(ApplicantOnlyMixin, DetailView):
     context_object_name = "form_definition"
 
     def get_queryset(self):
+        settings = SiteSettings.load()
         return FormDefinition.objects.select_related("year", "category").filter(
-            year__is_active=True,
+            year__year=settings.current_year,
             category__is_active=True,
         )
 

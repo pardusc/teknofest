@@ -3,7 +3,7 @@ import csv
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
 
@@ -14,11 +14,14 @@ from .models import (
     Attachment,
     AuditEvent,
     Category,
+    CategoryTranslation,
     CompetitionYear,
     FormDefinition,
     FormField,
     Profile,
     Review,
+    SiteSettings,
+    SiteSettingsTranslation,
     User,
 )
 from .services import audit, workflow
@@ -73,8 +76,15 @@ class CompetitionYearAdmin(admin.ModelAdmin):
     ordering = ("-year",)
 
 
+class CategoryTranslationInline(admin.StackedInline):
+    model = CategoryTranslation
+    extra = 0
+    fields = ("language", "name", "description", "home_description", "home_highlights")
+
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
+    inlines = (CategoryTranslationInline,)
     list_display = ("name", "slug", "code_prefix", "order", "is_active")
     list_editable = ("order", "is_active")
     list_filter = ("is_active",)
@@ -109,6 +119,7 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "category",
         "status",
         "attachment_policy",
+        "submission_override",
         "opens_at",
         "closes_at",
         "preview_link",
@@ -348,3 +359,73 @@ class AuditEventAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class SiteSettingsTranslationInline(admin.StackedInline):
+    model = SiteSettingsTranslation
+    extra = 0
+    fields = (
+        "language",
+        "hero_eyebrow",
+        "hero_title",
+        "hero_lead",
+        "announcement",
+        "calendar_note",
+        "footer_tagline",
+    )
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    inlines = (SiteSettingsTranslationInline,)
+    fieldsets = (
+        (
+            "General",
+            {
+                "fields": (
+                    "site_title",
+                    "competition_name",
+                    "current_year",
+                    "contact_email",
+                    "footer_tagline",
+                )
+            },
+        ),
+        (
+            "Application period",
+            {
+                "fields": (
+                    "application_status",
+                    "application_opens_at",
+                    "application_closes_at",
+                )
+            },
+        ),
+        (
+            "Home page",
+            {
+                "fields": (
+                    "hero_eyebrow",
+                    "hero_title",
+                    "hero_lead",
+                    "announcement_active",
+                    "announcement",
+                    "calendar_note",
+                )
+            },
+        ),
+        ("Meta", {"fields": ("updated_at",)}),
+    )
+    readonly_fields = ("updated_at",)
+
+    def has_add_permission(self, request):
+        return not SiteSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        obj = SiteSettings.load()
+        return HttpResponseRedirect(
+            reverse("admin:main_sitesettings_change", args=[obj.pk])
+        )

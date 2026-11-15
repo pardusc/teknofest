@@ -9,7 +9,7 @@
     <a class="jury-back-link" href="{% url 'main:jury_dashboard' %}">{% translate "Back to jury panel" %}</a>
     <div class="jury-page-title-row mt-3">
       <div>
-        <p class="eyebrow mb-2">{{ form_definition.year.year }} · {{ form_definition.category.name }}</p>
+        <p class="eyebrow mb-2">{{ form_definition.year.year }} · {{ form_definition.category.display_name }}</p>
         <h1 class="mb-2">{{ form_definition.title }}</h1>
         <p class="mb-0">{% translate "Review applications and save your own evaluation." %}</p>
       </div>
@@ -74,7 +74,7 @@
           <tbody>
             {% for row in rows %}
               <tr>
-                <td><strong class="jury-application-code">{% if row.application.code %}{{ row.application.code }}{% else %}{% translate "Application" %}{% endif %}</strong><span class="jury-row-caption">{{ row.application.category.name }}</span></td>
+                <td><strong class="jury-application-code">{% if row.application.code %}{{ row.application.code }}{% else %}{% translate "Application" %}{% endif %}</strong><span class="jury-row-caption">{{ row.application.category.display_name }}</span></td>
                 <td>{{ row.application.submitted_at|date:"d.m.Y H:i"|default:"—" }}</td>
                 <td>{{ row.attachment_count }}</td>
                 <td>{% if row.my_score is not None %}<strong>{{ row.my_score }}</strong><span class="jury-row-caption">/ 100</span>{% else %}—{% endif %}</td>

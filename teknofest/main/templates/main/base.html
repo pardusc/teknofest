@@ -78,9 +78,13 @@
   </main>
 
   <footer class="site-footer">
+    {% translate "A better Pardus with open source" as default_footer %}
     <div class="container py-4 d-flex flex-column md:flex-row justify-content-between gap-2">
-      <span><strong>Pardus Teknofest</strong> <span>· {% translate "A better Pardus with open source" %}</span></span>
-      <span>{% translate "Competition application and evaluation platform" %}</span>
+      <span><strong>{{ site_settings.site_title|default:"Pardus Teknofest" }}</strong> <span>· {{ home_text.footer_tagline|default:default_footer }}</span></span>
+      <span>
+        {% translate "Competition application and evaluation platform" %}
+        {% if site_settings.contact_email %} · <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>{% endif %}
+      </span>
     </div>
   </footer>
   <script type="module" src="{% static 'main/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>

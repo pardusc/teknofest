@@ -27,11 +27,14 @@ from .models import (
     Attachment,
     AuditEvent,
     Category,
+    CategoryTranslation,
     CompetitionYear,
     FormDefinition,
     FormField,
     Profile,
     Review,
+    SiteSettings,
+    SiteSettingsTranslation,
 )
 from .services.applications import (
     add_attachment,
@@ -41,7 +44,7 @@ from .services.applications import (
     update_application,
 )
 from .services.reviews import submit_review
-from .admin import ApplicationAdmin, AuditEventAdmin
+from .admin import ApplicationAdmin, AuditEventAdmin, SiteSettingsAdmin
 from .views import (
     MASKED_FIELD_MESSAGE,
     ApplicationDetailView,
@@ -2110,3 +2113,286 @@ class ProtectedMediaTests(MediaTestCase):
 
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(url).status_code, 200)
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class SiteSettingsTests(TestCase):
+    def setUp(self):
+        self.settings = SiteSettings.load()
+        self.settings.application_status = SiteSettings.ApplicationStatus.OPEN
+        self.settings.application_opens_at = None
+        self.settings.application_closes_at = None
+        self.settings.save()
+
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.create(
+            slug="settings",
+            name="Settings",
+            home_description="Home description",
+            home_highlights="First\nSecond",
+        )
+
+    def make_form(self, **overrides):
+        data = {
+            "year": self.year,
+            "category": self.category,
+            "title": "Settings form",
+        }
+        data.update(overrides)
+        return FormDefinition.objects.create(**data)
+
+    def test_load_returns_single_row(self):
+        self.assertEqual(SiteSettings.load().pk, self.settings.pk)
+        self.assertEqual(SiteSettings.objects.count(), 1)
+
+    def test_global_status_controls_form_acceptance(self):
+        form = self.make_form()
+        self.assertTrue(form.is_accepting_submissions)
+
+        self.settings.application_status = SiteSettings.ApplicationStatus.CLOSED
+        self.settings.save()
+        self.assertFalse(form.is_accepting_submissions)
+
+    def test_override_ignores_only_global_period(self):
+        self.settings.application_status = SiteSettings.ApplicationStatus.CLOSED
+        self.settings.save()
+        form = self.make_form(submission_override=True)
+
+        self.assertTrue(form.is_accepting_submissions)
+
+        form.closes_at = timezone.now() - timedelta(days=1)
+        form.save()
+        form.refresh_from_db()
+        self.assertFalse(form.is_accepting_submissions)
+
+    def test_closed_form_status_beats_override(self):
+        form = self.make_form(
+            status=FormDefinition.Status.CLOSED,
+            submission_override=True,
+        )
+
+        self.assertFalse(form.is_accepting_submissions)
+
+    def test_year_mismatch_blocks_submissions(self):
+        other_year = CompetitionYear.objects.create(year=2027)
+        form = self.make_form(year=other_year, submission_override=True)
+
+        self.assertFalse(form.is_accepting_submissions)
+
+    def test_global_date_window(self):
+        now = timezone.now()
+        self.settings.application_opens_at = now + timedelta(days=1)
+        self.settings.save()
+        self.assertFalse(self.settings.is_application_open)
+
+        self.settings.application_opens_at = now - timedelta(days=1)
+        self.settings.application_closes_at = now + timedelta(days=1)
+        self.settings.save()
+        self.assertTrue(self.settings.is_application_open)
+
+        self.settings.application_closes_at = now - timedelta(days=1)
+        self.settings.save()
+        self.assertFalse(self.settings.is_application_open)
+
+    def test_category_highlights(self):
+        self.assertEqual(self.category.highlight_list, ["First", "Second"])
+
+    def test_submission_blocked_by_global_period(self):
+        user = get_user_model().objects.create_user(
+            username="settings-applicant",
+            email="settings-applicant@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        form = self.make_form()
+        FormField.objects.create(
+            form=form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+        self.settings.application_status = SiteSettings.ApplicationStatus.CLOSED
+        self.settings.save()
+
+        with self.assertRaisesMessage(
+            ValidationError,
+            _("This form is not accepting applications."),
+        ):
+            submit_application(user, form, {"title": "Blocked"})
+
+        form.submission_override = True
+        form.save()
+        application = submit_application(user, form, {"title": "Allowed"})
+        self.assertEqual(application.status, Application.Status.SUBMITTED)
+
+    def test_home_uses_settings(self):
+        self.settings.current_year = 2027
+        self.settings.hero_title = "Custom hero title"
+        self.settings.hero_lead = "Custom hero lead"
+        self.settings.announcement = "Custom announcement"
+        self.settings.announcement_active = True
+        self.settings.footer_tagline = "Custom footer"
+        self.settings.save()
+
+        response = self.client.get(reverse("main:home"))
+
+        self.assertContains(response, "2027")
+        self.assertContains(response, "Custom hero title")
+        self.assertContains(response, "Custom hero lead")
+        self.assertContains(response, "Custom announcement")
+        self.assertContains(response, "Custom footer")
+        self.assertContains(response, "Home description")
+        self.assertContains(response, "First")
+        self.assertContains(response, "Second")
+
+    def test_form_list_shows_only_current_year(self):
+        user = get_user_model().objects.create_user(
+            username="settings-viewer",
+            email="settings-viewer@example.com",
+            password="secret123",
+        )
+        other_year = CompetitionYear.objects.create(year=2027)
+        current_form = self.make_form(title="Current year form")
+        self.make_form(year=other_year, title="Next year form")
+        self.settings.current_year = 2026
+        self.settings.save()
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("main:form_list"))
+
+        self.assertIn(current_form, response.context["forms"])
+        self.assertNotIn("Next year form", [
+            form.title for form in response.context["forms"]
+        ])
+
+    def test_admin_singleton(self):
+        staff = get_user_model().objects.create_user(
+            username="settings-admin",
+            email="settings-admin@example.com",
+            password="secret123",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(staff)
+        request = RequestFactory().get("/admin/")
+        request.user = staff
+
+        model_admin = SiteSettingsAdmin(SiteSettings, admin_site)
+        self.assertFalse(model_admin.has_add_permission(request))
+        self.assertFalse(model_admin.has_delete_permission(request))
+        self.assertRedirects(
+            self.client.get(reverse("admin:main_sitesettings_changelist")),
+            reverse("admin:main_sitesettings_change", args=[self.settings.pk]),
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("admin:main_sitesettings_change", args=[self.settings.pk])
+            ).status_code,
+            200,
+        )
+
+    def test_localized_uses_translation_and_falls_back_to_base(self):
+        self.settings.hero_lead = "Base lead"
+        self.settings.save()
+        SiteSettingsTranslation.objects.create(
+            settings=self.settings,
+            language="en",
+            hero_title="English hero",
+            hero_lead="",
+        )
+
+        localized = self.settings.localized("en")
+
+        self.assertEqual(localized["hero_title"], "English hero")
+        self.assertEqual(localized["hero_lead"], "Base lead")
+        self.assertEqual(
+            localized["hero_eyebrow"],
+            self.settings.hero_eyebrow,
+        )
+
+    def test_home_uses_english_translation(self):
+        SiteSettingsTranslation.objects.create(
+            settings=self.settings,
+            language="en",
+            hero_title="English hero",
+            hero_lead="English lead",
+        )
+        self.settings.hero_title = "Turkish hero"
+        self.settings.hero_lead = "Turkish lead"
+        self.settings.save()
+
+        response = self.client.get(
+            reverse("main:home"),
+            HTTP_ACCEPT_LANGUAGE="en",
+        )
+
+        self.assertContains(response, "English hero")
+        self.assertContains(response, "English lead")
+        self.assertNotContains(response, "Turkish hero")
+
+    def test_category_translation_overrides_display(self):
+        CategoryTranslation.objects.create(
+            category=self.category,
+            language="en",
+            name="English category",
+            description="English description",
+            home_description="English home",
+            home_highlights="One\nTwo",
+        )
+
+        from django.utils import translation
+
+        with translation.override("en"):
+            self.assertEqual(self.category.display_name, "English category")
+            self.assertEqual(
+                self.category.display_description,
+                "English description",
+            )
+            self.assertEqual(
+                self.category.display_home_description,
+                "English home",
+            )
+            self.assertEqual(self.category.highlight_list, ["One", "Two"])
+
+    def test_category_translation_falls_back_to_base(self):
+        CategoryTranslation.objects.create(
+            category=self.category,
+            language="en",
+            name="",
+            description="",
+        )
+
+        from django.utils import translation
+
+        with translation.override("en"):
+            self.assertEqual(self.category.display_name, self.category.name)
+            self.assertEqual(
+                self.category.display_description,
+                self.category.description,
+            )
+            self.assertEqual(
+                self.category.highlight_list,
+                ["First", "Second"],
+            )
+
+    def test_home_uses_category_translation(self):
+        CategoryTranslation.objects.create(
+            category=self.category,
+            language="en",
+            name="English category",
+            home_description="English category description",
+        )
+
+        response = self.client.get(
+            reverse("main:home"),
+            HTTP_ACCEPT_LANGUAGE="en",
+        )
+
+        self.assertContains(response, "English category")
+        self.assertContains(response, "English category description")

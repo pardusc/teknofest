@@ -6,7 +6,7 @@
 {% block content %}
   <section class="container py-5">
     <div class="form-preview-heading mb-4">
-      <p class="eyebrow mb-2">{{ definition.year.year }} · {{ definition.category.name }}</p>
+      <p class="eyebrow mb-2">{{ definition.year.year }} · {{ definition.category.display_name }}</p>
       <h1 class="mb-2">{{ definition.title }}</h1>
       {% if definition.description %}<p class="mb-0">{{ definition.description|linebreaksbr }}</p>{% endif %}
     </div>

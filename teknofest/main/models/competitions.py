@@ -1,8 +1,10 @@
 import re
 
+from django.conf import settings as django_settings
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 
@@ -26,6 +28,11 @@ class Category(models.Model):
     slug = models.SlugField(max_length=64, unique=True)
     name = models.CharField(max_length=128)
     description = models.TextField(blank=True)
+    home_description = models.TextField(blank=True)
+    home_highlights = models.TextField(
+        blank=True,
+        help_text="One item per line, shown on the home page.",
+    )
     code_prefix = models.CharField(
         max_length=16,
         blank=True,
@@ -40,6 +47,69 @@ class Category(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    def translation_for(self, language=None):
+        language = language or get_language() or django_settings.LANGUAGE_CODE
+        cache = getattr(self, "_translation_cache", {})
+        if language not in cache:
+            cache[language] = self.translations.filter(language=language).first()
+            self._translation_cache = cache
+        return cache[language]
+
+    @property
+    def display_name(self) -> str:
+        translation = self.translation_for()
+        return (translation.name if translation else "") or self.name
+
+    @property
+    def display_description(self) -> str:
+        translation = self.translation_for()
+        return (translation.description if translation else "") or self.description
+
+    @property
+    def display_home_description(self) -> str:
+        translation = self.translation_for()
+        return (
+            (translation.home_description if translation else "")
+            or self.home_description
+            or self.display_description
+        )
+
+    @property
+    def highlight_list(self) -> list[str]:
+        translation = self.translation_for()
+        text = (
+            (translation.home_highlights if translation else "")
+            or self.home_highlights
+        )
+        return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+class CategoryTranslation(models.Model):
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name="translations",
+    )
+    language = models.CharField(
+        max_length=8,
+        choices=django_settings.LANGUAGES,
+    )
+    name = models.CharField(max_length=128, blank=True)
+    description = models.TextField(blank=True)
+    home_description = models.TextField(blank=True)
+    home_highlights = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("category", "language"),
+                name="unique_category_translation_per_language",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.category} · {self.language}"
 
 
 class FormDefinition(models.Model):
@@ -81,6 +151,13 @@ class FormDefinition(models.Model):
         choices=AttachmentPolicy.choices,
         default=AttachmentPolicy.OPTIONAL,
     )
+    submission_override = models.BooleanField(
+        default=False,
+        help_text=(
+            "Allow submissions even when the global application period is closed. "
+            "The form's own dates still apply."
+        ),
+    )
     opens_at = models.DateTimeField(null=True, blank=True)
     closes_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -107,8 +184,17 @@ class FormDefinition(models.Model):
 
     @property
     def is_accepting_submissions(self) -> bool:
+        from .site_settings import SiteSettings
+
         if self.status != self.Status.OPEN:
             return False
+
+        settings = SiteSettings.load()
+        if self.year.year != settings.current_year:
+            return False
+        if not settings.is_application_open and not self.submission_override:
+            return False
+
         now = timezone.now()
         if self.opens_at and now < self.opens_at:
             return False

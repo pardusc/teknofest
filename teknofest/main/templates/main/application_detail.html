@@ -8,7 +8,7 @@
   <div class="mb-4">
     <a class="small fg-primary text-decoration-none" href="{% url 'main:application_list' %}">{% translate "Back to my applications" %}</a>
     <div class="d-flex flex-column md:flex-row justify-content-between md:align-items-end gap-3 mt-4">
-      <div><span class="eyebrow fg-primary">{{ application.year.year }} · {{ application.category.name }}</span><h1 class="h2 fw-bold mt-2 mb-1">{{ application.form.title }}</h1><p class="fg-secondary mb-0">{% if application.code %}{% blocktranslate with code=application.code %}Application code: <strong>{{ code }}</strong>{% endblocktranslate %}{% endif %}</p></div>
+      <div><span class="eyebrow fg-primary">{{ application.year.year }} · {{ application.category.display_name }}</span><h1 class="h2 fw-bold mt-2 mb-1">{{ application.form.title }}</h1><p class="fg-secondary mb-0">{% if application.code %}{% blocktranslate with code=application.code %}Application code: <strong>{{ code }}</strong>{% endblocktranslate %}{% endif %}</p></div>
       <span class="badge rounded-pill badge-profile-complete">{% if application.status == 'submitted' %}{% translate "Submitted" %}{% elif application.status == 'in_review' %}{% translate "In review" %}{% elif application.status == 'evaluated' %}{% translate "Evaluated" %}{% else %}{{ application.get_status_display }}{% endif %}</span>
     </div>
   </div>

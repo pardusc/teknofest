@@ -1102,3 +1102,14 @@ msgstr "Başvuruyu gönder"
 #: main/templates/jury/application_detail.html:85
 msgid "Submit your score and note. You can update them while the form remains in review."
 msgstr "Puanınızı ve notunuzu gönderin. Form incelemede kaldığı sürece bunları güncelleyebilirsiniz."
+
+#: main/templates/main/home.html:9
+msgid "No categories are published yet."
+msgstr "Henüz yayımlanmış kategori yok."
+
+#: main/templates/main/home.html:43
+#, python-format
+msgid "%(counter)s category"
+msgid_plural "%(counter)s categories"
+msgstr[0] "%(counter)s kategori"
+msgstr[1] "%(counter)s kategori"

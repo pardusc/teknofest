@@ -1,17 +1,27 @@
 {% extends "main/base.html" %}
 {% load i18n %}
 
-{% block title %}{% translate "Home" %} · Pardus Teknofest{% endblock %}
+{% block title %}{% translate "Home" %} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
+  {% translate "Pardus Bug Finding and Suggestion Competition" as default_competition_name %}
+  {% translate "Submit your bug reports, suggestions and development work as a competition application." as default_lead %}
+  {% translate "Included in form details" as default_calendar_note %}
+
+  {% if site_settings.announcement_active and home_text.announcement %}
+    <div class="container pt-4">
+      <div class="alert site-alert mb-0" role="status">{{ home_text.announcement|linebreaksbr }}</div>
+    </div>
+  {% endif %}
+
   <section class="hero-section">
     <div class="container py-5 py-lg-6">
       <div class="row align-items-center g-5">
         <div class="lg:col-7">
           <div class="hero-content">
-          <span class="eyebrow">Pardus Teknofest · 2026</span>
-          <h1 class="hero-title mt-3 mb-3">{% translate "Pardus Bug Finding and Suggestion Competition" %}</h1>
-          <p class="hero-lead mb-4">{% translate "Submit your bug reports, suggestions and development work as a competition application." %}</p>
+          <span class="eyebrow">{{ home_text.hero_eyebrow|default:"Pardus Teknofest" }} · {{ site_settings.current_year }}</span>
+          <h1 class="hero-title mt-3 mb-3">{{ home_text.hero_title|default:site_settings.competition_name|default:default_competition_name }}</h1>
+          <p class="hero-lead mb-4">{{ home_text.hero_lead|default:default_lead }}</p>
           <div class="d-flex flex-wrap gap-3">
             {% if user.is_authenticated %}
               <a class="btn-solid theme-primary btn-lg" href="{% url 'main:application_list' %}">{% translate "My applications" %}</a>
@@ -28,9 +38,9 @@
             <p class="small text-uppercase fw-semibold mb-2">{% translate "Competition information" %}</p>
             <h2 class="h3 mb-4" id="competition-info-title">{% translate "Application period" %}</h2>
             <dl class="competition-facts mb-0">
-              <div><dt>{% translate "Competition period" %}</dt><dd>2026</dd></div>
-              <div><dt>{% translate "Application category" %}</dt><dd>{% translate "Two categories" %}</dd></div>
-              <div><dt>{% translate "Calendar and conditions" %}</dt><dd>{% translate "Included in form details" %}</dd></div>
+              <div><dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd></div>
+              <div><dt>{% translate "Application category" %}</dt><dd>{% blocktranslate count counter=home_category_count %}{{ counter }} category{% plural %}{{ counter }} categories{% endblocktranslate %}</dd></div>
+              <div><dt>{% translate "Calendar and conditions" %}</dt><dd>{{ home_text.calendar_note|default:default_calendar_note }}</dd></div>
             </dl>
           </aside>
       </div>
@@ -40,30 +50,23 @@
   <section class="container py-5" id="kategoriler">
     <h2 class="section-title mb-4">{% translate "Application categories" %}</h2>
     <div class="row g-4">
-      <div class="md:col-6">
-        <article class="card category-card h-100">
-          <div class="card-body p-4 p-lg-5">
-            <h3 class="category-title">{% translate "Bug report and suggestion" %}</h3>
-            <p class="fg-secondary">{% translate "Describe bugs or usability suggestions you encounter in Pardus components and submit them with the required attachments." %}</p>
-            <ul class="list-unstyled category-list mb-4">
-              <li>{% translate "Bug and reproduction steps" %}</li>
-              <li>{% translate "Usability or feature suggestions" %}</li>
-            </ul>
-          </div>
-        </article>
-      </div>
-      <div class="md:col-6">
-        <article class="card category-card h-100">
-          <div class="card-body p-4 p-lg-5">
-            <h3 class="category-title">{% translate "Software development" %}</h3>
-            <p class="fg-secondary">{% translate "Present the software, tools or technical improvements you develop for Pardus together with project information." %}</p>
-            <ul class="list-unstyled category-list mb-4">
-              <li>{% translate "Project and technical solution description" %}</li>
-              <li>{% translate "Related work outputs" %}</li>
-            </ul>
-          </div>
-        </article>
-      </div>
+      {% for category in home_categories %}
+        <div class="md:col-6">
+          <article class="card category-card h-100">
+            <div class="card-body p-4 p-lg-5">
+              <h3 class="category-title">{{ category.display_name }}</h3>
+              <p class="fg-secondary">{{ category.display_home_description }}</p>
+              {% if category.highlight_list %}
+                <ul class="list-unstyled category-list mb-4">
+                  {% for highlight in category.highlight_list %}<li>{{ highlight }}</li>{% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+          </article>
+        </div>
+      {% empty %}
+        <div class="md:col-12"><p class="fg-secondary mb-0">{% translate "No categories are published yet." %}</p></div>
+      {% endfor %}
     </div>
   </section>
 

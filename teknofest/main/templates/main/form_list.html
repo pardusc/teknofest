@@ -26,8 +26,8 @@
                 {% endif %}
               </div>
               <h2 class="h4 fw-bold">{{ form_definition.title }}</h2>
-              <p class="small fw-semibold fg-secondary mb-2">{{ form_definition.category.name }}</p>
-              {% if form_definition.description %}<p class="fg-secondary">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary">{{ form_definition.category.description|default:default_category_description }}</p>{% endif %}
+              <p class="small fw-semibold fg-secondary mb-2">{{ form_definition.category.display_name }}</p>
+              {% if form_definition.description %}<p class="fg-secondary">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary">{{ form_definition.category.display_description|default:default_category_description }}</p>{% endif %}
               {% if form_definition.closes_at %}<p class="small fg-secondary mt-auto mb-3">{% blocktranslate with closes_at=form_definition.closes_at|date:"d.m.Y H:i" %}Application deadline: {{ closes_at }}{% endblocktranslate %}</p>{% else %}<div class="mt-auto"></div>{% endif %}
               <a class="btn-outline theme-primary align-self-start" href="{% url 'main:form_detail' form_definition.pk %}">{% translate "Form details" %}</a>
             </div>

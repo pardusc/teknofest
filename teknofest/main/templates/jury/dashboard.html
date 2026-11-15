@@ -27,7 +27,7 @@
                   <span class="jury-status">{% translate "Closed" %}</span>
                 {% endif %}
               </div>
-              <p class="jury-category mb-1">{{ form.category.name }}</p>
+              <p class="jury-category mb-1">{{ form.category.display_name }}</p>
               <h2 class="h4 mb-2">{{ form.title }}</h2>
               {% if form.description %}<p class="jury-description mb-4">{{ form.description|linebreaksbr }}</p>{% else %}<p class="jury-description mb-4">{% translate "Review and scoring of applications submitted through this form." %}</p>{% endif %}
 

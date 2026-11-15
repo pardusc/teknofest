@@ -5,7 +5,7 @@
 
 {% block content %}
 <section class="container py-5">
-  <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:form_list' %}">{% translate "Back to application forms" %}</a><p class="eyebrow fg-primary mt-4 mb-2">{{ form_definition.year.year }} · {{ form_definition.category.name }}</p><h1 class="h2 fw-bold mb-2">{{ form_definition.title }}</h1>{% if form_definition.description %}<p class="fg-secondary mb-0">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary mb-0">{% translate "Fill in the form and submit your application." %}</p>{% endif %}</div>
+  <div class="mb-4"><a class="small fg-primary text-decoration-none" href="{% url 'main:form_list' %}">{% translate "Back to application forms" %}</a><p class="eyebrow fg-primary mt-4 mb-2">{{ form_definition.year.year }} · {{ form_definition.category.display_name }}</p><h1 class="h2 fw-bold mb-2">{{ form_definition.title }}</h1>{% if form_definition.description %}<p class="fg-secondary mb-0">{{ form_definition.description|linebreaksbr }}</p>{% else %}<p class="fg-secondary mb-0">{% translate "Fill in the form and submit your application." %}</p>{% endif %}</div>
   <div class="row g-4"><div class="lg:col-8">
     <form method="post" action="{% url 'main:application_start' form_definition.pk %}" class="card application-form" enctype="multipart/form-data">
       {% csrf_token %}<div class="card-body p-4 p-lg-5">
