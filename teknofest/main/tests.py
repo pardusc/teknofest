@@ -412,7 +412,7 @@ class CompetitionModelTests(TestCase):
         self.year = CompetitionYear.objects.create(year=2026)
         self.category, _ = Category.objects.get_or_create(
             slug="bug",
-            defaults={"name": "Hata / Öneri", "order": 1},
+            defaults={"name": "Hata Yakalama", "order": 1},
         )
 
     def make_form(self, **overrides):

@@ -4,8 +4,8 @@
 {% block title %}{% translate "Home" %} · {{ site_settings.site_title|default:"Pardus Teknofest" }}{% endblock %}
 
 {% block content %}
-{% translate "Pardus Bug Finding and Suggestion Competition" as default_competition_name %}
-{% translate "Submit your bug reports, suggestions and development work as a competition application." as default_lead %}
+{% translate "Pardus Bug Finding and Development Competition" as default_competition_name %}
+{% translate "Submit your bug reports and development work as a competition application." as default_lead %}
 
 {% if site_settings.announcement_active and home_text.announcement %}
   <div class="container pt-3">

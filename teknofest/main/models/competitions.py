@@ -33,7 +33,7 @@ class CompetitionYear(models.Model):
 
 
 class Category(models.Model):
-    """A competition category, for example bug/suggestion or development."""
+    """A competition category, for example bug hunting or development."""
 
     slug = models.SlugField(max_length=64, unique=True)
     name = models.CharField(max_length=128)

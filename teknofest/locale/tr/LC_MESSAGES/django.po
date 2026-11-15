@@ -976,18 +976,6 @@ msgstr ""
 msgid "No fields have been defined for this form yet."
 msgstr "Bu form için henüz alan tanımlanmamış."
 
-#: main/templates/main/home.html:7
-msgid "Pardus Bug Finding and Suggestion Competition"
-msgstr "Pardus Hata Yakalama ve Öneri Yarışması"
-
-#: main/templates/main/home.html:8
-msgid ""
-"Submit your bug reports, suggestions and development work as a competition "
-"application."
-msgstr ""
-"Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı yarışma "
-"başvurusu olarak iletin."
-
 #: main/templates/main/home.html:22
 msgid "Overview"
 msgstr "Genel bakış"
@@ -1231,3 +1219,12 @@ msgid ""
 "Optional. Leave empty to use the global application deadline, if configured."
 msgstr ""
 "İsteğe bağlı. Genel başvuru bitiş tarihi tanımlıysa boş bırakabilirsiniz."
+
+msgid "Pardus Bug Finding and Development Competition"
+msgstr "Pardus Hata Yakalama ve Geliştirme Yarışması"
+
+msgid ""
+"Submit your bug reports and development work as a competition application."
+msgstr ""
+"Hata bildirimlerinizi ve geliştirme çalışmalarınızı yarışma başvurusu olarak"
+" iletin."

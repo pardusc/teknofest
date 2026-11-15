@@ -1,7 +1,7 @@
 # Pardus Teknofest Application Platform
 
 A web application for running the application and evaluation process of the
-**Pardus Teknofest Competition** (Pardus Hata Yakalama ve Öneri Yarışması).
+**Pardus Teknofest Competition** (Pardus Hata Yakalama ve Geliştirme Yarışması).
 
 Applicants apply to the competition through T3KYS. This platform covers the competition's
 own process: collecting category-specific applications, reviewing uploaded files, and

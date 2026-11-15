@@ -21,15 +21,15 @@ def seed_initial_data(apps, schema_editor):
     bug, _ = Category.objects.update_or_create(
         slug="bug",
         defaults={
-            "name": "Hata / Öneri",
-            "description": "Pardus uygulamaları için hata bildirimleri ve öneriler.",
+            "name": "Hata Yakalama",
+            "description": "Pardus uygulamalarındaki hataları bildirin.",
             "home_description": (
-                "Pardus bileşenlerinde karşılaşılan hataları veya kullanılabilirlik "
-                "önerilerini açıklama ve gerekli eklerle iletin."
+                "Pardus bileşenlerinde karşılaştığınız hataları ve yeniden oluşturma "
+                "adımlarını gerekli eklerle iletin."
             ),
             "home_highlights": (
                 "Hata ve yeniden oluşturma adımları\n"
-                "Kullanılabilirlik veya özellik önerileri"
+                "Beklenen ve gerçekleşen davranış"
             ),
             "code_prefix": "BUG",
             "order": 1,
@@ -39,15 +39,15 @@ def seed_initial_data(apps, schema_editor):
         category=bug,
         language="en",
         defaults={
-            "name": "Bug / Suggestion",
-            "description": "Bug reports and suggestions for Pardus applications.",
+            "name": "Bug Finding",
+            "description": "Report bugs in Pardus applications.",
             "home_description": (
-                "Describe the bugs or usability suggestions you encounter in Pardus "
-                "components and submit them with the required attachments."
+                "Report the bugs you encounter in Pardus components with reproduction "
+                "steps and the required attachments."
             ),
             "home_highlights": (
                 "Bug and reproduction steps\n"
-                "Usability or feature suggestions"
+                "Expected and actual behavior"
             ),
         },
     )
@@ -92,12 +92,12 @@ def seed_initial_data(apps, schema_editor):
         pk=1,
         defaults={
             "site_title": "Pardus Teknofest",
-            "competition_name": "Pardus Hata Yakalama ve Öneri Yarışması",
+            "competition_name": "Pardus Hata Yakalama ve Geliştirme Yarışması",
             "application_status": "open",
             "hero_eyebrow": "Pardus Teknofest",
-            "hero_title": "Pardus Hata Yakalama ve Öneri Yarışması",
+            "hero_title": "Pardus Hata Yakalama ve Geliştirme Yarışması",
             "hero_lead": (
-                "Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı "
+                "Hata bildirimlerinizi ve geliştirme çalışmalarınızı "
                 "yarışma başvurusu olarak iletin."
             ),
             "footer_tagline": "Açık kaynakla daha iyi bir Pardus",
@@ -108,10 +108,10 @@ def seed_initial_data(apps, schema_editor):
         language="en",
         defaults={
             "hero_eyebrow": "Pardus Teknofest",
-            "hero_title": "Pardus Bug Finding and Suggestion Competition",
+            "hero_title": "Pardus Bug Finding and Development Competition",
             "hero_lead": (
-                "Submit your bug reports, suggestions and development work as a "
-                "competition application."
+                "Submit your bug reports and development work as a competition "
+                "application."
             ),
             "footer_tagline": "Better Pardus with open source",
         },
@@ -175,7 +175,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('site_title', models.CharField(default='Pardus Teknofest', max_length=128)),
-                ('competition_name', models.CharField(default='Pardus Hata Yakalama ve Öneri Yarışması', max_length=255)),
+                ('competition_name', models.CharField(default='Pardus Hata Yakalama ve Geliştirme Yarışması', max_length=255)),
                 ('application_status', models.CharField(choices=[('upcoming', 'Upcoming'), ('open', 'Open'), ('in_review', 'In review'), ('closed', 'Closed')], default='open', max_length=16)),
                 ('application_opens_at', models.DateTimeField(blank=True, null=True)),
                 ('application_closes_at', models.DateTimeField(blank=True, null=True)),

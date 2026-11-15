@@ -17,7 +17,7 @@ class SiteSettings(models.Model):
     site_title = models.CharField(max_length=128, default="Pardus Teknofest")
     competition_name = models.CharField(
         max_length=255,
-        default="Pardus Hata Yakalama ve Öneri Yarışması",
+        default="Pardus Hata Yakalama ve Geliştirme Yarışması",
     )
     application_status = models.CharField(
         max_length=16,
