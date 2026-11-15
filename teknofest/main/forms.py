@@ -4,7 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from .models import FormDefinition, FormField, JuryAPIKey, Profile, SiteSettings
+from .models import FormDefinition, FormField, JuryAPIKey, Profile
 from .validators import validate_image_upload
 
 MAX_PHOTO_SIZE = 1 * 1024 * 1024
@@ -98,7 +98,7 @@ class JuryAPIKeyForm(forms.ModelForm):
 
 
 class FormDefinitionAdminForm(forms.ModelForm):
-    """Admin form that requires a deadline only when no global deadline exists."""
+    """Admin form for form definitions; the closing date is optional."""
 
     class Meta:
         model = FormDefinition
@@ -106,16 +106,10 @@ class FormDefinitionAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        global_deadline = SiteSettings.load().application_closes_at
-        self.fields["closes_at"].required = global_deadline is None
-        if global_deadline:
-            self.fields["closes_at"].help_text = _(
-                "Optional. The global application deadline applies when this is empty."
-            )
-        else:
-            self.fields["closes_at"].help_text = _(
-                "Required because no global application deadline is configured."
-            )
+        self.fields["closes_at"].required = False
+        self.fields["closes_at"].help_text = _(
+            "Optional. Leave empty to use the global application deadline, if configured."
+        )
 
 
 class FormFieldAdminForm(forms.ModelForm):

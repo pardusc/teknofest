@@ -63,14 +63,6 @@ msgstr "Örn. Değerlendirme betiği"
 msgid "Enter a name for this key."
 msgstr "Bu anahtar için bir ad girin."
 
-#: main/forms.py:113
-msgid "Optional. The global application deadline applies when this is empty."
-msgstr "İsteğe bağlı. Boş bırakılırsa genel başvuru bitiş tarihi uygulanır."
-
-#: main/forms.py:117
-msgid "Required because no global application deadline is configured."
-msgstr "Genel başvuru bitiş tarihi tanımlı olmadığı için zorunludur."
-
 #: main/forms.py:160
 msgid "Choices must be unique."
 msgstr "Seçenekler benzersiz olmalı."
@@ -1234,3 +1226,8 @@ msgstr[1] "%(counter)s başvuru"
 
 msgid "Your applications will appear here after you submit one."
 msgstr "Başvuru oluşturduğunuzda başvurularınız burada listelenecek."
+
+msgid ""
+"Optional. Leave empty to use the global application deadline, if configured."
+msgstr ""
+"İsteğe bağlı. Genel başvuru bitiş tarihi tanımlıysa boş bırakabilirsiniz."

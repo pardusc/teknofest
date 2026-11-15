@@ -750,17 +750,17 @@ class AdminTests(TestCase):
         self.assertIs(ProfileAdmin.form, ProfileAdminForm)
         self.assertIs(ProfileInline.form, ProfileAdminForm)
 
-    def test_admin_form_definition_requires_deadline(self):
+    def test_admin_form_definition_deadline_is_optional(self):
         self.assertIs(FormDefinitionAdmin.form, FormDefinitionAdminForm)
         add_url = reverse("admin:main_formdefinition_add")
         response = self.client.get(add_url)
         prefix = response.context["inline_admin_formsets"][0].formset.prefix
-        self.assertTrue(response.context["adminform"].form.fields["closes_at"].required)
+        self.assertFalse(response.context["adminform"].form.fields["closes_at"].required)
         self.assertNotIn("year", response.context["adminform"].form.fields)
         category = Category.objects.create(slug="deadline", name="Deadline")
         data = {
             "category": category.pk,
-            "title": "Deadline required",
+            "title": "Deadline optional",
             "description": "",
             "status": FormDefinition.Status.OPEN,
             "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
@@ -776,19 +776,9 @@ class AdminTests(TestCase):
         }
 
         response = self.client.post(add_url, data)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("closes_at", response.context["adminform"].form.errors)
-        self.assertFalse(
-            FormDefinition.objects.filter(title="Deadline required").exists()
-        )
-
-        closes_at = timezone.localtime() + timedelta(days=5)
-        data["closes_at_0"] = closes_at.strftime("%d/%m/%Y")
-        data["closes_at_1"] = closes_at.strftime("%H:%M")
-        response = self.client.post(add_url, data)
         self.assertEqual(response.status_code, 302)
-        form = FormDefinition.objects.get(title="Deadline required")
-        self.assertIsNotNone(form.closes_at)
+        form = FormDefinition.objects.get(title="Deadline optional")
+        self.assertIsNone(form.closes_at)
         self.assertEqual(form.year.year, timezone.localdate().year)
 
     def test_admin_form_definition_deadline_optional_with_global_deadline(self):
