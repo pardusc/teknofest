@@ -98,7 +98,8 @@ Applications can be edited or deleted until the form closes.
 
 ## Applicant flow
 
-All routes require login, and non-owners receive a 404.
+All routes require login, and non-owners receive a 404. Jury and admin accounts are
+redirected to the jury dashboard instead of using applicant or profile pages.
 
 | Route | Template | Purpose |
 | --- | --- | --- |
@@ -133,8 +134,21 @@ without joining the group.
 Scores are whole numbers from 0 to 100. A review is completed when a score is submitted;
 the note is optional. Until the current juror's review is completed, other jurors'
 scores, notes and the average score stay hidden. Reviews can be edited only while the
-form is in review; closed forms are read-only. Only fields marked as visible in review
-are shown to jurors.
+form is in review; closed forms are read-only.
+
+Jurors and admins cannot apply or manage a profile; those routes redirect to the jury
+dashboard. Every form has a `mask_applicant_identity` setting: when enabled, the jury
+sees `applicant_name` as "Gizli başvuru sahibi" and `applicant_email` as `None`, and
+e-mail search is disabled for that form.
+
+Each form field has a review visibility setting:
+
+- `visible` — label and answer are shown
+- `masked` — the label is shown, the answer is replaced with a privacy notice
+- `hidden` — the field is not listed to the jury at all
+
+Masked answers are never loaded into the jury context. Admins still see all data in
+Django admin.
 
 ## Getting started
 

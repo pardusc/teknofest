@@ -92,7 +92,7 @@ class FormFieldInline(admin.StackedInline):
         "regex",
         "regex_error_message",
         "choices_text",
-        ("order", "is_active", "is_visible_in_review"),
+        ("order", "is_active", "review_visibility"),
     )
 
 
@@ -145,12 +145,12 @@ class FormFieldAdmin(admin.ModelAdmin):
         "is_required",
         "order",
         "is_active",
-        "is_visible_in_review",
+        "review_visibility",
     )
     list_filter = (
         "field_type",
         "is_active",
-        "is_visible_in_review",
+        "review_visibility",
         "form__year",
         "form__category",
     )

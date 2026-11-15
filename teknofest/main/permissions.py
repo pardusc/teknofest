@@ -1,5 +1,7 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
 
 JURY_GROUP_NAME = "jury"
 
@@ -20,3 +22,13 @@ class JuryRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         if self.request.user.is_authenticated:
             raise PermissionDenied
         return super().handle_no_permission()
+
+
+class ApplicantOnlyMixin(LoginRequiredMixin):
+    """Applicant and profile pages are closed to jury and admin accounts."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and is_jury(request.user):
+            messages.error(request, "Jüri hesapları başvuru yapamaz.")
+            return redirect("main:jury_dashboard")
+        return super().dispatch(request, *args, **kwargs)

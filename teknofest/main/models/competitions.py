@@ -76,6 +76,10 @@ class FormDefinition(models.Model):
         choices=Status.choices,
         default=Status.OPEN,
     )
+    mask_applicant_identity = models.BooleanField(
+        default=False,
+        help_text="Hide the applicant's name and e-mail from the jury.",
+    )
     opens_at = models.DateTimeField(null=True, blank=True)
     closes_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -127,6 +131,11 @@ class FormField(models.Model):
         BOOLEAN = "boolean", "Yes / No"
         DATE = "date", "Date"
 
+    class ReviewVisibility(models.TextChoices):
+        VISIBLE = "visible", "Visible"
+        MASKED = "masked", "Masked"
+        HIDDEN = "hidden", "Hidden"
+
     TEXT_TYPES = (
         FieldType.SHORT_TEXT,
         FieldType.LONG_TEXT,
@@ -163,9 +172,11 @@ class FormField(models.Model):
     )
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
-    is_visible_in_review = models.BooleanField(
-        default=True,
-        help_text="Whether the jury and reviewers can see this field.",
+    review_visibility = models.CharField(
+        max_length=8,
+        choices=ReviewVisibility.choices,
+        default=ReviewVisibility.VISIBLE,
+        help_text="What the jury can see for this field.",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

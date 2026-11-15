@@ -74,7 +74,7 @@ class FormFieldAdminForm(forms.ModelForm):
             "regex_error_message",
             "order",
             "is_active",
-            "is_visible_in_review",
+            "review_visibility",
         )
 
     def __init__(self, *args, **kwargs):

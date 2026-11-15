@@ -19,6 +19,7 @@ from ..models import (
     Category,
     FormDefinition,
 )
+from ..permissions import is_jury
 
 MAX_ATTACHMENTS = 10
 MAX_FILE_SIZE = 2 * 1024 * 1024
@@ -32,6 +33,7 @@ ALLOWED_IMAGE_FORMATS = {
 
 def start_application(applicant, form: FormDefinition) -> Application:
     """Return the applicant's existing application, or start a new draft."""
+    _ensure_applicant(applicant)
     if not form.is_accepting_submissions:
         raise ValidationError("This form is not accepting applications.")
 
@@ -52,6 +54,7 @@ def start_application(applicant, form: FormDefinition) -> Application:
 
 def save_draft(application: Application, data: dict) -> Application:
     """Validate and store partial answers. Required fields may stay empty."""
+    _ensure_applicant(application.applicant)
     _ensure_editable(application)
     fields = _active_fields(application)
 
@@ -68,6 +71,7 @@ def submit(application: Application, data: dict | None = None) -> Application:
     """Validate everything and finalize the application with a readable code."""
     with transaction.atomic():
         application = Application.objects.select_for_update().get(pk=application.pk)
+        _ensure_applicant(application.applicant)
         _ensure_editable(application)
 
         if data is not None:
@@ -108,6 +112,7 @@ def delete_application(application: Application) -> None:
     """Delete an application and its files while it is still editable."""
     with transaction.atomic():
         application = Application.objects.select_for_update().get(pk=application.pk)
+        _ensure_applicant(application.applicant)
         _ensure_editable(application)
         application.delete()
 
@@ -116,6 +121,7 @@ def add_attachment(
     application: Application,
     upload: UploadedFile,
 ) -> Attachment:
+    _ensure_applicant(application.applicant)
     _ensure_editable(application)
 
     if application.category.attachment_policy == Category.AttachmentPolicy.NONE:
@@ -149,8 +155,14 @@ def add_attachment(
 
 
 def delete_attachment(attachment: Attachment) -> None:
+    _ensure_applicant(attachment.application.applicant)
     _ensure_editable(attachment.application)
     attachment.delete()
+
+
+def _ensure_applicant(user) -> None:
+    if is_jury(user):
+        raise ValidationError("Jury accounts cannot submit applications.")
 
 
 def _ensure_editable(application: Application) -> None:

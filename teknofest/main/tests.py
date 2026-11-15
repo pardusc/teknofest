@@ -40,6 +40,7 @@ from .services.applications import (
 )
 from .services.reviews import save_review, submit_review
 from .views import (
+    MASKED_FIELD_MESSAGE,
     ApplicationDetailView,
     ApplicationListView,
     ApplicationPreviewView,
@@ -590,7 +591,7 @@ class AdminTests(TestCase):
                 "regex_error_message": "",
                 "order": 1,
                 "is_active": "on",
-                "is_visible_in_review": "on",
+                "review_visibility": "visible",
                 "choices_text": "Low\nHigh",
             },
         )
@@ -1265,7 +1266,7 @@ class JuryTests(MediaTestCase):
             key="title",
             label="Title",
             field_type=FormField.FieldType.SHORT_TEXT,
-            is_visible_in_review=True,
+            review_visibility=FormField.ReviewVisibility.VISIBLE,
             order=1,
         )
         self.hidden_field = FormField.objects.create(
@@ -1273,7 +1274,7 @@ class JuryTests(MediaTestCase):
             key="secret",
             label="Secret",
             field_type=FormField.FieldType.SHORT_TEXT,
-            is_visible_in_review=False,
+            review_visibility=FormField.ReviewVisibility.HIDDEN,
             order=2,
         )
         self.application = Application.objects.create(
@@ -1590,3 +1591,150 @@ class JuryTests(MediaTestCase):
 
         self.assertEqual(updated.score, 70)
         self.assertEqual(updated.completed_at, completed_at)
+
+    def test_jury_cannot_use_applicant_or_profile_routes(self):
+        urls = (
+            reverse("main:form_list"),
+            reverse("main:form_detail", args=[self.form.pk]),
+            reverse("main:application_list"),
+            reverse("main:application_detail", args=[self.application.public_id]),
+            reverse("main:profile"),
+            reverse("main:profile_edit"),
+        )
+
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertRedirects(
+                    self.client.get(url),
+                    reverse("main:jury_dashboard"),
+                )
+
+    def test_jury_cannot_start_application(self):
+        response = self.client.post(
+            reverse("main:application_start", args=[self.form.pk])
+        )
+
+        self.assertRedirects(response, reverse("main:jury_dashboard"))
+        self.assertFalse(Application.objects.filter(applicant=self.jury).exists())
+
+    def test_admin_cannot_use_applicant_or_profile_routes(self):
+        self.client.force_login(self.admin)
+
+        for url in (
+            reverse("main:form_list"),
+            reverse("main:application_list"),
+            reverse("main:profile"),
+        ):
+            with self.subTest(url=url):
+                self.assertRedirects(
+                    self.client.get(url),
+                    reverse("main:jury_dashboard"),
+                )
+
+    def test_applicant_is_not_redirected_from_applicant_routes(self):
+        self.client.force_login(self.applicant)
+
+        self.assertEqual(self.client.get(reverse("main:form_list")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("main:profile")).status_code, 200)
+        self.assertEqual(
+            self.client.get(
+                reverse(
+                    "main:application_detail",
+                    args=[self.application.public_id],
+                )
+            ).status_code,
+            200,
+        )
+
+    def test_application_services_reject_jury_accounts(self):
+        with self.assertRaisesMessage(ValidationError, "Jury accounts"):
+            start_application(self.jury, self.form)
+        with self.assertRaisesMessage(ValidationError, "Jury accounts"):
+            start_application(self.admin, self.form)
+
+    def test_detail_masks_applicant_identity_when_enabled(self):
+        self.applicant.first_name = "Ada"
+        self.applicant.last_name = "Lovelace"
+        self.applicant.save()
+        self.form.mask_applicant_identity = True
+        self.form.save()
+
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            )
+        )
+
+        self.assertTrue(response.context["applicant_identity_masked"])
+        self.assertEqual(response.context["applicant_name"], "Gizli başvuru sahibi")
+        self.assertIsNone(response.context["applicant_email"])
+
+    def test_detail_shows_applicant_identity_by_default(self):
+        self.applicant.first_name = "Ada"
+        self.applicant.last_name = "Lovelace"
+        self.applicant.save()
+
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            )
+        )
+
+        self.assertFalse(response.context["applicant_identity_masked"])
+        self.assertEqual(response.context["applicant_name"], "Ada Lovelace")
+        self.assertEqual(response.context["applicant_email"], self.applicant.email)
+
+    def test_list_disables_email_search_when_identity_is_masked(self):
+        url = reverse("main:jury_application_list", args=[self.form.pk])
+
+        self.assertEqual(
+            len(self.client.get(url, {"q": self.applicant.email}).context["rows"]),
+            1,
+        )
+
+        self.form.mask_applicant_identity = True
+        self.form.save()
+
+        self.assertEqual(
+            len(self.client.get(url, {"q": self.applicant.email}).context["rows"]),
+            0,
+        )
+        self.assertEqual(
+            len(self.client.get(url, {"q": "BUG-2026-00001"}).context["rows"]),
+            1,
+        )
+
+    def test_masked_field_hides_value(self):
+        masked_field = FormField.objects.create(
+            form=self.form,
+            key="private_note",
+            label="Private note",
+            field_type=FormField.FieldType.SHORT_TEXT,
+            review_visibility=FormField.ReviewVisibility.MASKED,
+            order=3,
+        )
+        ApplicationAnswer.objects.create(
+            application=self.application,
+            field=masked_field,
+            value="Top secret",
+        )
+
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            )
+        )
+
+        items = {
+            item["field"].key: item for item in response.context["field_answers"]
+        }
+        values = [item["value"] for item in response.context["field_answers"]]
+
+        self.assertEqual(items["private_note"]["value"], MASKED_FIELD_MESSAGE)
+        self.assertTrue(items["private_note"]["is_masked"])
+        self.assertNotIn("Top secret", values)
+        self.assertNotIn("Hidden answer", values)
+        self.assertIn("Visible answer", values)

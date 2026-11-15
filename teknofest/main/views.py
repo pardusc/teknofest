@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
@@ -11,8 +10,8 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from .dynamic_forms import build_form
 from .forms import ProfileForm
-from .models import Application, Category, FormDefinition, Profile, Review
-from .permissions import JuryRequiredMixin
+from .models import Application, Category, FormDefinition, FormField, Profile, Review
+from .permissions import ApplicantOnlyMixin, JuryRequiredMixin
 from .services import applications as application_service
 from .services import reviews as review_service
 from .services.reviews import review_stats
@@ -22,7 +21,7 @@ def home(request):
     return render(request, "main/home.html")
 
 
-class ProfileView(LoginRequiredMixin, DetailView):
+class ProfileView(ApplicantOnlyMixin, DetailView):
     model = Profile
     template_name = "main/profile_detail.html"
     context_object_name = "profile"
@@ -32,7 +31,7 @@ class ProfileView(LoginRequiredMixin, DetailView):
         return profile
 
 
-class ProfileUpdateView(LoginRequiredMixin, UpdateView):
+class ProfileUpdateView(ApplicantOnlyMixin, UpdateView):
     model = Profile
     form_class = ProfileForm
     template_name = "main/profile_edit.html"
@@ -48,7 +47,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
 
-class FormListView(LoginRequiredMixin, ListView):
+class FormListView(ApplicantOnlyMixin, ListView):
     template_name = "main/form_list.html"
     context_object_name = "forms"
 
@@ -60,7 +59,7 @@ class FormListView(LoginRequiredMixin, ListView):
         )
 
 
-class FormDetailView(LoginRequiredMixin, DetailView):
+class FormDetailView(ApplicantOnlyMixin, DetailView):
     model = FormDefinition
     template_name = "main/form_detail.html"
     context_object_name = "form_definition"
@@ -91,7 +90,7 @@ class FormDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ApplicationStartView(LoginRequiredMixin, View):
+class ApplicationStartView(ApplicantOnlyMixin, View):
     def post(self, request, pk):
         form_definition = get_object_or_404(
             FormDefinition.objects.select_related("year", "category"),
@@ -114,7 +113,7 @@ class ApplicationStartView(LoginRequiredMixin, View):
         )
 
 
-class ApplicationListView(LoginRequiredMixin, ListView):
+class ApplicationListView(ApplicantOnlyMixin, ListView):
     template_name = "main/application_list.html"
     context_object_name = "applications"
 
@@ -124,7 +123,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         )
 
 
-class ApplicationDetailView(LoginRequiredMixin, DetailView):
+class ApplicationDetailView(ApplicantOnlyMixin, DetailView):
     model = Application
     template_name = "main/application_detail.html"
     context_object_name = "application"
@@ -149,7 +148,7 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ApplicationUpdateView(LoginRequiredMixin, View):
+class ApplicationUpdateView(ApplicantOnlyMixin, View):
     template_name = "main/application_edit.html"
 
     def get(self, request, public_id):
@@ -219,7 +218,7 @@ class ApplicationUpdateView(LoginRequiredMixin, View):
         )
 
 
-class ApplicationPreviewView(LoginRequiredMixin, DetailView):
+class ApplicationPreviewView(ApplicantOnlyMixin, DetailView):
     model = Application
     template_name = "main/application_preview.html"
     context_object_name = "application"
@@ -243,7 +242,7 @@ class ApplicationPreviewView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ApplicationSubmitView(LoginRequiredMixin, View):
+class ApplicationSubmitView(ApplicantOnlyMixin, View):
     def post(self, request, public_id):
         application = _get_owned_application(request, public_id)
 
@@ -266,7 +265,7 @@ class ApplicationSubmitView(LoginRequiredMixin, View):
         )
 
 
-class ApplicationDeleteView(LoginRequiredMixin, View):
+class ApplicationDeleteView(ApplicantOnlyMixin, View):
     def post(self, request, public_id):
         application = _get_owned_application(request, public_id)
 
@@ -283,7 +282,7 @@ class ApplicationDeleteView(LoginRequiredMixin, View):
         return redirect("main:application_list")
 
 
-class AttachmentUploadView(LoginRequiredMixin, View):
+class AttachmentUploadView(ApplicantOnlyMixin, View):
     def post(self, request, public_id):
         application = _get_owned_application(request, public_id)
         upload = request.FILES.get("file")
@@ -308,7 +307,7 @@ class AttachmentUploadView(LoginRequiredMixin, View):
         )
 
 
-class AttachmentDeleteView(LoginRequiredMixin, View):
+class AttachmentDeleteView(ApplicantOnlyMixin, View):
     def post(self, request, public_id, pk):
         application = _get_owned_application(request, public_id)
         attachment = get_object_or_404(application.attachments, pk=pk)
@@ -401,6 +400,7 @@ def _validation_message(error):
         "Upload a JPG or PNG image.": "JPG veya PNG biçiminde bir görsel yükleyin.",
         "Each file must be 2 MB or smaller.": "Her dosya en fazla 2 MB olabilir.",
         "Total attachment size must be 10 MB or smaller.": "Ek dosyaların toplam boyutu en fazla 10 MB olabilir.",
+        "Jury accounts cannot submit applications.": "Jüri hesapları başvuru gönderemez.",
     }
     if hasattr(error, "message_dict"):
         texts = []
@@ -510,9 +510,10 @@ class JuryApplicationListView(JuryRequiredMixin, ListView):
 
         query = self.request.GET.get("q", "").strip()
         if query:
-            queryset = queryset.filter(
-                Q(code__icontains=query) | Q(applicant__email__icontains=query)
-            )
+            conditions = Q(code__icontains=query)
+            if not self.form_definition.mask_applicant_identity:
+                conditions |= Q(applicant__email__icontains=query)
+            queryset = queryset.filter(conditions)
 
         ordering = self.request.GET.get("ordering", "-submitted_at")
         if ordering not in REVIEW_ORDERING:
@@ -540,7 +541,7 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
     context_object_name = "application"
 
     def get_queryset(self):
-        return Application.objects.select_related("form", "year", "category").exclude(
+        return Application.objects.select_related("form", "year", "category", "applicant").exclude(
             status=Application.Status.DRAFT
         )
 
@@ -553,6 +554,8 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         application = self.object
+        applicant = application.applicant
+        masked = application.form.mask_applicant_identity
 
         context.update(review_stats(application, self.request.user))
         context.update(
@@ -563,6 +566,13 @@ class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
                 "can_review": (
                     application.form.status == FormDefinition.Status.IN_REVIEW
                 ),
+                "applicant_identity_masked": masked,
+                "applicant_name": (
+                    "Gizli başvuru sahibi"
+                    if masked
+                    else (applicant.get_full_name() or applicant.username)
+                ),
+                "applicant_email": None if masked else applicant.email,
             }
         )
         return context
@@ -614,19 +624,45 @@ class JuryReviewSubmitView(JuryRequiredMixin, View):
 
 def _get_reviewable_application(request, public_id):
     return get_object_or_404(
-        Application.objects.select_related("form", "year", "category").exclude(
+        Application.objects.select_related("form", "year", "category", "applicant").exclude(
             status=Application.Status.DRAFT
         ),
         public_id=public_id,
     )
 
 
+MASKED_FIELD_MESSAGE = "Bu alan jüri değerlendirmesinde gizlenmiştir."
+
+
 def _review_field_answers(application):
+    fields = application.form.fields.filter(
+        review_visibility__in=[
+            FormField.ReviewVisibility.VISIBLE,
+            FormField.ReviewVisibility.MASKED,
+        ]
+    )
     answers = {
         answer.field_id: answer.value
-        for answer in application.answers.select_related("field")
+        for answer in application.answers.filter(
+            field__review_visibility=FormField.ReviewVisibility.VISIBLE
+        ).select_related("field")
     }
-    return [
-        {"field": field, "value": answers.get(field.pk, "")}
-        for field in application.form.fields.filter(is_visible_in_review=True)
-    ]
+    items = []
+    for field in fields:
+        if field.review_visibility == FormField.ReviewVisibility.MASKED:
+            items.append(
+                {
+                    "field": field,
+                    "value": MASKED_FIELD_MESSAGE,
+                    "is_masked": True,
+                }
+            )
+        else:
+            items.append(
+                {
+                    "field": field,
+                    "value": answers.get(field.pk, ""),
+                    "is_masked": False,
+                }
+            )
+    return items
