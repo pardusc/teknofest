@@ -2839,7 +2839,7 @@ class SiteSettingsTests(TestCase):
         self.settings.application_closes_at = None
         self.settings.save()
 
-        self.year = CompetitionYear.objects.create(year=2026)
+        self.year = CompetitionYear.objects.create(year=timezone.localdate().year)
         self.category = Category.objects.create(
             slug="settings",
             name="Settings",
@@ -2889,7 +2889,9 @@ class SiteSettingsTests(TestCase):
         self.assertFalse(form.is_accepting_submissions)
 
     def test_year_mismatch_blocks_submissions(self):
-        other_year = CompetitionYear.objects.create(year=2027)
+        other_year = CompetitionYear.objects.create(
+            year=timezone.localdate().year + 1
+        )
         form = self.make_form(year=other_year, submission_override=True)
 
         self.assertFalse(form.is_accepting_submissions)
@@ -2947,7 +2949,6 @@ class SiteSettingsTests(TestCase):
         self.assertEqual(application.status, Application.Status.SUBMITTED)
 
     def test_home_uses_settings(self):
-        self.settings.current_year = 2027
         self.settings.hero_title = "Custom hero title"
         self.settings.hero_lead = "Custom hero lead"
         self.settings.announcement = "Custom announcement"
@@ -2957,7 +2958,7 @@ class SiteSettingsTests(TestCase):
 
         response = self.client.get(reverse("main:home"))
 
-        self.assertContains(response, "2027")
+        self.assertContains(response, str(timezone.localdate().year))
         self.assertContains(response, "Custom hero title")
         self.assertContains(response, "Custom hero lead")
         self.assertContains(response, "Custom announcement")
@@ -2979,11 +2980,9 @@ class SiteSettingsTests(TestCase):
             institution="Pardus University",
             education_level=Profile.EducationLevel.BACHELOR,
         )
-        other_year = CompetitionYear.objects.create(year=2027)
+        other_year = CompetitionYear.objects.create(year=timezone.localdate().year + 1)
         current_form = self.make_form(title="Current year form")
         self.make_form(year=other_year, title="Next year form")
-        self.settings.current_year = 2026
-        self.settings.save()
         self.client.force_login(user)
 
         response = self.client.get(reverse("main:form_list"))

@@ -93,7 +93,6 @@ def seed_initial_data(apps, schema_editor):
         defaults={
             "site_title": "Pardus Teknofest",
             "competition_name": "Pardus Hata Yakalama ve Öneri Yarışması",
-            "current_year": 2026,
             "application_status": "open",
             "hero_eyebrow": "Pardus Teknofest",
             "hero_title": "Pardus Hata Yakalama ve Öneri Yarışması",
@@ -177,7 +176,6 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('site_title', models.CharField(default='Pardus Teknofest', max_length=128)),
                 ('competition_name', models.CharField(default='Pardus Hata Yakalama ve Öneri Yarışması', max_length=255)),
-                ('current_year', models.PositiveSmallIntegerField(default=2026)),
                 ('application_status', models.CharField(choices=[('upcoming', 'Upcoming'), ('open', 'Open'), ('in_review', 'In review'), ('closed', 'Closed')], default='open', max_length=16)),
                 ('application_opens_at', models.DateTimeField(blank=True, null=True)),
                 ('application_closes_at', models.DateTimeField(blank=True, null=True)),

@@ -436,7 +436,6 @@ class SiteSettingsAdmin(admin.ModelAdmin):
                 "fields": (
                     "site_title",
                     "competition_name",
-                    "current_year",
                     "contact_email",
                     "footer_tagline",
                 )

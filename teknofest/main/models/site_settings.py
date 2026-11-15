@@ -19,7 +19,6 @@ class SiteSettings(models.Model):
         max_length=255,
         default="Pardus Hata Yakalama ve Öneri Yarışması",
     )
-    current_year = models.PositiveSmallIntegerField(default=2026)
     application_status = models.CharField(
         max_length=16,
         choices=ApplicationStatus.choices,
@@ -44,6 +43,11 @@ class SiteSettings(models.Model):
 
     def __str__(self) -> str:
         return self.site_title
+
+    @property
+    def current_year(self) -> int:
+        """The competition year is always the current local calendar year."""
+        return timezone.localdate().year
 
     def clean(self):
         super().clean()
