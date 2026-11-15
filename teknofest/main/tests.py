@@ -279,16 +279,27 @@ class ProfileTests(MediaTestCase):
     def test_profile_update_saves_required_fields(self):
         response = self.client.post(reverse("main:profile"), self.valid_data())
 
-        self.assertRedirects(response, reverse("main:profile"))
+        self.assertRedirects(response, reverse("main:application_list"))
         profile = Profile.objects.get(user=self.user)
         self.assertEqual(profile.city, "Ankara")
         self.assertEqual(profile.education_level, Profile.EducationLevel.BACHELOR)
         self.assertTrue(profile.is_complete)
 
+    def test_profile_edit_after_completion_stays_on_profile(self):
+        self.client.post(reverse("main:profile"), self.valid_data())
+
+        response = self.client.post(
+            reverse("main:profile"),
+            self.valid_data(city="İzmir"),
+        )
+
+        self.assertRedirects(response, reverse("main:profile"))
+        self.assertEqual(Profile.objects.get(user=self.user).city, "İzmir")
+
     def test_photo_is_optional(self):
         response = self.client.post(reverse("main:profile"), self.valid_data())
 
-        self.assertRedirects(response, reverse("main:profile"))
+        self.assertRedirects(response, reverse("main:application_list"))
         self.assertFalse(Profile.objects.get(user=self.user).photo)
 
     def test_valid_photo_is_uploaded(self):
@@ -297,7 +308,7 @@ class ProfileTests(MediaTestCase):
 
         response = self.client.post(reverse("main:profile"), data)
 
-        self.assertRedirects(response, reverse("main:profile"))
+        self.assertRedirects(response, reverse("main:application_list"))
         self.assertTrue(Profile.objects.get(user=self.user).photo.name.startswith("profiles/"))
 
     def test_invalid_photo_type_is_rejected(self):
@@ -332,7 +343,7 @@ class ProfileTests(MediaTestCase):
 
         response = self.client.post(reverse("main:profile"), data)
 
-        self.assertRedirects(response, reverse("main:profile"))
+        self.assertRedirects(response, reverse("main:application_list"))
         self.assertTrue(
             Profile.objects.get(user=self.user).photo.name.endswith(".jpg")
         )

@@ -63,11 +63,17 @@ class ProfileView(ApplicantOnlyMixin, UpdateView):
 
     def get_object(self, queryset=None):
         profile, _ = Profile.objects.get_or_create(user=self.request.user)
+        # Form validation writes the cleaned data onto the instance, so remember
+        # the stored completeness before that happens.
+        self._profile_was_complete = profile.is_complete
         return profile
 
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, _("Your profile has been updated."))
+        if not self._profile_was_complete and self.object.is_complete:
+            # First-time setup is done; send the applicant to their applications.
+            return redirect("main:application_list")
         return response
 
 
