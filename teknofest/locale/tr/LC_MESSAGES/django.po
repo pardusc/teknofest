@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Pardus Teknofest\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-15 15:05+0300\n"
+"POT-Creation-Date: 2026-11-15 15:30+0300\n"
 "PO-Revision-Date: 2026-11-15 04:00+0300\n"
 "Last-Translator: Pardus Teknofest <no-reply@example.com>\n"
 "Language-Team: Turkish\n"
@@ -487,7 +487,7 @@ msgstr "Değerlendirildi"
 msgid "Public ID"
 msgstr "Genel kimlik"
 
-#: main/models/applications.py:39 main/templates/main/application_form.html:129
+#: main/models/applications.py:39 main/templates/main/application_form.html:133
 msgid "Code"
 msgstr "Kod"
 
@@ -513,7 +513,7 @@ msgstr "Yıl"
 
 #: main/models/applications.py:70 main/models/competitions.py:66
 #: main/models/competitions.py:114 main/models/competitions.py:167
-#: main/templates/main/application_form.html:127
+#: main/templates/main/application_form.html:131
 msgid "Category"
 msgstr "Kategori"
 
@@ -659,7 +659,7 @@ msgstr "Denetim kaydı"
 msgid "Audit events"
 msgstr "Denetim kayıtları"
 
-#: main/models/competitions.py:26 main/templates/main/application_form.html:126
+#: main/models/competitions.py:26 main/templates/main/application_form.html:130
 msgid "Competition year"
 msgstr "Yarışma yılı"
 
@@ -1729,46 +1729,50 @@ msgstr "Dosyaları seçin"
 msgid "Drag files here or choose them from your device."
 msgstr "Dosyaları buraya sürükleyin veya cihazınızdan seçin."
 
-#: main/templates/main/application_form.html:112
+#: main/templates/main/application_form.html:107
+msgid "Preparing files..."
+msgstr "Dosyalar hazırlanıyor..."
+
+#: main/templates/main/application_form.html:116
 msgid "Required fields are marked with an asterisk."
 msgstr "Zorunlu alanlar yıldızla işaretlidir."
 
-#: main/templates/main/application_form.html:114
+#: main/templates/main/application_form.html:118
 msgid "Cancel"
 msgstr "İptal"
 
-#: main/templates/main/application_form.html:115
+#: main/templates/main/application_form.html:119
 #: main/templates/main/profile.html:87
 msgid "Save changes"
 msgstr "Değişiklikleri kaydet"
 
-#: main/templates/main/application_form.html:115
+#: main/templates/main/application_form.html:119
 msgid "Submit application"
 msgstr "Başvuruyu gönder"
 
-#: main/templates/main/application_form.html:123
+#: main/templates/main/application_form.html:127
 msgid "Application information"
 msgstr "Başvuru bilgileri"
 
-#: main/templates/main/application_form.html:128
+#: main/templates/main/application_form.html:132
 #: main/templates/main/application_list.html:64
 #: main/templates/main/base.html:128
 msgid "Deadline"
 msgstr "Son başvuru"
 
-#: main/templates/main/application_form.html:136
+#: main/templates/main/application_form.html:140
 msgid "Before submitting"
 msgstr "Göndermeden önce"
 
-#: main/templates/main/application_form.html:139
+#: main/templates/main/application_form.html:143
 msgid "Fill in the required fields."
 msgstr "Zorunlu alanları doldurun."
 
-#: main/templates/main/application_form.html:140
+#: main/templates/main/application_form.html:144
 msgid "Check your contact and profile information."
 msgstr "İletişim ve profil bilgilerinizi kontrol edin."
 
-#: main/templates/main/application_form.html:141
+#: main/templates/main/application_form.html:145
 msgid "Upload the required attachment."
 msgstr "Gerekli ek dosyayı yükleyin."
 

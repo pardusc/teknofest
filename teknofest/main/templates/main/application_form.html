@@ -102,6 +102,10 @@
                      {% if attachment_policy == 'required' and not attachments %}required{% endif %}>
               <p class="small fg-secondary mb-0 mt-2">{% translate "Drag files here or choose them from your device." %}</p>
             </div>
+            <div class="mt-2" data-attachment-status hidden role="status" aria-live="polite">
+              <span class="spinner-border spinner-sm" aria-hidden="true"></span>
+              <span class="small fg-secondary ms-1">{% translate "Preparing files..." %}</span>
+            </div>
             <div class="attachment-selection" data-attachment-selection hidden></div>
             <p class="field-error" data-attachment-error hidden role="alert"></p>
             {% include "main/_attachment_preview_dialog.html" %}

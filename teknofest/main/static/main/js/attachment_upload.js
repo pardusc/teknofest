@@ -8,8 +8,11 @@ if (input) {
   const quotaFiles = document.querySelector("[data-quota-files]");
   const quotaVideos = document.querySelector("[data-quota-videos]");
   const quotaBytes = document.querySelector("[data-quota-bytes]");
+  const status = document.querySelector("[data-attachment-status]");
   const previewDialog = document.getElementById("attachment-preview-dialog");
   const canPreview = previewDialog && typeof previewDialog.showModal === "function";
+  const supportsDataTransfer = typeof DataTransfer !== "undefined";
+  const requiredOnLoad = input.required;
 
   const config = {
     profile: input.dataset.profile || "default",
@@ -36,6 +39,7 @@ if (input) {
   let selected = [];
   let objectUrls = [];
   let syncingInput = false;
+  let clearTimer = null;
 
   const formatBytes = (bytes) => {
     if (bytes >= 1024 * 1024) {
@@ -281,8 +285,11 @@ if (input) {
 
   const rebuildFileList = (files) => {
     selected = Array.from(files);
+    cancelInputClear();
     syncInputFiles();
     refresh();
+    updateRequired();
+    if (supportsDataTransfer) input.value = "";
   };
 
   const fileKey = (file) =>
@@ -311,17 +318,62 @@ if (input) {
     validate();
   };
 
+  const updateRequired = () => {
+    if (!requiredOnLoad) return;
+    input.required = selected.length === 0;
+  };
+
+  const showPreparing = () => {
+    if (status) {
+      status.hidden = false;
+      input.disabled = true;
+    }
+  };
+
+  const hidePreparing = () => {
+    if (status) {
+      status.hidden = true;
+      input.disabled = false;
+    }
+  };
+
+  const cancelInputClear = () => {
+    if (clearTimer) {
+      window.clearTimeout(clearTimer);
+      clearTimer = null;
+    }
+    hidePreparing();
+  };
+
+  const scheduleInputClear = () => {
+    if (!supportsDataTransfer) return;
+    if (clearTimer) window.clearTimeout(clearTimer);
+    showPreparing();
+    clearTimer = window.setTimeout(() => {
+      clearTimer = null;
+      input.value = "";
+      hidePreparing();
+      updateRequired();
+    }, 500);
+  };
+
   const addFiles = (files) => {
     const keys = new Set(selected.map(fileKey));
+    let added = false;
     files.forEach((file) => {
       const key = fileKey(file);
       if (!keys.has(key)) {
         selected.push(file);
         keys.add(key);
+        added = true;
       }
     });
+    if (!added) return;
+
     syncInputFiles();
     refresh();
+    updateRequired();
+    scheduleInputClear();
   };
 
   const readSelection = () => {
@@ -332,6 +384,7 @@ if (input) {
     if (typeof DataTransfer === "undefined") {
       selected = incoming;
       refresh();
+      updateRequired();
       return;
     }
 
@@ -359,6 +412,7 @@ if (input) {
         if (typeof DataTransfer === "undefined") {
           selected = files;
           refresh();
+          updateRequired();
         } else {
           addFiles(files);
         }
@@ -369,22 +423,31 @@ if (input) {
   if (form) {
     form.addEventListener("submit", (event) => {
       const submitter = event.submitter;
-      if (submitter && submitter.hasAttribute("formnovalidate")) return;
+      cancelInputClear();
+      if (submitter && submitter.hasAttribute("formnovalidate")) {
+        if (supportsDataTransfer) input.value = "";
+        return;
+      }
       if (!validate()) {
         event.preventDefault();
         input.reportValidity();
         input.focus();
+        if (supportsDataTransfer) input.value = "";
+        return;
       }
+      syncInputFiles();
     });
     form.addEventListener("reset", () => {
+      cancelInputClear();
       window.setTimeout(() => {
         selected = [];
-        syncInputFiles();
         refresh();
-        setError("");
+        updateRequired();
+        input.value = "";
       }, 0);
     });
   }
 
   updateQuota();
+  updateRequired();
 }
