@@ -734,6 +734,27 @@ class AdminTests(TestCase):
             title="Admin form",
         )
 
+    def inline_field_data(self, prefix, key="title", label="Title"):
+        return {
+            f"{prefix}-TOTAL_FORMS": "1",
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+            f"{prefix}-0-id": "",
+            f"{prefix}-0-key": key,
+            f"{prefix}-0-label": label,
+            f"{prefix}-0-field_type": FormField.FieldType.SHORT_TEXT,
+            f"{prefix}-0-help_text": "",
+            f"{prefix}-0-min_length": "",
+            f"{prefix}-0-max_length": "",
+            f"{prefix}-0-regex": "",
+            f"{prefix}-0-regex_error_message": "",
+            f"{prefix}-0-choices_text": "",
+            f"{prefix}-0-order": "1",
+            f"{prefix}-0-is_active": "on",
+            f"{prefix}-0-review_visibility": FormField.ReviewVisibility.VISIBLE,
+        }
+
     def test_admin_pages_load(self):
         urls = (
             reverse("admin:index"),
@@ -774,12 +795,69 @@ class AdminTests(TestCase):
             f"{prefix}-MAX_NUM_FORMS": "1000",
             "_save": "Save",
         }
+        data.update(self.inline_field_data(prefix))
 
         response = self.client.post(add_url, data)
         self.assertEqual(response.status_code, 302)
         form = FormDefinition.objects.get(title="Deadline optional")
         self.assertIsNone(form.closes_at)
         self.assertEqual(form.year.year, timezone.localdate().year)
+
+    def test_admin_form_definition_requires_at_least_one_field(self):
+        add_url = reverse("admin:main_formdefinition_add")
+        response = self.client.get(add_url)
+        prefix = response.context["inline_admin_formsets"][0].formset.prefix
+        category = Category.objects.create(slug="no-fields", name="No fields")
+        data = {
+            "category": category.pk,
+            "title": "Needs a field",
+            "description": "",
+            "status": FormDefinition.Status.OPEN,
+            "attachment_policy": FormDefinition.AttachmentPolicy.OPTIONAL,
+            "opens_at_0": "",
+            "opens_at_1": "",
+            "closes_at_0": "",
+            "closes_at_1": "",
+            f"{prefix}-TOTAL_FORMS": "0",
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+            "_save": "Save",
+        }
+
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            _("Add at least one active field to the form."),
+        )
+        self.assertFalse(
+            FormDefinition.objects.filter(title="Needs a field").exists()
+        )
+
+        data.update(
+            {
+                f"{prefix}-TOTAL_FORMS": "1",
+                f"{prefix}-0-id": "",
+                f"{prefix}-0-key": "title",
+                f"{prefix}-0-label": "Title",
+                f"{prefix}-0-field_type": FormField.FieldType.SHORT_TEXT,
+                f"{prefix}-0-help_text": "",
+                f"{prefix}-0-min_length": "",
+                f"{prefix}-0-max_length": "",
+                f"{prefix}-0-regex": "",
+                f"{prefix}-0-regex_error_message": "",
+                f"{prefix}-0-choices_text": "",
+                f"{prefix}-0-order": "1",
+                f"{prefix}-0-is_active": "on",
+                f"{prefix}-0-review_visibility": FormField.ReviewVisibility.VISIBLE,
+            }
+        )
+
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 302)
+        form = FormDefinition.objects.get(title="Needs a field")
+        self.assertEqual(form.fields.count(), 1)
 
     def test_admin_form_definition_deadline_optional_with_global_deadline(self):
         settings = SiteSettings.load()
@@ -811,6 +889,7 @@ class AdminTests(TestCase):
             f"{prefix}-MAX_NUM_FORMS": "1000",
             "_save": "Save",
         }
+        data.update(self.inline_field_data(prefix))
 
         response = self.client.post(add_url, data)
         self.assertEqual(response.status_code, 302)

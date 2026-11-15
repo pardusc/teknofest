@@ -1217,3 +1217,6 @@ msgid ""
 msgstr ""
 "Hata bildirimlerinizi ve geliştirme çalışmalarınızı yarışma başvurusu olarak"
 " iletin."
+
+msgid "Add at least one active field to the form."
+msgstr "Forma en az bir etkin alan ekleyin."

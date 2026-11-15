@@ -3,9 +3,12 @@ import csv
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 from .forms import FormDefinitionAdminForm, FormFieldAdminForm, ProfileAdminForm
 from .models import (
@@ -95,9 +98,30 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ("name", "slug")
 
 
+class FormFieldInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+
+        active_fields = [
+            form
+            for form in self.forms
+            if form.cleaned_data
+            and not form.cleaned_data.get("DELETE")
+            and form.cleaned_data.get("is_active")
+            and form.cleaned_data.get("key")
+        ]
+        if not active_fields:
+            raise ValidationError(
+                _("Add at least one active field to the form.")
+            )
+
+
 class FormFieldInline(admin.StackedInline):
     model = FormField
     form = FormFieldAdminForm
+    formset = FormFieldInlineFormSet
     extra = 0
     can_delete = True
     fields = (
