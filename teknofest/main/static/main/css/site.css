@@ -338,7 +338,8 @@ hr { border-color: var(--p-border); opacity: 1; }
 .dynamic-field input[type="date"] { color-scheme: light; }
 [data-bs-theme="dark"] .dynamic-field input[type="date"] { color-scheme: dark; }
 .date-input-wrap { position: relative; }
-.date-input-wrap input[type="date"] { padding-right: 2.9rem; cursor: pointer; }
+/* Firefox cannot hide its native calendar icon; the solid toggle covers it. */
+.date-input-wrap input[type="date"] { padding-right: 0.5rem; cursor: pointer; }
 .date-input-wrap.is-enhanced input[type="date"] {
   appearance: none;
   -webkit-appearance: none;
@@ -355,10 +356,11 @@ hr { border-color: var(--p-border); opacity: 1; }
   padding: 0;
   border: 0;
   border-radius: 7px;
-  background: transparent;
+  background: var(--p-surface);
   color: var(--p-muted);
   cursor: pointer;
   transform: translateY(-50%);
+  z-index: 2;
 }
 .date-input-toggle:hover { background: var(--p-accent-soft); color: var(--p-accent-text); }
 .date-input-toggle:focus-visible {
