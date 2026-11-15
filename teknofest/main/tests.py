@@ -2007,7 +2007,6 @@ class AdminWorkflowTests(TestCase):
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class ProtectedMediaTests(MediaTestCase):
     def setUp(self):
-        call_command("seed_initial_data", verbosity=0)
         self.user = get_user_model().objects.create_user(
             username="media-owner",
             email="media-owner@example.com",
