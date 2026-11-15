@@ -5,9 +5,19 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from .models import FormDefinition, FormField, Profile, SiteSettings
+from .validators import validate_image_upload
 
 MAX_PHOTO_SIZE = 1 * 1024 * 1024
-ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png"}
+
+
+def _validate_profile_photo(photo):
+    # An unchanged field returns the stored file, which has no content_type.
+    if not photo or not hasattr(photo, "content_type"):
+        return photo
+    if photo.size > MAX_PHOTO_SIZE:
+        raise ValidationError(_("The photo must be 1 MB or smaller."))
+    validate_image_upload(photo)
+    return photo
 
 
 class ProfileForm(forms.ModelForm):
@@ -23,7 +33,12 @@ class ProfileForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": _("e.g. Gazi University")}
             ),
             "education_level": forms.Select(attrs={"class": "form-control"}),
-            "photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "photo": forms.ClearableFileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/png,image/jpeg,.png,.jpg,.jpeg",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -40,14 +55,17 @@ class ProfileForm(forms.ModelForm):
 
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")
-        # An unchanged field returns the stored file, which has no content_type.
-        if not photo or not hasattr(photo, "content_type"):
-            return photo
-        if photo.size > MAX_PHOTO_SIZE:
-            raise ValidationError(_("The photo must be 1 MB or smaller."))
-        if photo.content_type not in ALLOWED_PHOTO_TYPES:
-            raise ValidationError(_("Upload a JPG or PNG image."))
-        return photo
+        return _validate_profile_photo(photo)
+
+
+class ProfileAdminForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = "__all__"
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get("photo")
+        return _validate_profile_photo(photo)
 
 
 class FormDefinitionAdminForm(forms.ModelForm):

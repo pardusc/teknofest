@@ -48,9 +48,11 @@ from .admin import (
     ApplicationAdmin,
     AuditEventAdmin,
     FormDefinitionAdmin,
+    ProfileAdmin,
+    ProfileInline,
     SiteSettingsAdmin,
 )
-from .forms import FormDefinitionAdminForm
+from .forms import FormDefinitionAdminForm, ProfileAdminForm
 from .views import (
     MASKED_FIELD_MESSAGE,
     ApplicationDetailView,
@@ -63,10 +65,10 @@ from .views import (
 )
 
 
-def make_image(name="photo.png", image_format="PNG"):
+def make_image(name="photo.png", image_format="PNG", content_type=None):
     buffer = BytesIO()
     Image.new("RGB", (10, 10), "white").save(buffer, format=image_format)
-    content_type = {
+    content_type = content_type or {
         "PNG": "image/png",
         "JPEG": "image/jpeg",
         "GIF": "image/gif",
@@ -202,6 +204,40 @@ class ProfileTests(MediaTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFormError(
             response.context["form"], "photo", _("Upload a JPG or PNG image.")
+        )
+
+    def test_spoofed_photo_type_is_rejected(self):
+        data = self.valid_data()
+        data["photo"] = make_image(
+            name="photo.png",
+            image_format="GIF",
+            content_type="image/png",
+        )
+
+        response = self.client.post(reverse("main:profile"), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"], "photo", _("Upload a JPG or PNG image.")
+        )
+
+    def test_jpeg_photo_is_accepted(self):
+        data = self.valid_data()
+        data["photo"] = make_image(name="photo.jpg", image_format="JPEG")
+
+        response = self.client.post(reverse("main:profile"), data)
+
+        self.assertRedirects(response, reverse("main:profile"))
+        self.assertTrue(
+            Profile.objects.get(user=self.user).photo.name.endswith(".jpg")
+        )
+
+    def test_profile_photo_input_limits_accept_types(self):
+        response = self.client.get(reverse("main:profile"))
+
+        self.assertContains(
+            response,
+            'accept="image/png,image/jpeg,.png,.jpg,.jpeg"',
         )
 
     @patch("main.forms.MAX_PHOTO_SIZE", 10)
@@ -587,6 +623,10 @@ class AdminTests(TestCase):
         for url in urls:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_admin_profile_forms_validate_photo_type(self):
+        self.assertIs(ProfileAdmin.form, ProfileAdminForm)
+        self.assertIs(ProfileInline.form, ProfileAdminForm)
 
     def test_admin_form_definition_requires_deadline(self):
         self.assertIs(FormDefinitionAdmin.form, FormDefinitionAdminForm)
