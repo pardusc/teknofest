@@ -7,68 +7,12 @@ Applicants apply to the competition through T3KYS. This platform covers the comp
 own process: collecting category-specific applications, reviewing uploaded files, and
 scoring them with a jury.
 
-## Roles
-
-| Role | Description |
-| --- | --- |
-| Applicant | Signs in with Keycloak, completes their profile and KVKK consent, and submits or edits applications for the Bug/Suggestion and Development categories. |
-| Jury | Sees the category they are assigned to, reviews applications, and submits scores and notes. |
-| Admin | Manages competition years, opens and closes forms, and monitors the review process. |
-
-Roles are determined by the Keycloak roles assigned to each account.
-
 ## Tech stack
 
 - Python 3.15
 - Django 6.1
 - SQLite
 - Keycloak for authentication and role management
-
-## Project structure
-
-```
-.
-├── LICENSE
-├── README.md
-├── requirements.txt
-├── .gitignore
-└── teknofest/
-    ├── manage.py
-    ├── main/
-    │   ├── admin.py
-    │   ├── dynamic_forms.py
-    │   ├── forms.py
-    │   ├── models/
-    │   │   ├── accounts.py
-    │   │   ├── applications.py
-    │   │   ├── competitions.py
-    │   │   └── reviews.py
-    │   ├── services/
-    │   │   ├── applications.py
-    │   │   └── reviews.py
-    │   ├── permissions.py
-    │   ├── urls.py
-    │   ├── views.py
-    │   ├── migrations/
-    │   └── templates/
-    │       ├── jury/
-    │       ├── main/
-    │       └── registration/
-    └── teknofest/
-        ├── settings.py
-        ├── urls.py
-        ├── asgi.py
-        └── wsgi.py
-```
-
-## User model
-
-The project uses a custom user model, `main.User`, from the very first migration.
-It extends `django.contrib.auth.models.AbstractUser` and adds a unique
-`keycloak_id` field for the OIDC `sub` claim plus a unique e-mail address.
-Personal information (phone, city, institution, education level and an optional
-photo) lives in the related `main.Profile` model.
-Swapping this model later is expensive, so it must not be reverted.
 
 ## Competition forms
 
@@ -79,76 +23,6 @@ validation through `main.dynamic_forms`.
 
 Forms can be opened, put in review or closed manually from the admin, and each field can
 be hidden from reviewers. Staff members can preview a form before opening it.
-
-## Applications
-
-Applications are submitted in one step: there is no draft state. A submission is
-validated completely, receives a readable code such as `BUG-2026-00001` or
-`DEVELOPMENT-2026-00001`, and can be edited or deleted until the form closes.
-
-Attachment rules are configured per form in the admin:
-
-- `none` — the form does not accept attachments
-- `optional` — files may be uploaded
-- `required` — at least one file must be present
-
-Limits are 10 files maximum, 2 MB per file and 10 MB in total. Only real JPG and PNG
-images are accepted, verified from their content rather than their extension.
-
-## Applicant flow
-
-All routes require login, and non-owners receive a 404. Jury and admin accounts are
-redirected to the jury dashboard instead of using applicant or profile pages.
-
-| Route | Template | Purpose |
-| --- | --- | --- |
-| `/forms/` | `main/form_list.html` | Available forms |
-| `/forms/<pk>/` | `main/form_detail.html` | Form details and apply action |
-| `/forms/<pk>/apply/` | `main/application_form.html` | Fill and submit a new application (GET/POST) |
-| `/applications/` | `main/application_list.html` | My applications |
-| `/applications/<uuid>/` | `main/application_detail.html` | Application detail |
-| `/applications/<uuid>/edit/` | `main/application_edit.html` | Update a submitted application |
-| `/applications/<uuid>/preview/` | `main/application_preview.html` | Submission preview |
-| `/applications/<uuid>/delete/` | — | Delete (POST) |
-| `/applications/<uuid>/attachments/upload/` | — | Upload an attachment (POST) |
-| `/applications/<uuid>/attachments/<pk>/delete/` | — | Delete an attachment (POST) |
-
-The frontend team owns the templates; empty placeholders are committed so the views
-render while the interface is being built. New attachments are sent with the form in the
-multipart field `files`; submitted applications can still add or remove individual files
-through the attachment endpoints.
-
-## Jury
-
-Jurors belong to the `jury` group. Admins (`is_staff`) are jurors as well and can score
-without joining the group.
-
-| Route | Template | Purpose |
-| --- | --- | --- |
-| `/jury/` | `jury/dashboard.html` | Forms with application and completion counts |
-| `/jury/forms/<pk>/` | `jury/application_list.html` | Submitted applications, filters and search |
-| `/jury/applications/<uuid>/` | `jury/application_detail.html` | Answers, attachments and my review |
-| `/jury/applications/<uuid>/review/save/` | — | Save a draft review (POST) |
-| `/jury/applications/<uuid>/review/submit/` | — | Complete a review (POST) |
-
-Scores are whole numbers from 0 to 100. Reviews are submitted in one step; there is no
-review draft. A score is required and the note is optional. Other jurors' scores, notes
-and the average score are always visible. Reviews can be edited only while the form is
-in review; closed forms are read-only.
-
-Jurors and admins cannot apply or manage a profile; those routes redirect to the jury
-dashboard. Every form has a `mask_applicant_identity` setting: when enabled, the jury
-sees `applicant_name` as "Gizli başvuru sahibi" and `applicant_email` as `None`, and
-e-mail search is disabled for that form.
-
-Each form field has a review visibility setting:
-
-- `visible` — label and answer are shown
-- `masked` — the label is shown, the answer is replaced with a privacy notice
-- `hidden` — the field is not listed to the jury at all
-
-Masked answers are never loaded into the jury context. Admins still see all data in
-Django admin.
 
 ## Getting started
 
@@ -204,18 +78,6 @@ cd teknofest
 ```
 
 Commit both `django.po` and `django.mo`.
-
-## Status
-
-The Django project skeleton, the custom user model and the applicant profile are in
-place, including login/logout and profile editing. Competition years, categories and
-dynamic form definitions can be managed from the admin. Applications are created only
-when submitted, with readable codes and per-form attachment rules. The applicant flow and
-the jury review flow, including blind scoring, are wired up. Authentication currently
-uses Django's local login; Keycloak integration is planned.
-
-Planned work includes KVKK consent, KVKK onboarding, admin review workflows and Keycloak
-roles.
 
 ## License
 
