@@ -78,9 +78,6 @@ def jury_application_queryset(form_definition, user, params) -> QuerySet[Applica
     elif mine == "pending":
         queryset = queryset.filter(my_completed=False)
 
-    if params.get("files") == "1":
-        queryset = queryset.filter(attachment_count__gt=0)
-
     query = params.get("q", "").strip()
     if query:
         conditions = Q(code__icontains=query) | Q(title__icontains=query)

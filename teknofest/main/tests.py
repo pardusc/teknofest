@@ -2170,16 +2170,6 @@ class JuryTests(MediaTestCase):
         self.assertEqual(len(pending.context["rows"]), 0)
         self.assertEqual(len(completed.context["rows"]), 1)
 
-    def test_list_files_filter(self):
-        url = reverse("main:jury_application_list", args=[self.form.pk])
-
-        without_files = self.client.get(url, {"files": "1"})
-        self.add_attachment()
-        with_files = self.client.get(url, {"files": "1"})
-
-        self.assertEqual(len(without_files.context["rows"]), 0)
-        self.assertEqual(len(with_files.context["rows"]), 1)
-
     def test_list_shows_average_before_my_review(self):
         Review.objects.create(
             application=self.application,

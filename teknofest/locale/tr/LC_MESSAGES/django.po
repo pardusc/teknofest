@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Pardus Teknofest\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-15 15:44+0300\n"
+"POT-Creation-Date: 2026-11-15 15:52+0300\n"
 "PO-Revision-Date: 2026-11-15 04:00+0300\n"
 "Last-Translator: Pardus Teknofest <no-reply@example.com>\n"
 "Language-Team: Turkish\n"
@@ -470,7 +470,7 @@ msgid "Jury API keys"
 msgstr "Jüri API anahtarları"
 
 #: main/models/applications.py:24 main/models/applications.py:96
-#: main/templates/jury/application_list.html:67
+#: main/templates/jury/application_list.html:65
 msgid "Submitted"
 msgstr "Gönderildi"
 
@@ -525,12 +525,12 @@ msgstr "Gönderilme"
 #: main/models/applications.py:152 main/models/audit.py:39
 #: main/models/reviews.py:14 main/templates/jury/application_detail.html:4
 #: main/templates/jury/application_list.html:7
-#: main/templates/jury/application_list.html:66
+#: main/templates/jury/application_list.html:64
 #: main/templates/main/application_list.html:29
 msgid "Application"
 msgstr "Başvuru"
 
-#: main/models/applications.py:85 main/templates/jury/application_list.html:57
+#: main/models/applications.py:85 main/templates/jury/application_list.html:55
 #: main/templates/jury/dashboard.html:32
 msgid "Applications"
 msgstr "Başvurular"
@@ -577,7 +577,7 @@ msgstr "Ek dosya"
 
 #: main/models/applications.py:163
 #: main/templates/jury/application_detail.html:54
-#: main/templates/jury/application_list.html:68
+#: main/templates/jury/application_list.html:66
 #: main/templates/main/application_detail.html:53
 #: main/templates/main/application_form.html:62
 msgid "Attachments"
@@ -640,7 +640,7 @@ msgid "Actor"
 msgstr "İşlemi yapan"
 
 #: main/models/audit.py:52 main/templates/jury/api_keys.html:79
-#: main/templates/jury/application_list.html:72
+#: main/templates/jury/application_list.html:70
 #: main/templates/jury/dashboard.html:32
 #: main/templates/main/application_list.html:29
 #: main/templates/main/application_list.html:66
@@ -981,8 +981,8 @@ msgstr "Not"
 msgid "Completed at"
 msgstr "Tamamlanma"
 
-#: main/models/reviews.py:35 main/templates/jury/application_list.html:71
-#: main/templates/jury/application_list.html:83
+#: main/models/reviews.py:35 main/templates/jury/application_list.html:69
+#: main/templates/jury/application_list.html:81
 msgid "Review"
 msgstr "Değerlendirme"
 
@@ -1066,8 +1066,8 @@ msgstr "Site ayarları çevirileri"
 msgid "Jury accounts cannot apply."
 msgstr "Jüri hesapları başvuru yapamaz."
 
-#: main/services/applications.py:30 main/tests.py:2917 main/tests.py:2928
-#: main/tests.py:3475 main/views.py:121 main/views.py:134
+#: main/services/applications.py:30 main/tests.py:2907 main/tests.py:2918
+#: main/tests.py:3465 main/views.py:121 main/views.py:134
 msgid "This form is not accepting applications."
 msgstr "Bu form şu anda başvuru kabul etmiyor."
 
@@ -1083,8 +1083,8 @@ msgstr "Bu form için başvuru limitinize ulaştınız."
 msgid "At least one attachment is required for this form."
 msgstr "Bu form için en az bir ek dosya yükleyin."
 
-#: main/services/applications.py:184 main/tests.py:2504 main/tests.py:2506
-#: main/tests.py:2939
+#: main/services/applications.py:184 main/tests.py:2494 main/tests.py:2496
+#: main/tests.py:2929
 msgid "Jury accounts cannot submit applications."
 msgstr "Jüri hesapları başvuru gönderemez."
 
@@ -1151,12 +1151,12 @@ msgstr "Ek dosyaların toplam boyutu en fazla %(limit)s MB olabilir."
 msgid "Total attachment size must be 10 MB or smaller."
 msgstr "Ek dosyaların toplam boyutu en fazla 10 MB olabilir."
 
-#: main/services/attachments.py:212 main/tests.py:3795 main/tests.py:3813
+#: main/services/attachments.py:212 main/tests.py:3785 main/tests.py:3803
 #, python-format
 msgid "At most %(limit)s videos can be uploaded per application."
 msgstr "Başvuru başına en fazla %(limit)s video yüklenebilir."
 
-#: main/services/attachments.py:227 main/tests.py:3850
+#: main/services/attachments.py:227 main/tests.py:3840
 msgid "This form does not accept video attachments."
 msgstr "Bu form video ek dosyası kabul etmiyor."
 
@@ -1174,12 +1174,12 @@ msgstr "Her görsel en fazla %(limit)s MB olabilir."
 msgid "Each file must be 2 MB or smaller."
 msgstr "Her dosya en fazla 2 MB olabilir."
 
-#: main/services/attachments.py:300 main/tests.py:3762 main/tests.py:3779
-#: main/tests.py:3789
+#: main/services/attachments.py:300 main/tests.py:3752 main/tests.py:3769
+#: main/tests.py:3779
 msgid "Upload a WebM video."
 msgstr "WebM biçiminde bir video yükleyin."
 
-#: main/services/attachments.py:338 main/tests.py:3729 main/tests.py:3768
+#: main/services/attachments.py:338 main/tests.py:3719 main/tests.py:3758
 msgid "Upload a WebP image."
 msgstr "WebP biçiminde bir görsel yükleyin."
 
@@ -1188,7 +1188,7 @@ msgstr "WebP biçiminde bir görsel yükleyin."
 msgid "Upload a JPG or PNG image."
 msgstr "JPG veya PNG biçiminde bir görsel yükleyin."
 
-#: main/services/attachments.py:353 main/tests.py:3841
+#: main/services/attachments.py:353 main/tests.py:3831
 msgid "The image dimensions are too large."
 msgstr "Görsel boyutları çok büyük."
 
@@ -1451,12 +1451,12 @@ msgid "All applications"
 msgstr "Tüm başvurular"
 
 #: main/templates/jury/application_list.html:34
-#: main/templates/jury/application_list.html:82
+#: main/templates/jury/application_list.html:80
 msgid "Pending"
 msgstr "Bekliyor"
 
 #: main/templates/jury/application_list.html:35
-#: main/templates/jury/application_list.html:82
+#: main/templates/jury/application_list.html:80
 msgid "Completed"
 msgstr "Tamamlandı"
 
@@ -1488,47 +1488,43 @@ msgstr "Ortalama: yüksekten düşüğe"
 msgid "Average: low to high"
 msgstr "Ortalama: düşükten yükseğe"
 
-#: main/templates/jury/application_list.html:51
-msgid "With attachments"
-msgstr "Ek dosyası olanlar"
-
-#: main/templates/jury/application_list.html:52
+#: main/templates/jury/application_list.html:50
 msgid "Apply filters"
 msgstr "Filtreleri uygula"
 
-#: main/templates/jury/application_list.html:58
+#: main/templates/jury/application_list.html:56
 #, python-format
 msgid "%(counter)s record"
 msgid_plural "%(counter)s records"
 msgstr[0] "%(counter)s kayıt"
 msgstr[1] "%(counter)s kayıt"
 
-#: main/templates/jury/application_list.html:69
+#: main/templates/jury/application_list.html:67
 msgid "My score"
 msgstr "Puanım"
 
-#: main/templates/jury/application_list.html:70
+#: main/templates/jury/application_list.html:68
 msgid "Average"
 msgstr "Ortalama"
 
-#: main/templates/jury/application_list.html:92
+#: main/templates/jury/application_list.html:90
 #, python-format
 msgid "Page %(number)s / %(total)s"
 msgstr "Sayfa %(number)s / %(total)s"
 
-#: main/templates/jury/application_list.html:94
+#: main/templates/jury/application_list.html:92
 msgid "Previous"
 msgstr "Önceki"
 
-#: main/templates/jury/application_list.html:95
+#: main/templates/jury/application_list.html:93
 msgid "Next"
 msgstr "Sonraki"
 
-#: main/templates/jury/application_list.html:101
+#: main/templates/jury/application_list.html:99
 msgid "No applications match these criteria"
 msgstr "Bu ölçütlere uygun başvuru bulunamadı"
 
-#: main/templates/jury/application_list.html:102
+#: main/templates/jury/application_list.html:100
 msgid "You can change the filters or check again later."
 msgstr "Filtreleri değiştirebilir veya daha sonra yeniden kontrol edebilirsiniz."
 
@@ -1714,7 +1710,7 @@ msgstr "en az bir dosya zorunlu"
 msgid "files left"
 msgstr "dosya hakkı"
 
-#: main/templates/main/application_form.html:68 main/tests.py:4062
+#: main/templates/main/application_form.html:68 main/tests.py:4052
 msgid "videos left"
 msgstr "video hakkı"
 
@@ -2051,7 +2047,7 @@ msgstr "Keycloak ile giriş yap"
 msgid "If you have trouble signing in, contact the competition coordination team."
 msgstr "Giriş sorunu yaşıyorsanız yarışma koordinasyon ekibiyle iletişime geçin."
 
-#: main/tests.py:2524 main/views.py:568
+#: main/tests.py:2514 main/views.py:568
 msgid "Hidden applicant"
 msgstr "Gizli başvuru sahibi"
 

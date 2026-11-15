@@ -47,8 +47,6 @@
       </select>
     </div>
     <div class="jury-filter-actions">
-      <input type="hidden" name="files" value="0">
-      <label class="d-flex align-items-center gap-2 small mb-0" for="jury-files"><input id="jury-files" type="checkbox" name="files" value="1" {% if request.GET.files == '1' %}checked{% endif %}> {% translate "With attachments" %}</label>
       <button class="btn-solid" type="submit">{% translate "Apply filters" %}</button>
     </div>
   </form>
