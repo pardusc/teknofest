@@ -39,7 +39,7 @@
           {% for field in application_form %}
             <div class="form-field">
               <label class="form-label" for="{{ field.id_for_label }}">
-                {{ field.label }}{% if field.name in required_keys %}<span class="required" aria-hidden="true">*</span>{% else %}<span class="small fg-secondary">({% translate "optional" %})</span>{% endif %}
+                {{ field.label }}{% if field.name in required_keys %}<span class="required" aria-hidden="true">*</span>{% else %} <span class="small fg-secondary">({% translate "optional" %})</span>{% endif %}
               </label>
               {{ field }}
               {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}

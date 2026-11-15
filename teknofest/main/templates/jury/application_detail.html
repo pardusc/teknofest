@@ -111,7 +111,7 @@
       <section class="card section-card mt-3">
         <div class="section-head"><h2>{% translate "Evaluation summary" %}</h2></div>
         <div class="section-body">
-          <div class="jury-average"><span>{% translate "Current average" %}</span><strong>{{ average_score|floatformat:1 }}<small> / 100</small></strong></div>
+          <div class="jury-average"><span>{% translate "Current average" %}</span><strong>{% if average_score is not None %}{{ average_score|floatformat:1 }}{% else %}—{% endif %}<small> / 100</small></strong></div>
           <p class="small fg-secondary mt-2">{% blocktranslate count counter=completed_count %}{{ counter }} completed review{% plural %}{{ counter }} completed reviews{% endblocktranslate %}</p>
           {% if other_reviews %}
             <ul class="list-plain jury-other-reviews mb-0">

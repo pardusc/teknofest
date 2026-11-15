@@ -23,11 +23,11 @@
   </div>
 
   <form method="get" class="toolbar jury-list-filters">
-    <div style="flex: 2 1 220px">
+    <div>
       <label class="form-label" for="jury-search">{% if form_definition.mask_applicant_identity %}{% translate "Application code" %}{% else %}{% translate "Application code or e-mail" %}{% endif %}</label>
       <input class="form-control" id="jury-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="{% if form_definition.mask_applicant_identity %}{% translate 'e.g. BUG-2026-00001' %}{% else %}{% translate 'Enter code or e-mail' %}{% endif %}">
     </div>
-    <div style="flex: 1 1 150px">
+    <div>
       <label class="form-label" for="jury-mine">{% translate "My review" %}</label>
       <select class="form-select" id="jury-mine" name="mine">
         <option value="" {% if not request.GET.mine %}selected{% endif %}>{% translate "All applications" %}</option>
@@ -35,7 +35,7 @@
         <option value="completed" {% if request.GET.mine == 'completed' %}selected{% endif %}>{% translate "Completed" %}</option>
       </select>
     </div>
-    <div style="flex: 1 1 190px">
+    <div>
       <label class="form-label" for="jury-ordering">{% translate "Ordering" %}</label>
       <select class="form-select" id="jury-ordering" name="ordering">
         <option value="-submitted_at" {% if request.GET.ordering == '-submitted_at' or not request.GET.ordering %}selected{% endif %}>{% translate "Newest" %}</option>
@@ -46,16 +46,16 @@
         <option value="average" {% if request.GET.ordering == 'average' %}selected{% endif %}>{% translate "Average: low to high" %}</option>
       </select>
     </div>
-    <div style="flex: 0 0 auto">
+    <div class="jury-filter-actions">
       <input type="hidden" name="files" value="0">
-      <label class="d-flex align-items-center gap-2 small mb-2" for="jury-files"><input id="jury-files" type="checkbox" name="files" value="1" {% if request.GET.files == '1' %}checked{% endif %}> {% translate "With attachments" %}</label>
-      <button class="btn-solid w-100" type="submit">{% translate "Apply filters" %}</button>
+      <label class="d-flex align-items-center gap-2 small mb-0" for="jury-files"><input id="jury-files" type="checkbox" name="files" value="1" {% if request.GET.files == '1' %}checked{% endif %}> {% translate "With attachments" %}</label>
+      <button class="btn-solid" type="submit">{% translate "Apply filters" %}</button>
     </div>
   </form>
 
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h2 class="h6 fw-bold mb-0">{% translate "Applications" %}</h2>
-    <span class="small fg-secondary">{% blocktranslate with count=paginator.count %}{{ count }} records{% endblocktranslate %}</span>
+    <span class="small fg-secondary">{% blocktranslate count counter=paginator.count %}{{ counter }} record{% plural %}{{ counter }} records{% endblocktranslate %}</span>
   </div>
 
   {% if rows %}
