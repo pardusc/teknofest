@@ -2002,3 +2002,110 @@ class AdminWorkflowTests(TestCase):
         self.assertFalse(model_admin.has_add_permission(request))
         self.assertFalse(model_admin.has_change_permission(request))
         self.assertFalse(model_admin.has_delete_permission(request))
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class ProtectedMediaTests(MediaTestCase):
+    def setUp(self):
+        call_command("seed_initial_data", verbosity=0)
+        self.user = get_user_model().objects.create_user(
+            username="media-owner",
+            email="media-owner@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=self.user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.other = get_user_model().objects.create_user(
+            username="media-other",
+            email="media-other@example.com",
+            password="secret123",
+        )
+        self.jury = get_user_model().objects.create_user(
+            username="media-jury",
+            email="media-jury@example.com",
+            password="secret123",
+        )
+        self.jury.groups.add(Group.objects.get(name="jury"))
+        self.staff = get_user_model().objects.create_user(
+            username="media-staff",
+            email="media-staff@example.com",
+            password="secret123",
+            is_staff=True,
+        )
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="Media form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+        self.application = submit_application(
+            self.user,
+            self.form,
+            {"title": "Media application"},
+            files=[make_image()],
+        )
+        self.attachment = self.application.attachments.get()
+
+    def test_owner_can_download_attachment(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.attachment.file.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+
+    def test_other_applicant_cannot_download_attachment(self):
+        self.client.force_login(self.other)
+
+        self.assertEqual(self.client.get(self.attachment.file.url).status_code, 404)
+
+    def test_jury_and_staff_can_download_attachment(self):
+        for user in (self.jury, self.staff):
+            with self.subTest(user=user.username):
+                self.client.force_login(user)
+                self.assertEqual(
+                    self.client.get(self.attachment.file.url).status_code,
+                    200,
+                )
+
+    def test_anonymous_cannot_download_attachment(self):
+        self.client.logout()
+
+        self.assertEqual(self.client.get(self.attachment.file.url).status_code, 404)
+
+    def test_unknown_media_path_is_not_found(self):
+        self.client.force_login(self.user)
+
+        self.assertEqual(
+            self.client.get("/media/applications/2026/missing/file.png").status_code,
+            404,
+        )
+
+    def test_profile_photo_is_owner_and_staff_only(self):
+        profile = self.user.profile
+        profile.photo = make_image(name="avatar.png")
+        profile.save()
+        url = profile.photo.url
+
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(url).status_code, 200)

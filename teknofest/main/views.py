@@ -1,10 +1,16 @@
+import mimetypes
+import os
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import SuspiciousFileOperation, ValidationError
 from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Q, Subquery
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse_lazy
+from django.utils._os import safe_join
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
 from django.views import View
@@ -12,8 +18,8 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from .dynamic_forms import build_form
 from .forms import ProfileForm
-from .models import Application, FormDefinition, FormField, Profile, Review
-from .permissions import ApplicantOnlyMixin, JuryRequiredMixin
+from .models import Application, Attachment, FormDefinition, FormField, Profile, Review
+from .permissions import ApplicantOnlyMixin, JuryRequiredMixin, is_jury
 from .services import applications as application_service
 from .services import reviews as review_service
 from .services.reviews import review_stats
@@ -659,3 +665,56 @@ def _review_field_answers(application):
                 }
             )
     return items
+
+
+def protected_media(request, path):
+    """Serve uploaded files only to users allowed to see them."""
+    user = request.user
+    if not user.is_authenticated:
+        raise Http404
+
+    try:
+        full_path = safe_join(str(settings.MEDIA_ROOT), path)
+    except (SuspiciousFileOperation, ValueError, OSError):
+        raise Http404
+
+    if not os.path.isfile(full_path):
+        raise Http404
+
+    attachment = (
+        Attachment.objects.select_related("application").filter(file=path).first()
+    )
+    if attachment:
+        if not (
+            attachment.application.applicant_id == user.pk or is_jury(user)
+        ):
+            raise Http404
+        return _media_response(
+            attachment.file,
+            attachment.original_name,
+            attachment.content_type,
+        )
+
+    profile = Profile.objects.filter(photo=path).first()
+    if profile:
+        if not (profile.user_id == user.pk or user.is_staff):
+            raise Http404
+        return _media_response(
+            profile.photo,
+            os.path.basename(profile.photo.name),
+            None,
+        )
+
+    raise Http404
+
+
+def _media_response(field_file, filename, content_type):
+    if content_type is None:
+        content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    response = FileResponse(
+        field_file.open("rb"),
+        content_type=content_type,
+        filename=filename,
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response

@@ -62,6 +62,9 @@ Settings are read from environment variables with development-friendly defaults:
 | `DJANGO_DEBUG` | `1` | Set to `0` to disable debug mode. |
 | `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated list of allowed hosts. |
 
+Uploaded files are served through `/media/<path>` with permission checks. Do not
+configure the web server to serve `MEDIA_ROOT` directly.
+
 ## Localization
 
 Backend messages use Django's standard gettext catalogs. Turkish is the default

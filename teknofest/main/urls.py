@@ -67,4 +67,5 @@ urlpatterns = [
         name="jury_review_submit",
     ),
     path("staff/forms/<int:pk>/preview/", views.form_preview, name="form_preview"),
+    path("media/<path:path>", views.protected_media, name="protected_media"),
 ]
