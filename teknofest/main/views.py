@@ -545,6 +545,9 @@ class JuryApplicationListView(JuryRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        page_query = self.request.GET.copy()
+        page_query.pop("page", None)
+        context["page_query"] = page_query.urlencode()
         context["form_definition"] = self.form_definition
         context["rows"] = [
             {
@@ -677,6 +680,7 @@ def _review_field_answers(application):
                 {
                     "field": field,
                     "value": MASKED_FIELD_MESSAGE,
+                    "display_value": MASKED_FIELD_MESSAGE,
                     "is_masked": True,
                 }
             )
@@ -685,6 +689,9 @@ def _review_field_answers(application):
                 {
                     "field": field,
                     "value": answers.get(field.pk, ""),
+                    "display_value": ", ".join(map(str, answers[field.pk]))
+                    if isinstance(answers.get(field.pk, ""), list)
+                    else answers.get(field.pk, ""),
                     "is_masked": False,
                 }
             )

@@ -1,0 +1,132 @@
+{% extends "main/base.html" %}
+
+{% block title %}{{ application.code|default:"Başvuru" }} · Jüri incelemesi{% endblock %}
+
+{% block content %}
+<section class="container py-5 jury-page">
+  <header class="jury-page-header mb-4">
+    <a class="jury-back-link" href="{% url 'main:jury_application_list' form_definition.pk %}">Başvuru listesine dön</a>
+    <div class="jury-page-title-row mt-3">
+      <div>
+        <p class="eyebrow mb-2">{{ application.year.year }} · {{ application.category.name }}</p>
+        <h1 class="mb-2">{{ application.code|default:"Başvuru ayrıntıları" }}</h1>
+        <p class="mb-0">{{ form_definition.title }} · {{ application.submitted_at|date:"d.m.Y H:i"|default:"Gönderim tarihi yok" }}</p>
+      </div>
+      <span class="jury-status {% if application.status == 'evaluated' %}jury-status-complete{% endif %}">{% if application.status == 'submitted' %}Gönderildi{% elif application.status == 'in_review' %}Değerlendirmede{% else %}Değerlendirildi{% endif %}</span>
+    </div>
+  </header>
+
+  {% if applicant_identity_masked %}
+    <div class="jury-privacy-note mb-4"><strong>Kimlik bilgileri gizli</strong><span>Bu formda başvuru sahibinin kimlik bilgileri jüri değerlendirmesinden gizlenmiştir.</span></div>
+  {% endif %}
+
+  <div class="row g-4 align-items-start">
+    <div class="col-lg-8">
+      <section class="card jury-content-card mb-4">
+        <div class="card-body p-4 p-lg-5">
+          <div class="jury-section-heading"><div><p class="eyebrow mb-1">Başvuru içeriği</p><h2 class="h4 mb-0">Yanıtlar</h2></div></div>
+          {% for item in field_answers %}
+            <article class="jury-answer {% if item.is_masked %}jury-answer-masked{% endif %}">
+              <h3 class="jury-answer-label">{{ item.field.label }}</h3>
+              {% if item.is_masked %}
+                <p class="jury-masked-value mb-0">Bu alan değerlendirme sırasında gizlenmiştir.</p>
+              {% elif item.display_value == "" %}
+                <p class="jury-empty-answer mb-0">Yanıt verilmemiş.</p>
+              {% else %}
+                <div class="jury-answer-value">{{ item.display_value|linebreaksbr }}</div>
+              {% endif %}
+            </article>
+          {% empty %}
+            <p class="mb-0">Jüriye gösterilebilecek yanıt bulunmuyor.</p>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card jury-content-card">
+        <div class="card-body p-4 p-lg-5">
+          <div class="jury-section-heading"><div><p class="eyebrow mb-1">Dosyalar</p><h2 class="h4 mb-0">Ekler</h2></div><span class="jury-count">{{ attachments|length }}</span></div>
+          {% if attachments %}
+            <ul class="jury-attachments list-unstyled mb-0">
+              {% for attachment in attachments %}
+                <li><div><a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name }}</a><span>{{ attachment.size|filesizeformat }}</span></div><a class="btn-outline theme-primary btn-sm" href="{{ attachment.file.url }}" download>İndir</a></li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="jury-empty-answer mb-0">Bu başvuruda ek dosya yok.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="col-lg-4">
+      <section class="card jury-content-card mb-4">
+        <div class="card-body p-4">
+          <div class="jury-section-heading"><div><p class="eyebrow mb-1">Başvuru sahibi</p><h2 class="h5 mb-0">{{ applicant_name }}</h2></div></div>
+          {% if not applicant_identity_masked %}
+            <dl class="jury-identity-list mb-0">
+              {% if applicant_email %}<div><dt>E-posta</dt><dd><a href="mailto:{{ applicant_email }}">{{ applicant_email }}</a></dd></div>{% endif %}
+            </dl>
+          {% else %}
+            <p class="jury-muted-value mb-0">Ad ve e-posta bilgileri gizlidir.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="card jury-review-card mb-4">
+        <div class="card-body p-4">
+          <p class="eyebrow mb-1">Jüri değerlendirmesi</p>
+          <h2 class="h4 mb-2">Puan ve not</h2>
+          {% if can_review %}
+            {% if my_review and my_review.completed_at %}
+              <p class="jury-review-state jury-review-state-done">Değerlendirmeniz gönderildi. Form incelemede kaldığı sürece puanınızı güncelleyebilirsiniz.</p>
+            {% else %}
+              <p class="jury-review-state">Taslağı kaydedebilir, puan vermeyi tamamladığınızda gönderebilirsiniz.</p>
+            {% endif %}
+            <form method="post" action="{% url 'main:jury_review_save' application.public_id %}" class="jury-score-form">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label" for="jury-score">Puan <span class="jury-field-note">0–100</span></label>
+                <input class="form-control form-control-lg" id="jury-score" type="number" name="score" min="0" max="100" step="1" value="{% if my_review.score is not None %}{{ my_review.score }}{% endif %}" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="jury-note">Değerlendirme notu <span class="jury-field-note">İsteğe bağlı</span></label>
+                <textarea class="form-control" id="jury-note" name="note" rows="5" placeholder="Puanınızı destekleyen kısa gerekçeyi yazın">{% if my_review %}{{ my_review.note }}{% endif %}</textarea>
+              </div>
+              <button class="btn-outline theme-primary w-100 mb-2" type="submit">Taslağı kaydet</button>
+              <button class="btn-solid theme-primary w-100" type="submit" formaction="{% url 'main:jury_review_submit' application.public_id %}">Değerlendirmeyi gönder</button>
+            </form>
+          {% else %}
+            <p class="jury-review-state">Bu form şu anda değerlendirme kabul etmiyor.</p>
+            {% if my_review %}
+              <div class="jury-readonly-score"><span>Kayıtlı puanınız</span><strong>{{ my_review.score|default:"—" }}<small> / 100</small></strong></div>
+              {% if my_review.note %}<p class="jury-readonly-note">{{ my_review.note|linebreaksbr }}</p>{% endif %}
+            {% endif %}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="card jury-results-summary">
+        <div class="card-body p-4">
+          <p class="eyebrow mb-1">Değerlendirme özeti</p>
+          <h2 class="h5 mb-3">Diğer jüri puanları</h2>
+          {% if is_blind %}
+            <p class="jury-blind-note mb-0">Kendi değerlendirmenizi gönderene kadar diğer puanlar ve ortalama gizli tutulur.</p>
+          {% else %}
+            <div class="jury-average"><span>Güncel ortalama</span><strong>{{ average_score|floatformat:1 }}<small> / 100</small></strong></div>
+            <p class="jury-muted-value">{{ completed_count }} tamamlanmış değerlendirme</p>
+            {% if other_reviews %}
+              <ul class="jury-other-reviews list-unstyled mb-0">
+                {% for review in other_reviews %}
+                  <li><div><strong>{{ review.score }} / 100</strong><span>{{ review.completed_at|date:"d.m.Y" }}</span></div>{% if review.note %}<p>{{ review.note|linebreaksbr }}</p>{% endif %}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="jury-muted-value mb-0">Henüz başka tamamlanmış değerlendirme yok.</p>
+            {% endif %}
+          {% endif %}
+        </div>
+      </section>
+    </aside>
+  </div>
+</section>
+{% endblock %}

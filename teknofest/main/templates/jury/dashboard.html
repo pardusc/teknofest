@@ -1,0 +1,53 @@
+{% extends "main/base.html" %}
+
+{% block title %}Jüri paneli · Pardus Teknofest{% endblock %}
+
+{% block content %}
+<section class="container py-5 jury-dashboard">
+  <header class="jury-page-header mb-4">
+    <p class="eyebrow mb-2">Jüri alanı</p>
+    <h1 class="mb-2">Değerlendirme paneli</h1>
+    <p class="mb-0">Yarışma formlarına gelen başvuruları inceleyin ve değerlendirmenizi kaydedin.</p>
+  </header>
+
+  {% if forms %}
+    <div class="row g-3">
+      {% for form in forms %}
+        <div class="col-md-6">
+          <article class="card jury-form-card h-100">
+            <div class="card-body p-4 d-flex flex-column">
+              <div class="jury-card-meta mb-3">
+                <span class="jury-chip">{{ form.year.year }}</span>
+                {% if form.status == 'in_review' %}
+                  <span class="jury-status jury-status-active">Değerlendirme açık</span>
+                {% elif form.status == 'open' %}
+                  <span class="jury-status">Başvuru dönemi</span>
+                {% else %}
+                  <span class="jury-status">Kapalı</span>
+                {% endif %}
+              </div>
+              <p class="jury-category mb-1">{{ form.category.name }}</p>
+              <h2 class="h4 mb-2">{{ form.title }}</h2>
+              {% if form.description %}<p class="jury-description mb-4">{{ form.description|linebreaksbr }}</p>{% else %}<p class="jury-description mb-4">Bu form üzerinden gönderilen başvuruların inceleme ve puanlama işlemleri.</p>{% endif %}
+
+              <div class="jury-form-stats mt-auto mb-3">
+                <div><span>Değerlendirilebilir başvuru</span><strong>{{ form.application_count }}</strong></div>
+                <div><span>Tamamladığınız değerlendirme</span><strong>{{ form.my_completed_count }}</strong></div>
+              </div>
+              <a class="btn-solid theme-primary align-self-start" href="{% url 'main:jury_application_list' form.pk %}">Başvuruları aç</a>
+            </div>
+          </article>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="card jury-empty-state">
+      <div class="card-body">
+        <p class="eyebrow mb-2">Jüri alanı</p>
+        <h2 class="h4 mb-2">Henüz değerlendirilecek form yok</h2>
+        <p class="mb-0">Aktif yarışma yılı ve kategorilere bağlı formlar burada listelenir.</p>
+      </div>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}
