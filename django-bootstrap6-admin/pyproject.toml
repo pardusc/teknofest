@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-bootstrap6-admin"
+version = "0.1.0"
+description = "A modern Bootstrap 6 skin for the Django admin."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "Pardus" },
+]
+keywords = ["django", "admin", "bootstrap", "bootstrap6", "theme"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 6.1",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: User Interfaces",
+]
+dependencies = [
+    "Django>=6.1,<6.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/pardusc/teknofest/tree/main/django-bootstrap6-admin"
+Repository = "https://github.com/pardusc/teknofest"
+Issues = "https://github.com/pardusc/teknofest/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+django_bootstrap6_admin = [
+    "NOTICE",
+    "templates/*.html",
+    "templates/admin/*.html",
+    "templates/admin/**/*.html",
+    "templates/registration/*.html",
+    "static/**/*",
+]

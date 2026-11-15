@@ -1,0 +1,81 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls admin_filters %}
+
+{% block breadcrumbs %}
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a class="breadcrumb-link" href="{% url 'admin:index' %}">
+        <svg class="ba-icon" aria-hidden="true"><use href="#ba-home"></use></svg>
+        {% translate 'Home' %}
+      </a>
+    </li>
+    <li class="breadcrumb-divider" aria-hidden="true"></li>
+    <li class="breadcrumb-item">
+      <a class="breadcrumb-link" href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    </li>
+    <li class="breadcrumb-divider" aria-hidden="true"></li>
+    <li class="breadcrumb-item">
+      <a class="breadcrumb-link" href="{% url opts|admin_urlname:'changelist' %}">{{ module_name }}</a>
+    </li>
+    <li class="breadcrumb-divider" aria-hidden="true"></li>
+    <li class="breadcrumb-item">
+      <a class="breadcrumb-link" href="{% url opts|admin_urlname:'change' object.pk|admin_urlquote %}">{{ object|to_object_display_value|truncatewords:"18" }}</a>
+    </li>
+    <li class="breadcrumb-divider" aria-hidden="true"></li>
+    <li class="breadcrumb-item">
+      <span class="breadcrumb-link active" aria-current="page">{% translate 'History' %}</span>
+    </li>
+  </ol>
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    <div id="change-history" class="module card ba-history-card">
+      <div class="card-body">
+        {% if action_list %}
+          <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle ba-history-table">
+              <thead>
+                <tr>
+                  <th scope="col">{% translate 'Date/time' %}</th>
+                  <th scope="col">{% translate 'User' %}</th>
+                  <th scope="col">{% translate 'Action' %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for action in action_list %}
+                  <tr>
+                    <th scope="row" class="ba-nowrap">{{ action.action_time|date:"DATETIME_FORMAT" }}</th>
+                    <td>{{ action.user.get_username }}{% if action.user.get_full_name %} ({{ action.user.get_full_name }}){% endif %}</td>
+                    <td>{{ action.get_change_message }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <nav class="paginator ba-pagination" aria-labelledby="pagination">
+            <h2 id="pagination" class="visually-hidden">{% blocktranslate with name=opts.verbose_name %}Pagination {{ name }} entries{% endblocktranslate %}</h2>
+            {% if pagination_required %}
+              <ul class="pagination pagination-sm">
+                {% for i in page_range %}
+                  {% if i == action_list.paginator.ELLIPSIS %}
+                    <li class="page-item disabled"><span class="page-link">{{ action_list.paginator.ELLIPSIS }}</span></li>
+                  {% elif i == action_list.number %}
+                    <li class="page-item active"><a role="button" class="page-link" href="" aria-current="page">{{ i }}</a></li>
+                  {% else %}
+                    <li class="page-item"><a role="button" class="page-link" href="?{{ page_var }}={{ i }}">{{ i }}</a></li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            {% endif %}
+            <div class="ba-pagination-summary">
+              {{ action_list.paginator.count }} {% blocktranslate count counter=action_list.paginator.count %}entry{% plural %}entries{% endblocktranslate %}
+            </div>
+          </nav>
+        {% else %}
+          <p class="ba-empty">{% translate 'This object doesn’t have a change history. It probably wasn’t added via this admin site.' %}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

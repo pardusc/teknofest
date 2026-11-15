@@ -1,0 +1,14 @@
+{% load i18n %}
+{% if related_url %}<div class="ba-raw-id">{% endif %}
+{% include 'django/forms/widgets/input.html' %}
+{% if related_url %}
+  <a href="{{ related_url }}" class="related-lookup btn btn-icon btn-outline theme-secondary btn-sm"
+     id="lookup_id_{{ widget.name }}" title="{{ link_title }}">
+    <svg class="ba-icon" aria-hidden="true"><use href="#ba-search"></use></svg>
+    <span class="visually-hidden">{{ link_title }}</span>
+  </a>
+{% endif %}
+{% if link_label %}
+  <strong>{% if link_url %}<a href="{{ link_url }}">{{ link_label }}</a>{% else %}{{ link_label }}{% endif %}</strong>
+{% endif %}
+{% if related_url %}</div>{% endif %}

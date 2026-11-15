@@ -1,0 +1,49 @@
+{% load i18n %}
+<div class="related-widget-wrapper ba-related-widget" {% if not model_has_limit_choices_to %}data-model-ref="{{ model_name }}"{% endif %}>
+  {{ rendered_widget }}
+  {% block links %}
+    {% spaceless %}
+      {% if not is_hidden %}
+        {% if can_change_related %}
+          <a class="related-widget-wrapper-link change-related btn btn-icon btn-outline theme-secondary btn-sm"
+             id="change_id_{{ name }}"
+             data-href-template="{{ change_related_template_url }}?{{ url_params }}"
+             data-popup="yes"
+             title="{% blocktranslate %}Change selected {{ model }}{% endblocktranslate %}">
+            <svg class="ba-icon" aria-hidden="true"><use href="#ba-edit"></use></svg>
+            <span class="visually-hidden">{% blocktranslate %}Change selected {{ model }}{% endblocktranslate %}</span>
+          </a>
+        {% endif %}
+        {% if can_add_related %}
+          <a class="related-widget-wrapper-link add-related btn btn-icon btn-outline theme-secondary btn-sm"
+             id="add_id_{{ name }}"
+             data-popup="yes"
+             href="{{ add_related_url }}?{{ url_params }}"
+             title="{% blocktranslate %}Add another {{ model }}{% endblocktranslate %}">
+            <svg class="ba-icon" aria-hidden="true"><use href="#ba-plus"></use></svg>
+            <span class="visually-hidden">{% blocktranslate %}Add another {{ model }}{% endblocktranslate %}</span>
+          </a>
+        {% endif %}
+        {% if can_delete_related %}
+          <a class="related-widget-wrapper-link delete-related btn btn-icon btn-outline theme-secondary btn-sm"
+             id="delete_id_{{ name }}"
+             data-href-template="{{ delete_related_template_url }}?{{ url_params }}"
+             data-popup="yes"
+             title="{% blocktranslate %}Delete selected {{ model }}{% endblocktranslate %}">
+            <svg class="ba-icon" aria-hidden="true"><use href="#ba-trash"></use></svg>
+            <span class="visually-hidden">{% blocktranslate %}Delete selected {{ model }}{% endblocktranslate %}</span>
+          </a>
+        {% endif %}
+        {% if can_view_related %}
+          <a class="related-widget-wrapper-link view-related btn btn-icon btn-outline theme-secondary btn-sm"
+             id="view_id_{{ name }}"
+             data-href-template="{{ change_related_template_url }}?{{ view_related_url_params }}"
+             title="{% blocktranslate %}View selected {{ model }}{% endblocktranslate %}">
+            <svg class="ba-icon" aria-hidden="true"><use href="#ba-eye"></use></svg>
+            <span class="visually-hidden">{% blocktranslate %}View selected {{ model }}{% endblocktranslate %}</span>
+          </a>
+        {% endif %}
+      {% endif %}
+    {% endspaceless %}
+  {% endblock %}
+</div>

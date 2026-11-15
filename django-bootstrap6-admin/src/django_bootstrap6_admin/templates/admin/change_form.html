@@ -1,0 +1,124 @@
+{% extends "admin/base_site.html" %}
+{% load i18n l10n admin_urls static admin_modify admin_filters %}
+
+{% block title %}{% if errors %}{% translate "Error:" %} {% endif %}{{ block.super }}{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% url 'admin:jsi18n' %}" {% csp_nonce_attr %}></script>
+  {% csp_nonce_attr media %}
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}{% endblock %}
+
+{% block coltype %}colM{% endblock %}
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-form ba-change-form-page{% endblock %}
+
+{% if not is_popup %}
+  {% block breadcrumbs %}
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a class="breadcrumb-link" href="{% url 'admin:index' %}">
+          <svg class="ba-icon" aria-hidden="true"><use href="#ba-home"></use></svg>
+          {% translate 'Home' %}
+        </a>
+      </li>
+      <li class="breadcrumb-divider" aria-hidden="true"></li>
+      <li class="breadcrumb-item">
+        <a class="breadcrumb-link" href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+      </li>
+      <li class="breadcrumb-divider" aria-hidden="true"></li>
+      <li class="breadcrumb-item">
+        {% if has_view_permission %}
+          <a class="breadcrumb-link" href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+        {% else %}
+          <span class="breadcrumb-link">{{ opts.verbose_name_plural|capfirst }}</span>
+        {% endif %}
+      </li>
+      <li class="breadcrumb-divider" aria-hidden="true"></li>
+      <li class="breadcrumb-item">
+        <span class="breadcrumb-link active" aria-current="page">
+          {% if add %}
+            {% blocktranslate with name=opts.verbose_name %}Add {{ name }}{% endblocktranslate %}
+          {% else %}
+            {{ original|to_object_display_value|truncatewords:"18" }}
+          {% endif %}
+        </span>
+      </li>
+    </ol>
+  {% endblock %}
+{% endif %}
+
+{% block object-tools %}
+  {% if change and not is_popup %}
+    <div class="object-tools ba-object-tools">
+      {% block object-tools-items %}
+        {% change_form_object_tools %}
+      {% endblock %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div id="content-main" class="ba-change-form">
+    <form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" novalidate>
+      {% csrf_token %}
+      {% block form_top %}{% endblock %}
+
+      <div>
+        {% if action_form and not is_popup %}
+          {% change_form_admin_actions %}
+          <input type="hidden" name="{{ action_checkbox_name }}" value="{{ original.pk|unlocalize }}">
+        {% endif %}
+        {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+        {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
+        {% if source_model %}<input type="hidden" name="{{ source_model_var }}" value="{{ source_model }}">{% endif %}
+
+        {% if save_on_top %}{% block submit_buttons_top %}{% submit_row %}{% endblock %}{% endif %}
+
+        {% if errors %}
+          <div class="alert theme-danger ba-form-alert" role="alert" tabindex="-1">
+            <svg class="ba-icon" aria-hidden="true"><use href="#ba-alert"></use></svg>
+            <div>
+              {% blocktranslate count counter=errors|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}
+              {{ adminform.form.non_field_errors }}
+            </div>
+          </div>
+        {% endif %}
+
+        {% block field_sets %}
+          <div class="ba-fieldsets">
+            {% for fieldset in adminform %}
+              {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+            {% endfor %}
+          </div>
+        {% endblock %}
+
+        {% block after_field_sets %}{% endblock %}
+
+        {% block inline_field_sets %}
+          <div class="ba-inlines">
+            {% for inline_admin_formset in inline_admin_formsets %}
+              {% include inline_admin_formset.opts.template %}
+            {% endfor %}
+          </div>
+        {% endblock %}
+
+        {% block after_related_objects %}{% endblock %}
+
+        {% block submit_buttons_bottom %}{% submit_row %}{% endblock %}
+
+        {% block admin_change_form_document_ready %}
+          <script id="django-admin-form-add-constants"
+                  src="{% static 'admin/js/change_form.js' %}"
+                  {% if adminform and add %}data-model-name="{{ opts.model_name }}"{% endif %}
+                  {% csp_nonce_attr %}
+                  async>
+          </script>
+        {% endblock %}
+
+        {% prepopulated_fields_js %}
+      </div>
+    </form>
+  </div>
+{% endblock %}
