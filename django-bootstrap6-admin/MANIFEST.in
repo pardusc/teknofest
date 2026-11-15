@@ -1,5 +1,0 @@
-include LICENSE
-include NOTICE
-include README.md
-recursive-include src/django_bootstrap6_admin/templates *.html
-recursive-include src/django_bootstrap6_admin/static *
