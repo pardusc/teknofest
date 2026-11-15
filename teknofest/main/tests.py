@@ -164,6 +164,64 @@ class ProfileTests(MediaTestCase):
             f"{reverse('login')}?next={reverse('main:profile')}",
         )
 
+    def test_incomplete_profile_redirects_applicant_to_profile(self):
+        for url in (
+            reverse("main:home"),
+            reverse("main:form_list"),
+            reverse("main:application_list"),
+        ):
+            with self.subTest(url=url):
+                self.assertRedirects(
+                    self.client.get(url),
+                    reverse("main:profile"),
+                )
+
+    def test_complete_profile_allows_applicant_pages(self):
+        Profile.objects.create(
+            user=self.user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+
+        self.assertEqual(self.client.get(reverse("main:home")).status_code, 200)
+
+    def test_profile_page_and_logout_are_always_accessible(self):
+        self.assertEqual(self.client.get(reverse("main:profile")).status_code, 200)
+
+        response = self.client.post(reverse("logout"))
+
+        self.assertRedirects(response, reverse("main:home"))
+
+    def test_profile_edit_redirect_does_not_loop(self):
+        response = self.client.get(reverse("main:profile_edit"))
+
+        self.assertRedirects(response, reverse("main:profile"))
+
+    def test_jury_without_profile_is_not_redirected(self):
+        jury = get_user_model().objects.create_user(
+            username="jury-without-profile",
+            email="jury-without-profile@example.com",
+            password="secret123",
+        )
+        jury.groups.add(Group.objects.get(name="jury"))
+        self.client.force_login(jury)
+
+        self.assertEqual(
+            self.client.get(reverse("main:jury_dashboard")).status_code,
+            200,
+        )
+
+    def test_profile_is_required_until_it_is_completed(self):
+        response = self.client.get(reverse("main:home"))
+
+        self.assertRedirects(response, reverse("main:profile"))
+
+        self.client.post(reverse("main:profile"), self.valid_data())
+
+        self.assertEqual(self.client.get(reverse("main:home")).status_code, 200)
+
     def test_profile_page_creates_and_displays_profile(self):
         response = self.client.get(reverse("main:profile"))
 
@@ -285,7 +343,15 @@ class ProfileTests(MediaTestCase):
             {"username": "applicant", "password": "secret123"},
         )
 
-        self.assertRedirects(response, reverse("main:home"))
+        self.assertRedirects(
+            response,
+            reverse("main:home"),
+            fetch_redirect_response=False,
+        )
+        self.assertRedirects(
+            self.client.get(reverse("main:home")),
+            reverse("main:profile"),
+        )
         self.assertEqual(self.client.get(reverse("main:profile")).status_code, 200)
 
 
@@ -1352,6 +1418,13 @@ class JuryTests(MediaTestCase):
             username="applicant",
             email="applicant@example.com",
             password="secret123",
+        )
+        Profile.objects.create(
+            user=self.applicant,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
         )
         self.jury = get_user_model().objects.create_user(
             username="jury",
@@ -2539,6 +2612,13 @@ class SiteSettingsTests(TestCase):
             username="settings-viewer",
             email="settings-viewer@example.com",
             password="secret123",
+        )
+        Profile.objects.create(
+            user=user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
         )
         other_year = CompetitionYear.objects.create(year=2027)
         current_form = self.make_form(title="Current year form")

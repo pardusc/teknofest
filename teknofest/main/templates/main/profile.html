@@ -13,6 +13,12 @@
     </div>
   </div>
 
+  {% if not profile.is_complete %}
+    <div class="alert site-alert mb-3" role="status">
+      {% translate "Complete the required fields below to continue using the site." %}
+    </div>
+  {% endif %}
+
   <div class="row g-3">
     <div class="lg:col-4">
       <section class="card section-card">

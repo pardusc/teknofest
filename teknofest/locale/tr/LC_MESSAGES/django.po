@@ -1023,3 +1023,7 @@ msgstr "Sonraki başvuru"
 #: main/views.py
 msgid "No more applications in this queue."
 msgstr "Bu kuyrukta başka başvuru yok."
+
+#: main/templates/main/profile.html
+msgid "Complete the required fields below to continue using the site."
+msgstr "Siteyi kullanmaya devam etmek için aşağıdaki zorunlu alanları doldurun."
