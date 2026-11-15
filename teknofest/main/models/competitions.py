@@ -21,6 +21,16 @@ class CompetitionYear(models.Model):
     def __str__(self) -> str:
         return str(self.year)
 
+    @classmethod
+    def current(cls) -> "CompetitionYear":
+        """Return the current competition year, creating its tag if needed."""
+        year = timezone.localdate().year
+        instance, _ = cls.objects.get_or_create(
+            year=year,
+            defaults={"is_active": True},
+        )
+        return instance
+
 
 class Category(models.Model):
     """A competition category, for example bug/suggestion or development."""

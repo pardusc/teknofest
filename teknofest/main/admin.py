@@ -118,8 +118,18 @@ class FormFieldInline(admin.StackedInline):
 class FormDefinitionAdmin(admin.ModelAdmin):
     form = FormDefinitionAdminForm
     inlines = (FormFieldInline,)
+    fields = (
+        "category",
+        "title",
+        "description",
+        "status",
+        "mask_applicant_identity",
+        "attachment_policy",
+        "submission_override",
+        "opens_at",
+        "closes_at",
+    )
     list_display = (
-        "year",
         "category",
         "status",
         "attachment_policy",
@@ -128,9 +138,14 @@ class FormDefinitionAdmin(admin.ModelAdmin):
         "closes_at",
         "preview_link",
     )
-    list_filter = ("status", "year", "category")
+    list_filter = ("status", "category")
     search_fields = ("title", "description")
     actions = ("mark_open", "mark_in_review", "mark_closed")
+
+    def save_model(self, request, obj, form, change):
+        if not obj.year_id:
+            obj.year = CompetitionYear.current()
+        super().save_model(request, obj, form, change)
 
     @admin.display(description="Preview")
     def preview_link(self, obj):

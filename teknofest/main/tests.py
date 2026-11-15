@@ -3,7 +3,7 @@ import os
 import re
 import shutil
 import tempfile
-from datetime import timedelta
+from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -408,6 +408,16 @@ class CompetitionModelTests(TestCase):
         with self.assertRaises(IntegrityError), transaction.atomic():
             CompetitionYear.objects.create(year=2026)
 
+    def test_current_year_is_created_when_missing(self):
+        with patch("main.models.competitions.timezone.localdate") as localdate:
+            localdate.return_value = date(2030, 1, 1)
+
+            current = CompetitionYear.current()
+
+            self.assertEqual(current.year, 2030)
+            self.assertTrue(current.is_active)
+            self.assertEqual(CompetitionYear.objects.filter(year=2030).count(), 1)
+
     def test_form_is_unique_per_year_and_category(self):
         self.make_form()
 
@@ -726,9 +736,9 @@ class AdminTests(TestCase):
         response = self.client.get(add_url)
         prefix = response.context["inline_admin_formsets"][0].formset.prefix
         self.assertTrue(response.context["adminform"].form.fields["closes_at"].required)
+        self.assertNotIn("year", response.context["adminform"].form.fields)
         category = Category.objects.create(slug="deadline", name="Deadline")
         data = {
-            "year": self.year.pk,
             "category": category.pk,
             "title": "Deadline required",
             "description": "",
@@ -759,6 +769,7 @@ class AdminTests(TestCase):
         self.assertEqual(response.status_code, 302)
         form = FormDefinition.objects.get(title="Deadline required")
         self.assertIsNotNone(form.closes_at)
+        self.assertEqual(form.year.year, timezone.localdate().year)
 
     def test_admin_form_definition_deadline_optional_with_global_deadline(self):
         settings = SiteSettings.load()
@@ -771,10 +782,10 @@ class AdminTests(TestCase):
         self.assertFalse(
             response.context["adminform"].form.fields["closes_at"].required
         )
+        self.assertNotIn("year", response.context["adminform"].form.fields)
 
         category = Category.objects.create(slug="global-deadline", name="Global")
         data = {
-            "year": self.year.pk,
             "category": category.pk,
             "title": "Deadline optional",
             "description": "",
