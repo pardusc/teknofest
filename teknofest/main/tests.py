@@ -264,7 +264,7 @@ class CompetitionModelTests(TestCase):
         self.year = CompetitionYear.objects.create(year=2026)
         self.category, _ = Category.objects.get_or_create(
             slug="bug",
-            defaults={"name": "Bug / Suggestion", "order": 1},
+            defaults={"name": "Hata / Öneri", "order": 1},
         )
 
     def make_form(self, **overrides):
@@ -2437,10 +2437,8 @@ class SiteSettingsTests(TestCase):
         self.settings.hero_lead = "Turkish lead"
         self.settings.save()
 
-        response = self.client.get(
-            reverse("main:home"),
-            HTTP_ACCEPT_LANGUAGE="en",
-        )
+        with translation.override("en"):
+            response = self.client.get(reverse("main:home"))
 
         self.assertContains(response, "English hero")
         self.assertContains(response, "English lead")
@@ -2499,10 +2497,8 @@ class SiteSettingsTests(TestCase):
             home_description="English category description",
         )
 
-        response = self.client.get(
-            reverse("main:home"),
-            HTTP_ACCEPT_LANGUAGE="en",
-        )
+        with translation.override("en"):
+            response = self.client.get(reverse("main:home"))
 
         self.assertContains(response, "English category")
         self.assertContains(response, "English category description")

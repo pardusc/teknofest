@@ -19,8 +19,8 @@ def seed_initial_data(apps, schema_editor):
     Category.objects.update_or_create(
         slug="bug",
         defaults={
-            "name": "Bug / Suggestion",
-            "description": "Bug reports and suggestions for Pardus applications.",
+            "name": "Hata / Öneri",
+            "description": "Pardus uygulamaları için hata bildirimleri ve öneriler.",
             "home_description": (
                 "Pardus bileşenlerinde karşılaşılan hataları veya kullanılabilirlik "
                 "önerilerini açıklama ve gerekli eklerle iletin."
@@ -36,8 +36,8 @@ def seed_initial_data(apps, schema_editor):
     Category.objects.update_or_create(
         slug="development",
         defaults={
-            "name": "Development",
-            "description": "New software or improvements developed for Pardus.",
+            "name": "Geliştirme",
+            "description": "Pardus için geliştirilen yeni yazılım veya iyileştirmeler.",
             "home_description": (
                 "Pardus için geliştirilen yazılım, araç veya teknik iyileştirme "
                 "çalışmalarınızı proje bilgileriyle birlikte sunun."

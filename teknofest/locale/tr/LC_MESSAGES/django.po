@@ -296,8 +296,8 @@ msgstr "Güncel ortalama"
 #, python-format
 msgid "%(counter)s completed review"
 msgid_plural "%(counter)s completed reviews"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(counter)s tamamlanmış değerlendirme"
+msgstr[1] "%(counter)s tamamlanmış değerlendirme"
 
 #: main/templates/jury/application_detail.html:127
 msgid "No other completed reviews yet."
