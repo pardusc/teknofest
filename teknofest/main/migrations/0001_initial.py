@@ -101,7 +101,6 @@ def seed_initial_data(apps, schema_editor):
                 "Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı "
                 "yarışma başvurusu olarak iletin."
             ),
-            "calendar_note": "Form ayrıntılarında yer alır",
             "footer_tagline": "Açık kaynakla daha iyi bir Pardus",
         },
     )
@@ -115,7 +114,6 @@ def seed_initial_data(apps, schema_editor):
                 "Submit your bug reports, suggestions and development work as a "
                 "competition application."
             ),
-            "calendar_note": "Included in form details",
             "footer_tagline": "Better Pardus with open source",
         },
     )

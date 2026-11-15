@@ -92,6 +92,29 @@ class HomeViewTests(TestCase):
 
         self.assertContains(response, reverse("login"))
 
+    def test_home_hero_has_no_login_or_category_cta(self):
+        response = self.client.get(reverse("main:home"))
+
+        self.assertNotContains(response, 'class="quick-actions')
+        self.assertNotContains(response, 'href="#kategoriler"')
+
+    def test_home_calendar_is_hidden_without_setting(self):
+        SiteSettings.objects.filter(pk=1).update(calendar_note="")
+
+        response = self.client.get(reverse("main:home"))
+
+        self.assertNotContains(response, "Takvim")
+
+    def test_home_calendar_uses_site_setting(self):
+        SiteSettings.objects.filter(pk=1).update(
+            calendar_note="Etkinlik takvimi"
+        )
+
+        response = self.client.get(reverse("main:home"))
+
+        self.assertContains(response, "Takvim")
+        self.assertContains(response, "Etkinlik takvimi")
+
 
 class UserModelTests(TestCase):
     def test_email_is_unique(self):
@@ -1124,6 +1147,21 @@ class ApplicationViewTests(MediaTestCase):
             self.valid_data() if data is None else data,
             files=files,
         )
+
+    def test_dashboard_calendar_follows_site_setting(self):
+        settings = SiteSettings.load()
+        settings.calendar_note = ""
+        settings.save(update_fields=["calendar_note"])
+
+        response = self.client.get(reverse("main:home"))
+        self.assertNotContains(response, "Takvim")
+
+        settings.calendar_note = "Etkinlik takvimi"
+        settings.save(update_fields=["calendar_note"])
+
+        response = self.client.get(reverse("main:home"))
+        self.assertContains(response, "Takvim")
+        self.assertContains(response, "Etkinlik takvimi")
 
     def test_application_routes_require_login(self):
         self.client.logout()

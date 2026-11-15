@@ -1006,10 +1006,6 @@ msgstr ""
 "Hata bildirimlerinizi, önerilerinizi ve geliştirme çalışmalarınızı yarışma "
 "başvurusu olarak iletin."
 
-#: main/templates/main/home.html:9
-msgid "Included in form details"
-msgstr "Form ayrıntılarında yer alır"
-
 #: main/templates/main/home.html:22
 msgid "Overview"
 msgstr "Genel bakış"
@@ -1046,10 +1042,6 @@ msgstr "Yarışma dönemi"
 #: main/templates/main/home.html:103
 msgid "Application deadline"
 msgstr "Son başvuru"
-
-#: main/templates/main/home.html:104 main/templates/main/home.html:146
-msgid "Calendar and conditions"
-msgstr "Takvim ve koşullar"
 
 #: main/templates/main/home.html:110
 msgid "Profile"
@@ -1235,3 +1227,6 @@ msgstr "Bu alan jüri değerlendirmesinde gizlenmiştir."
 
 msgid "Try it with curl:"
 msgstr "curl ile deneyin:"
+
+msgid "Calendar"
+msgstr "Takvim"

@@ -6,7 +6,6 @@
 {% block content %}
 {% translate "Pardus Bug Finding and Suggestion Competition" as default_competition_name %}
 {% translate "Submit your bug reports, suggestions and development work as a competition application." as default_lead %}
-{% translate "Included in form details" as default_calendar_note %}
 
 {% if site_settings.announcement_active and home_text.announcement %}
   <div class="container pt-3">
@@ -101,7 +100,7 @@
             <dl class="facts">
               <dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd>
               {% if site_settings.application_closes_at %}<dt>{% translate "Application deadline" %}</dt><dd>{{ site_settings.application_closes_at|date:"d.m.Y H:i" }}</dd>{% endif %}
-              <dt>{% translate "Calendar and conditions" %}</dt><dd>{{ home_text.calendar_note|default:default_calendar_note }}</dd>
+              {% if home_text.calendar_note %}<dt>{% translate "Calendar" %}</dt><dd>{{ home_text.calendar_note|linebreaksbr }}</dd>{% endif %}
             </dl>
           </div>
         </section>
@@ -125,14 +124,11 @@
           <span class="eyebrow">{{ home_text.hero_eyebrow|default:"Pardus Teknofest" }} · {{ site_settings.current_year }}</span>
           <h1>{{ home_text.hero_title|default:site_settings.competition_name|default:default_competition_name }}</h1>
           <p class="lead">{{ home_text.hero_lead|default:default_lead }}</p>
-          <div class="quick-actions mt-4">
-            {% if user.is_authenticated %}
+          {% if user.is_authenticated %}
+            <div class="quick-actions mt-4">
               <a class="btn-solid btn-lg" href="{% url 'main:jury_dashboard' %}">{% translate "Jury panel" %}</a>
-            {% else %}
-              <a class="btn-solid btn-lg" href="{% url 'login' %}">{% translate "Log in" %}</a>
-              <a class="btn-outline btn-lg" href="#kategoriler">{% translate "Application categories" %}</a>
-            {% endif %}
-          </div>
+            </div>
+          {% endif %}
         </div>
         <div class="lg:col-5">
           <aside class="period-card" aria-labelledby="period-title">
@@ -143,7 +139,7 @@
             <dl>
               <dt>{% translate "Competition period" %}</dt><dd>{{ site_settings.current_year }}</dd>
               <dt>{% translate "Application category" %}</dt><dd>{% blocktranslate count counter=home_category_count %}{{ counter }} category{% plural %}{{ counter }} categories{% endblocktranslate %}</dd>
-              <dt>{% translate "Calendar and conditions" %}</dt><dd>{{ home_text.calendar_note|default:default_calendar_note }}</dd>
+              {% if home_text.calendar_note %}<dt>{% translate "Calendar" %}</dt><dd>{{ home_text.calendar_note|linebreaksbr }}</dd>{% endif %}
             </dl>
           </aside>
         </div>
