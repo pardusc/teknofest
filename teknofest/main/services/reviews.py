@@ -3,7 +3,8 @@ from django.db.models import Avg
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from ..models import FormDefinition, Review
+from ..models import AuditEvent, FormDefinition, Review
+from .audit import record
 
 
 def submit_review(application, juror, score=None, note="") -> Review:
@@ -14,19 +15,38 @@ def submit_review(application, juror, score=None, note="") -> Review:
     _ensure_reviewable(application)
     value = _validate_score(score)
 
+    new_note = (note or "").strip()
     review, created = Review.objects.get_or_create(
         application=application,
         juror=juror,
         defaults={
             "score": value,
-            "note": (note or "").strip(),
+            "note": new_note,
             "completed_at": timezone.now(),
         },
     )
+
+    previous_score = None
+    note_changed = False
     if not created:
+        previous_score = review.score
+        note_changed = review.note != new_note
         review.score = value
-        review.note = (note or "").strip()
+        review.note = new_note
         review.save(update_fields=["score", "note", "updated_at"])
+
+    record(
+        AuditEvent.Action.REVIEW_SUBMITTED
+        if created
+        else AuditEvent.Action.REVIEW_UPDATED,
+        actor=juror,
+        application=application,
+        form=application.form,
+        code=application.code,
+        score=value,
+        previous_score=previous_score,
+        note_changed=note_changed,
+    )
 
     return review
 

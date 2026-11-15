@@ -17,9 +17,11 @@ from ..models import (
     ApplicationAnswer,
     ApplicationSequence,
     Attachment,
+    AuditEvent,
     FormDefinition,
 )
 from ..permissions import is_jury
+from .audit import record
 
 MAX_ATTACHMENTS = 10
 MAX_FILE_SIZE = 2 * 1024 * 1024
@@ -65,6 +67,15 @@ def submit_application(applicant, form: FormDefinition, data, files=None) -> App
         for upload, image_format, size in prepared:
             _create_attachment(application, upload, image_format, size)
 
+        record(
+            AuditEvent.Action.APPLICATION_SUBMITTED,
+            actor=applicant,
+            application=application,
+            form=form,
+            code=application.code,
+            year=application.year.year,
+            category=application.category.slug,
+        )
         _send_confirmation(application)
 
     return application
@@ -94,6 +105,13 @@ def update_application(application: Application, data, files=None) -> Applicatio
         for upload, image_format, size in prepared:
             _create_attachment(application, upload, image_format, size)
         application.save(update_fields=["updated_at"])
+        record(
+            AuditEvent.Action.APPLICATION_UPDATED,
+            actor=application.applicant,
+            application=application,
+            form=application.form,
+            code=application.code,
+        )
 
     return application
 
@@ -104,6 +122,15 @@ def delete_application(application: Application) -> None:
         application = Application.objects.select_for_update().get(pk=application.pk)
         _ensure_applicant(application.applicant)
         _ensure_editable(application)
+        record(
+            AuditEvent.Action.APPLICATION_DELETED,
+            actor=application.applicant,
+            application=application,
+            form=application.form,
+            code=application.code,
+            year=application.year.year,
+            category=application.category.slug,
+        )
         application.delete()
 
 
@@ -135,6 +162,15 @@ def delete_attachment(attachment: Attachment) -> None:
             _("At least one attachment is required for this form.")
         )
 
+    record(
+        AuditEvent.Action.ATTACHMENT_REMOVED,
+        actor=application.applicant,
+        application=application,
+        form=application.form,
+        code=application.code,
+        name=attachment.original_name,
+        size=attachment.size,
+    )
     attachment.delete()
 
 
@@ -225,13 +261,23 @@ def _create_attachment(application, upload, image_format, size) -> Attachment:
     original_name = Path(upload.name).name
     upload.name = f"{uuid.uuid4().hex}{extension}"
 
-    return Attachment.objects.create(
+    attachment = Attachment.objects.create(
         application=application,
         file=upload,
         original_name=original_name,
         content_type=content_type,
         size=size,
     )
+    record(
+        AuditEvent.Action.ATTACHMENT_ADDED,
+        actor=application.applicant,
+        application=application,
+        form=application.form,
+        code=application.code,
+        name=original_name,
+        size=size,
+    )
+    return attachment
 
 
 def _next_code(application: Application) -> str:

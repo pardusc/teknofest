@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
+from django.contrib.admin.sites import site as admin_site
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
@@ -24,6 +25,7 @@ from .models import (
     Application,
     ApplicationAnswer,
     Attachment,
+    AuditEvent,
     Category,
     CompetitionYear,
     FormDefinition,
@@ -39,6 +41,7 @@ from .services.applications import (
     update_application,
 )
 from .services.reviews import submit_review
+from .admin import ApplicationAdmin, AuditEventAdmin
 from .views import (
     MASKED_FIELD_MESSAGE,
     ApplicationDetailView,
@@ -1720,3 +1723,282 @@ class TranslationTests(TestCase):
         error = ValidationError("Plain message")
 
         self.assertEqual(_validation_message(error), "Plain message")
+
+
+class AuditWorkflowTests(MediaTestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="audit-user",
+            email="audit@example.com",
+            password="secret123",
+        )
+        Profile.objects.create(
+            user=self.user,
+            phone="+90 555 111 22 33",
+            city="Ankara",
+            institution="Pardus University",
+            education_level=Profile.EducationLevel.BACHELOR,
+        )
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="Audit form",
+            attachment_policy=FormDefinition.AttachmentPolicy.OPTIONAL,
+        )
+        FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+        )
+
+    def submit(self, files=None):
+        return submit_application(
+            self.user,
+            self.form,
+            {"title": "Audit application"},
+            files=files,
+        )
+
+    def test_submission_and_attachment_are_audited(self):
+        application = self.submit(files=[make_image()])
+
+        submitted = AuditEvent.objects.get(
+            action=AuditEvent.Action.APPLICATION_SUBMITTED
+        )
+        attached = AuditEvent.objects.get(
+            action=AuditEvent.Action.ATTACHMENT_ADDED
+        )
+
+        self.assertEqual(submitted.actor, self.user)
+        self.assertEqual(submitted.application, application)
+        self.assertEqual(submitted.metadata["code"], application.code)
+        self.assertEqual(attached.actor, self.user)
+        self.assertEqual(attached.metadata["name"], "photo.png")
+
+    def test_update_is_audited(self):
+        application = self.submit()
+
+        update_application(application, {"title": "Updated title"})
+
+        event = AuditEvent.objects.get(
+            action=AuditEvent.Action.APPLICATION_UPDATED
+        )
+        self.assertEqual(event.actor, self.user)
+        self.assertEqual(event.application, application)
+
+    def test_delete_is_audited_and_keeps_metadata(self):
+        application = self.submit()
+        code = application.code
+
+        delete_application(application)
+
+        event = AuditEvent.objects.get(
+            action=AuditEvent.Action.APPLICATION_DELETED
+        )
+        self.assertIsNone(event.application)
+        self.assertEqual(event.metadata["code"], code)
+        self.assertEqual(event.actor, self.user)
+
+    def test_attachment_removal_is_audited(self):
+        application = self.submit()
+        attachment = add_attachment(application, make_image())
+
+        delete_attachment(attachment)
+
+        event = AuditEvent.objects.get(
+            action=AuditEvent.Action.ATTACHMENT_REMOVED
+        )
+        self.assertEqual(event.metadata["name"], "photo.png")
+
+
+class ReviewAuditTests(MediaTestCase):
+    def setUp(self):
+        self.jury = get_user_model().objects.create_user(
+            username="audit-jury",
+            email="audit-jury@example.com",
+            password="secret123",
+        )
+        self.jury.groups.add(Group.objects.get(name="jury"))
+        self.applicant = get_user_model().objects.create_user(
+            username="audit-applicant",
+            email="audit-applicant@example.com",
+            password="secret123",
+        )
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="Audit review form",
+            status=FormDefinition.Status.IN_REVIEW,
+        )
+        self.application = Application.objects.create(
+            applicant=self.applicant,
+            form=self.form,
+            year=self.year,
+            category=self.category,
+            status=Application.Status.SUBMITTED,
+            code="BUG-2026-00001",
+            submitted_at=timezone.now(),
+        )
+
+    def test_review_submission_is_audited(self):
+        submit_review(self.application, self.jury, score=80, note="Good")
+
+        event = AuditEvent.objects.get(action=AuditEvent.Action.REVIEW_SUBMITTED)
+        self.assertEqual(event.actor, self.jury)
+        self.assertEqual(event.application, self.application)
+        self.assertEqual(event.metadata["score"], 80)
+
+    def test_review_edit_audits_previous_score(self):
+        submit_review(self.application, self.jury, score=50)
+        submit_review(self.application, self.jury, score=70, note="Changed")
+
+        event = AuditEvent.objects.get(action=AuditEvent.Action.REVIEW_UPDATED)
+        self.assertEqual(event.metadata["score"], 70)
+        self.assertEqual(event.metadata["previous_score"], 50)
+        self.assertTrue(event.metadata["note_changed"])
+
+
+class AdminWorkflowTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="workflow-admin",
+            email="workflow-admin@example.com",
+            password="secret123",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(self.staff)
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.create(slug="workflow", name="Workflow")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="Workflow form",
+        )
+        self.applicant = get_user_model().objects.create_user(
+            username="workflow-applicant",
+            email="workflow-applicant@example.com",
+            password="secret123",
+        )
+        self.application = Application.objects.create(
+            applicant=self.applicant,
+            form=self.form,
+            year=self.year,
+            category=self.category,
+            status=Application.Status.SUBMITTED,
+            code="WORK-2026-00001",
+            submitted_at=timezone.now(),
+        )
+
+    def test_form_review_action_syncs_applications(self):
+        response = self.client.post(
+            reverse("admin:main_formdefinition_changelist"),
+            {
+                "action": "mark_in_review",
+                "_selected_action": [str(self.form.pk)],
+                "select_across": "0",
+                "index": "0",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.form.refresh_from_db()
+        self.application.refresh_from_db()
+        self.assertEqual(self.form.status, FormDefinition.Status.IN_REVIEW)
+        self.assertEqual(self.application.status, Application.Status.IN_REVIEW)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action=AuditEvent.Action.FORM_STATUS_CHANGED,
+                actor=self.staff,
+                form=self.form,
+            ).exists()
+        )
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action=AuditEvent.Action.APPLICATION_STATUS_CHANGED,
+                actor=self.staff,
+                application=self.application,
+            ).exists()
+        )
+
+    def test_application_bulk_action_marks_evaluated(self):
+        self.application.status = Application.Status.IN_REVIEW
+        self.application.save(update_fields=["status"])
+
+        response = self.client.post(
+            reverse("admin:main_application_changelist"),
+            {
+                "action": "mark_evaluated",
+                "_selected_action": [str(self.application.pk)],
+                "select_across": "0",
+                "index": "0",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.EVALUATED)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action=AuditEvent.Action.APPLICATION_STATUS_CHANGED,
+                application=self.application,
+                actor=self.staff,
+            ).exists()
+        )
+
+    def test_editable_status_change_is_audited(self):
+        model_admin = ApplicationAdmin(Application, admin_site)
+        request = RequestFactory().post("/admin/")
+        request.user = self.staff
+        self.application.status = Application.Status.IN_REVIEW
+        dummy_form = type("DummyForm", (), {"changed_data": ["status"]})()
+
+        model_admin.save_model(request, self.application, dummy_form, change=True)
+
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.IN_REVIEW)
+        event = AuditEvent.objects.get(
+            action=AuditEvent.Action.APPLICATION_STATUS_CHANGED,
+            application=self.application,
+        )
+        self.assertEqual(
+            event.metadata["old_status"],
+            Application.Status.SUBMITTED,
+        )
+        self.assertEqual(
+            event.metadata["new_status"],
+            Application.Status.IN_REVIEW,
+        )
+
+    def test_csv_export_contains_application_and_average(self):
+        Review.objects.create(
+            application=self.application,
+            juror=self.staff,
+            score=80,
+            completed_at=timezone.now(),
+        )
+        model_admin = ApplicationAdmin(Application, admin_site)
+        request = RequestFactory().get("/admin/")
+        request.user = self.staff
+
+        response = model_admin.export_csv(request, Application.objects.all())
+        content = response.content.decode()
+
+        self.assertIn("text/csv", response["Content-Type"])
+        self.assertIn("code,year,category", content)
+        self.assertIn(self.application.code, content)
+        self.assertIn("80.0", content)
+
+    def test_audit_admin_is_read_only(self):
+        model_admin = AuditEventAdmin(AuditEvent, admin_site)
+        request = RequestFactory().get("/admin/")
+        request.user = self.staff
+
+        self.assertFalse(model_admin.has_add_permission(request))
+        self.assertFalse(model_admin.has_change_permission(request))
+        self.assertFalse(model_admin.has_delete_permission(request))
