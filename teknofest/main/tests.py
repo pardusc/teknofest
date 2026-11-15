@@ -1732,6 +1732,10 @@ class JuryTests(MediaTestCase):
             response.context["next_application_id"],
             older.public_id,
         )
+        self.assertEqual(
+            response.content.decode().count('class="jury-detail-nav"'),
+            1,
+        )
 
     def test_detail_navigation_keeps_queue_filters(self):
         response = self.client.get(
