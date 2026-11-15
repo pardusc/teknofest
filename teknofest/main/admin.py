@@ -14,6 +14,7 @@ from .models import (
     FormDefinition,
     FormField,
     Profile,
+    Review,
     User,
 )
 
@@ -190,3 +191,11 @@ class ApplicationAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ("application", "juror", "score", "completed_at", "updated_at")
+    list_filter = ("completed_at", "juror")
+    search_fields = ("application__code", "juror__email", "juror__username")
+    readonly_fields = ("created_at", "updated_at")

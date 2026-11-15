@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -27,6 +28,7 @@ from .models import (
     FormDefinition,
     FormField,
     Profile,
+    Review,
 )
 from .services.applications import (
     add_attachment,
@@ -36,6 +38,7 @@ from .services.applications import (
     start_application,
     submit,
 )
+from .services.reviews import save_review, submit_review
 from .views import (
     ApplicationDetailView,
     ApplicationListView,
@@ -1221,3 +1224,369 @@ class ApplicationViewTests(MediaTestCase):
             response.context_data["field_answers"][0]["value"],
             "A bug report",
         )
+
+
+class JuryTests(MediaTestCase):
+    def setUp(self):
+        self.applicant = get_user_model().objects.create_user(
+            username="applicant",
+            email="applicant@example.com",
+            password="secret123",
+        )
+        self.jury = get_user_model().objects.create_user(
+            username="jury",
+            email="jury@example.com",
+            password="secret123",
+        )
+        self.jury.groups.add(Group.objects.get(name="jury"))
+        self.other_jury = get_user_model().objects.create_user(
+            username="jury2",
+            email="jury2@example.com",
+            password="secret123",
+        )
+        self.other_jury.groups.add(Group.objects.get(name="jury"))
+        self.admin = get_user_model().objects.create_user(
+            username="admin",
+            email="admin@example.com",
+            password="secret123",
+            is_staff=True,
+        )
+
+        self.year = CompetitionYear.objects.create(year=2026)
+        self.category = Category.objects.get(slug="bug")
+        self.form = FormDefinition.objects.create(
+            year=self.year,
+            category=self.category,
+            title="Bug form",
+            status=FormDefinition.Status.IN_REVIEW,
+        )
+        self.visible_field = FormField.objects.create(
+            form=self.form,
+            key="title",
+            label="Title",
+            field_type=FormField.FieldType.SHORT_TEXT,
+            is_visible_in_review=True,
+            order=1,
+        )
+        self.hidden_field = FormField.objects.create(
+            form=self.form,
+            key="secret",
+            label="Secret",
+            field_type=FormField.FieldType.SHORT_TEXT,
+            is_visible_in_review=False,
+            order=2,
+        )
+        self.application = Application.objects.create(
+            applicant=self.applicant,
+            form=self.form,
+            year=self.year,
+            category=self.category,
+            status=Application.Status.SUBMITTED,
+            code="BUG-2026-00001",
+            submitted_at=timezone.now(),
+        )
+        ApplicationAnswer.objects.create(
+            application=self.application,
+            field=self.visible_field,
+            value="Visible answer",
+        )
+        ApplicationAnswer.objects.create(
+            application=self.application,
+            field=self.hidden_field,
+            value="Hidden answer",
+        )
+        self.client.force_login(self.jury)
+
+    def make_application(self, status=Application.Status.SUBMITTED, code=None):
+        user = get_user_model().objects.create_user(
+            username=f"applicant-{Application.objects.count() + 1}",
+            email=f"applicant{Application.objects.count() + 1}@example.com",
+            password="secret123",
+        )
+        return Application.objects.create(
+            applicant=user,
+            form=self.form,
+            year=self.year,
+            category=self.category,
+            status=status,
+            code=code,
+            submitted_at=timezone.now() if status != Application.Status.DRAFT else None,
+        )
+
+    def add_attachment(self):
+        return Attachment.objects.create(
+            application=self.application,
+            file=SimpleUploadedFile("shot.png", b"image-bytes", content_type="image/png"),
+            original_name="shot.png",
+            content_type="image/png",
+            size=11,
+        )
+
+    def test_jury_pages_require_login(self):
+        self.client.logout()
+        urls = (
+            reverse("main:jury_dashboard"),
+            reverse("main:jury_application_list", args=[self.form.pk]),
+            reverse("main:jury_application_detail", args=[self.application.public_id]),
+        )
+
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 302)
+
+    def test_applicants_cannot_access_jury_pages(self):
+        self.client.force_login(self.applicant)
+        urls = (
+            reverse("main:jury_dashboard"),
+            reverse("main:jury_application_list", args=[self.form.pk]),
+            reverse("main:jury_application_detail", args=[self.application.public_id]),
+        )
+
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_jury_can_access_jury_pages(self):
+        self.assertEqual(self.client.get(reverse("main:jury_dashboard")).status_code, 200)
+        self.assertEqual(
+            self.client.get(
+                reverse("main:jury_application_list", args=[self.form.pk])
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse(
+                    "main:jury_application_detail",
+                    args=[self.application.public_id],
+                )
+            ).status_code,
+            200,
+        )
+
+    def test_admin_is_also_jury(self):
+        self.client.force_login(self.admin)
+
+        self.assertEqual(self.client.get(reverse("main:jury_dashboard")).status_code, 200)
+        response = self.client.post(
+            reverse(
+                "main:jury_review_submit",
+                args=[self.application.public_id],
+            ),
+            {"score": "90"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Review.objects.filter(
+                application=self.application,
+                juror=self.admin,
+                score=90,
+                completed_at__isnull=False,
+            ).exists()
+        )
+
+    def test_dashboard_counts(self):
+        response = self.client.get(reverse("main:jury_dashboard"))
+        form = next(
+            item for item in response.context["forms"] if item.pk == self.form.pk
+        )
+
+        self.assertEqual(form.application_count, 1)
+        self.assertEqual(form.my_completed_count, 0)
+
+        submit_review(self.application, self.jury, score=80)
+        response = self.client.get(reverse("main:jury_dashboard"))
+        form = next(
+            item for item in response.context["forms"] if item.pk == self.form.pk
+        )
+
+        self.assertEqual(form.my_completed_count, 1)
+
+    def test_list_excludes_drafts(self):
+        self.make_application(status=Application.Status.DRAFT)
+
+        response = self.client.get(
+            reverse("main:jury_application_list", args=[self.form.pk])
+        )
+
+        self.assertEqual([row["application"] for row in response.context["rows"]], [self.application])
+
+    def test_list_mine_filter(self):
+        url = reverse("main:jury_application_list", args=[self.form.pk])
+
+        pending = self.client.get(url, {"mine": "pending"})
+        completed = self.client.get(url, {"mine": "completed"})
+
+        self.assertEqual(len(pending.context["rows"]), 1)
+        self.assertEqual(len(completed.context["rows"]), 0)
+
+        submit_review(self.application, self.jury, score=80)
+
+        pending = self.client.get(url, {"mine": "pending"})
+        completed = self.client.get(url, {"mine": "completed"})
+
+        self.assertEqual(len(pending.context["rows"]), 0)
+        self.assertEqual(len(completed.context["rows"]), 1)
+
+    def test_list_files_filter(self):
+        url = reverse("main:jury_application_list", args=[self.form.pk])
+
+        without_files = self.client.get(url, {"files": "1"})
+        self.add_attachment()
+        with_files = self.client.get(url, {"files": "1"})
+
+        self.assertEqual(len(without_files.context["rows"]), 0)
+        self.assertEqual(len(with_files.context["rows"]), 1)
+
+    def test_list_hides_average_until_my_review_is_completed(self):
+        other_review = Review.objects.create(
+            application=self.application,
+            juror=self.other_jury,
+            score=60,
+            completed_at=timezone.now(),
+        )
+        url = reverse("main:jury_application_list", args=[self.form.pk])
+
+        blind = self.client.get(url)
+        self.assertIsNone(blind.context["rows"][0]["average"])
+
+        submit_review(self.application, self.jury, score=80)
+        revealed = self.client.get(url)
+        self.assertEqual(revealed.context["rows"][0]["average"], 70.0)
+
+    def test_list_search_by_code(self):
+        url = reverse("main:jury_application_list", args=[self.form.pk])
+
+        match = self.client.get(url, {"q": "BUG-2026-00001"})
+        no_match = self.client.get(url, {"q": "nothing"})
+
+        self.assertEqual(len(match.context["rows"]), 1)
+        self.assertEqual(len(no_match.context["rows"]), 0)
+
+    def test_detail_hides_others_until_review_is_completed(self):
+        Review.objects.create(
+            application=self.application,
+            juror=self.other_jury,
+            score=60,
+            note="Other note",
+            completed_at=timezone.now(),
+        )
+        url = reverse(
+            "main:jury_application_detail",
+            args=[self.application.public_id],
+        )
+
+        blind = self.client.get(url)
+        self.assertTrue(blind.context["is_blind"])
+        self.assertEqual(blind.context["other_reviews"], [])
+        self.assertIsNone(blind.context["average_score"])
+
+        submit_review(self.application, self.jury, score=80)
+        revealed = self.client.get(url)
+        self.assertFalse(revealed.context["is_blind"])
+        self.assertEqual(len(revealed.context["other_reviews"]), 1)
+        self.assertEqual(revealed.context["average_score"], 70.0)
+
+    def test_detail_filters_hidden_fields_and_lists_attachments(self):
+        attachment = self.add_attachment()
+
+        response = self.client.get(
+            reverse(
+                "main:jury_application_detail",
+                args=[self.application.public_id],
+            )
+        )
+
+        values = [item["value"] for item in response.context["field_answers"]]
+        self.assertIn("Visible answer", values)
+        self.assertNotIn("Hidden answer", values)
+        self.assertIn(attachment, response.context["attachments"])
+
+    def test_detail_can_review_only_while_form_is_in_review(self):
+        url = reverse(
+            "main:jury_application_detail",
+            args=[self.application.public_id],
+        )
+
+        self.assertTrue(self.client.get(url).context["can_review"])
+
+        self.form.status = FormDefinition.Status.OPEN
+        self.form.save()
+        self.assertFalse(self.client.get(url).context["can_review"])
+
+        self.form.status = FormDefinition.Status.CLOSED
+        self.form.save()
+        self.assertFalse(self.client.get(url).context["can_review"])
+
+    def test_save_review_keeps_blind_view(self):
+        response = self.client.post(
+            reverse("main:jury_review_save", args=[self.application.public_id]),
+            {"score": "75", "note": "Draft note"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        review = Review.objects.get(application=self.application, juror=self.jury)
+        self.assertEqual(review.score, 75)
+        self.assertIsNone(review.completed_at)
+
+    def test_submit_review_requires_score(self):
+        response = self.client.post(
+            reverse("main:jury_review_submit", args=[self.application.public_id]),
+            {"note": "No score"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Review.objects.filter(juror=self.jury).exists())
+
+    def test_submit_review_with_score_only_completes(self):
+        response = self.client.post(
+            reverse("main:jury_review_submit", args=[self.application.public_id]),
+            {"score": "90"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        review = Review.objects.get(application=self.application, juror=self.jury)
+        self.assertEqual(review.score, 90)
+        self.assertEqual(review.note, "")
+        self.assertIsNotNone(review.completed_at)
+
+    def test_score_must_be_between_zero_and_hundred(self):
+        with self.assertRaises(ValidationError):
+            save_review(self.application, self.jury, score=101)
+        with self.assertRaises(ValidationError):
+            save_review(self.application, self.jury, score="abc")
+
+    def test_scoring_requires_in_review_form(self):
+        self.form.status = FormDefinition.Status.OPEN
+        self.form.save()
+
+        with self.assertRaises(ValidationError):
+            save_review(self.application, self.jury, score=80)
+
+        self.form.status = FormDefinition.Status.CLOSED
+        self.form.save()
+
+        with self.assertRaises(ValidationError):
+            save_review(self.application, self.jury, score=80)
+
+    def test_review_is_updated_not_duplicated(self):
+        save_review(self.application, self.jury, score=50, note="First")
+        save_review(self.application, self.jury, score=70, note="Second")
+
+        self.assertEqual(
+            Review.objects.filter(application=self.application, juror=self.jury).count(),
+            1,
+        )
+        review = Review.objects.get(application=self.application, juror=self.jury)
+        self.assertEqual(review.score, 70)
+        self.assertEqual(review.note, "Second")
+
+    def test_completed_review_can_be_edited_while_in_review(self):
+        review = submit_review(self.application, self.jury, score=50)
+        completed_at = review.completed_at
+
+        updated = submit_review(self.application, self.jury, score=70)
+
+        self.assertEqual(updated.score, 70)
+        self.assertEqual(updated.completed_at, completed_at)

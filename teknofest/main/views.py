@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
+from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse_lazy
@@ -10,8 +11,11 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from .dynamic_forms import build_form
 from .forms import ProfileForm
-from .models import Application, Category, FormDefinition, Profile
+from .models import Application, Category, FormDefinition, Profile, Review
+from .permissions import JuryRequiredMixin
 from .services import applications as application_service
+from .services import reviews as review_service
+from .services.reviews import review_stats
 
 
 def home(request):
@@ -406,3 +410,223 @@ def _validation_message(error):
     return " ".join(
         translations.get(str(message), str(message)) for message in error.messages
     )
+
+
+REVIEWABLE_APPLICATION_STATUSES = (
+    Application.Status.SUBMITTED,
+    Application.Status.IN_REVIEW,
+    Application.Status.EVALUATED,
+)
+
+REVIEW_ORDERING = {
+    "submitted_at",
+    "-submitted_at",
+    "my_score",
+    "-my_score",
+    "average",
+    "-average",
+}
+
+
+class JuryDashboardView(JuryRequiredMixin, ListView):
+    template_name = "jury/dashboard.html"
+    context_object_name = "forms"
+
+    def get_queryset(self):
+        user = self.request.user
+        return (
+            FormDefinition.objects.select_related("year", "category")
+            .filter(year__is_active=True, category__is_active=True)
+            .annotate(
+                application_count=Count(
+                    "applications",
+                    filter=Q(
+                        applications__status__in=REVIEWABLE_APPLICATION_STATUSES
+                    ),
+                    distinct=True,
+                ),
+                my_completed_count=Count(
+                    "applications__reviews",
+                    filter=Q(
+                        applications__reviews__juror=user,
+                        applications__reviews__completed_at__isnull=False,
+                    ),
+                    distinct=True,
+                ),
+            )
+            .order_by("-year__year", "category__order")
+        )
+
+
+class JuryApplicationListView(JuryRequiredMixin, ListView):
+    template_name = "jury/application_list.html"
+    context_object_name = "applications"
+    paginate_by = 20
+
+    def get_queryset(self):
+        self.form_definition = get_object_or_404(
+            FormDefinition.objects.select_related("year", "category"),
+            pk=self.kwargs["pk"],
+        )
+
+        my_reviews = Review.objects.filter(
+            application=OuterRef("pk"),
+            juror=self.request.user,
+        )
+        average_reviews = (
+            Review.objects.filter(
+                application=OuterRef("pk"),
+                completed_at__isnull=False,
+            )
+            .values("application")
+            .annotate(value=Avg("score"))
+            .values("value")
+        )
+
+        queryset = (
+            Application.objects.select_related("form", "year", "category")
+            .filter(
+                form=self.form_definition,
+                status__in=REVIEWABLE_APPLICATION_STATUSES,
+            )
+            .annotate(
+                my_score=Subquery(my_reviews.values("score")[:1]),
+                my_completed=Exists(
+                    my_reviews.filter(completed_at__isnull=False)
+                ),
+                average=Subquery(average_reviews, output_field=FloatField()),
+                attachment_count=Count("attachments", distinct=True),
+            )
+        )
+
+        mine = self.request.GET.get("mine")
+        if mine == "completed":
+            queryset = queryset.filter(my_completed=True)
+        elif mine == "pending":
+            queryset = queryset.filter(my_completed=False)
+
+        if self.request.GET.get("files") == "1":
+            queryset = queryset.filter(attachment_count__gt=0)
+
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = queryset.filter(
+                Q(code__icontains=query) | Q(applicant__email__icontains=query)
+            )
+
+        ordering = self.request.GET.get("ordering", "-submitted_at")
+        if ordering not in REVIEW_ORDERING:
+            ordering = "-submitted_at"
+        return queryset.order_by(ordering)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_definition"] = self.form_definition
+        context["rows"] = [
+            {
+                "application": application,
+                "my_score": application.my_score,
+                "average": application.average if application.my_completed else None,
+                "my_completed": application.my_completed,
+                "attachment_count": application.attachment_count,
+            }
+            for application in context["applications"]
+        ]
+        return context
+
+
+class JuryApplicationDetailView(JuryRequiredMixin, DetailView):
+    template_name = "jury/application_detail.html"
+    context_object_name = "application"
+
+    def get_queryset(self):
+        return Application.objects.select_related("form", "year", "category").exclude(
+            status=Application.Status.DRAFT
+        )
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            self.get_queryset(),
+            public_id=self.kwargs["public_id"],
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        application = self.object
+
+        context.update(review_stats(application, self.request.user))
+        context.update(
+            {
+                "form_definition": application.form,
+                "field_answers": _review_field_answers(application),
+                "attachments": application.attachments.all(),
+                "can_review": (
+                    application.form.status == FormDefinition.Status.IN_REVIEW
+                ),
+            }
+        )
+        return context
+
+
+class JuryReviewSaveView(JuryRequiredMixin, View):
+    def post(self, request, public_id):
+        application = _get_reviewable_application(request, public_id)
+
+        try:
+            review_service.save_review(
+                application,
+                request.user,
+                score=request.POST.get("score"),
+                note=request.POST.get("note", ""),
+            )
+        except ValidationError as exc:
+            messages.error(request, _validation_message(exc))
+        else:
+            messages.success(request, "Değerlendirme taslağı kaydedildi.")
+
+        return redirect(
+            "main:jury_application_detail",
+            public_id=application.public_id,
+        )
+
+
+class JuryReviewSubmitView(JuryRequiredMixin, View):
+    def post(self, request, public_id):
+        application = _get_reviewable_application(request, public_id)
+
+        try:
+            review_service.submit_review(
+                application,
+                request.user,
+                score=request.POST.get("score"),
+                note=request.POST.get("note", ""),
+            )
+        except ValidationError as exc:
+            messages.error(request, _validation_message(exc))
+        else:
+            messages.success(request, "Değerlendirme gönderildi.")
+
+        return redirect(
+            "main:jury_application_detail",
+            public_id=application.public_id,
+        )
+
+
+def _get_reviewable_application(request, public_id):
+    return get_object_or_404(
+        Application.objects.select_related("form", "year", "category").exclude(
+            status=Application.Status.DRAFT
+        ),
+        public_id=public_id,
+    )
+
+
+def _review_field_answers(application):
+    answers = {
+        answer.field_id: answer.value
+        for answer in application.answers.select_related("field")
+    }
+    return [
+        {"field": field, "value": answers.get(field.pk, "")}
+        for field in application.form.fields.filter(is_visible_in_review=True)
+    ]

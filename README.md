@@ -41,13 +41,17 @@ Roles are determined by the Keycloak roles assigned to each account.
     │   ├── models/
     │   │   ├── accounts.py
     │   │   ├── applications.py
-    │   │   └── competitions.py
+    │   │   ├── competitions.py
+    │   │   └── reviews.py
     │   ├── services/
-    │   │   └── applications.py
+    │   │   ├── applications.py
+    │   │   └── reviews.py
+    │   ├── permissions.py
     │   ├── urls.py
     │   ├── views.py
     │   ├── migrations/
     │   └── templates/
+    │       ├── jury/
     │       ├── main/
     │       └── registration/
     └── teknofest/
@@ -113,6 +117,25 @@ All routes require login, and non-owners receive a 404.
 The frontend team owns the templates; empty placeholders are committed so the views
 render while the interface is being built.
 
+## Jury
+
+Jurors belong to the `jury` group. Admins (`is_staff`) are jurors as well and can score
+without joining the group.
+
+| Route | Template | Purpose |
+| --- | --- | --- |
+| `/jury/` | `jury/dashboard.html` | Forms with application and completion counts |
+| `/jury/forms/<pk>/` | `jury/application_list.html` | Submitted applications, filters and search |
+| `/jury/applications/<uuid>/` | `jury/application_detail.html` | Answers, attachments and my review |
+| `/jury/applications/<uuid>/review/save/` | — | Save a draft review (POST) |
+| `/jury/applications/<uuid>/review/submit/` | — | Complete a review (POST) |
+
+Scores are whole numbers from 0 to 100. A review is completed when a score is submitted;
+the note is optional. Until the current juror's review is completed, other jurors'
+scores, notes and the average score stay hidden. Reviews can be edited only while the
+form is in review; closed forms are read-only. Only fields marked as visible in review
+are shown to jurors.
+
 ## Getting started
 
 Requirements: Python 3.15 and [uv](https://docs.astral.sh/uv/) (or plain `venv` + `pip`).
@@ -153,9 +176,10 @@ The Django project skeleton, the custom user model and the applicant profile are
 place, including login/logout and profile editing. Competition years, categories and
 dynamic form definitions can be managed from the admin. Application drafts, submission,
 attachment rules and readable application codes are implemented in the service layer.
+The applicant flow and the jury review flow, including blind scoring, are wired up.
 Authentication currently uses Django's local login; Keycloak integration is planned.
 
-Planned work includes KVKK consent, applicant and jury views, jury scoring, and Keycloak
+Planned work includes KVKK consent, KVKK onboarding, admin review workflows and Keycloak
 roles.
 
 ## License

@@ -55,5 +55,26 @@ urlpatterns = [
         views.AttachmentDeleteView.as_view(),
         name="attachment_delete",
     ),
+    path("jury/", views.JuryDashboardView.as_view(), name="jury_dashboard"),
+    path(
+        "jury/forms/<int:pk>/",
+        views.JuryApplicationListView.as_view(),
+        name="jury_application_list",
+    ),
+    path(
+        "jury/applications/<uuid:public_id>/",
+        views.JuryApplicationDetailView.as_view(),
+        name="jury_application_detail",
+    ),
+    path(
+        "jury/applications/<uuid:public_id>/review/save/",
+        views.JuryReviewSaveView.as_view(),
+        name="jury_review_save",
+    ),
+    path(
+        "jury/applications/<uuid:public_id>/review/submit/",
+        views.JuryReviewSubmitView.as_view(),
+        name="jury_review_submit",
+    ),
     path("staff/forms/<int:pk>/preview/", views.form_preview, name="form_preview"),
 ]
