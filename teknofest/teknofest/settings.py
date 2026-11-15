@@ -13,8 +13,14 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Local development settings live in teknofest/.env (git-ignored). Real
+# environment variables always take precedence.
+load_dotenv(BASE_DIR / '.env', override=False)
 
 
 # Quick-start development settings - unsuitable for production
@@ -59,6 +65,37 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'main:application_list'
 LOGOUT_REDIRECT_URL = 'main:home'
 
+
+# Keycloak / OpenID Connect
+# The issuer is all that changes between environments; endpoints are derived
+# from it. Credentials come from the environment in every real deployment.
+OIDC_OP_ISSUER = os.environ.get(
+    'OIDC_OP_ISSUER',
+    'http://127.0.0.1:8080/realms/teknofest',
+).rstrip('/')
+OIDC_RP_CLIENT_ID = os.environ.get('OIDC_RP_CLIENT_ID', 'teknofest-web')
+OIDC_RP_CLIENT_SECRET = os.environ.get('OIDC_RP_CLIENT_SECRET', '')
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_RP_SCOPES = 'openid email profile'
+OIDC_OP_AUTHORIZATION_ENDPOINT = f'{OIDC_OP_ISSUER}/protocol/openid-connect/auth'
+OIDC_OP_TOKEN_ENDPOINT = f'{OIDC_OP_ISSUER}/protocol/openid-connect/token'
+OIDC_OP_USER_ENDPOINT = f'{OIDC_OP_ISSUER}/protocol/openid-connect/userinfo'
+OIDC_OP_JWKS_ENDPOINT = f'{OIDC_OP_ISSUER}/protocol/openid-connect/certs'
+OIDC_OP_LOGOUT_ENDPOINT = f'{OIDC_OP_ISSUER}/protocol/openid-connect/logout'
+# Keep the ID token so the logout view can use it as id_token_hint.
+OIDC_STORE_ID_TOKEN = True
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 300
+OIDC_OP_LOGOUT_URL_METHOD = 'main.auth.keycloak_logout_url'
+# Send a failed handshake back to the login page instead of the home page.
+LOGIN_REDIRECT_URL_FAILURE = '/accounts/login/'
+
+# Keycloak identities first; ModelBackend keeps local username/password
+# authentication for the Django admin panel.
+AUTHENTICATION_BACKENDS = [
+    'main.auth.KeycloakOIDCBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -66,6 +103,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'main.middleware.OIDCSessionRefresh',
     'django.contrib.messages.middleware.MessageMiddleware',
     'main.middleware.ProfileCompletionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

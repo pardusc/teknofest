@@ -21,3 +21,6 @@ staticfiles/
 
 # Private competition notes (never commit)
 pardus-teknofest.md
+
+# Keycloak local credentials
+teknofest/.env

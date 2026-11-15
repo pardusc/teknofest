@@ -1,0 +1,106 @@
+{
+  "realm": "${KEYCLOAK_REALM}",
+  "displayName": "Teknofest",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "defaultSignatureAlgorithm": "RS256",
+  "roles": {
+    "realm": [],
+    "client": {}
+  },
+  "groups": [
+    {
+      "name": "jury",
+      "path": "/jury"
+    }
+  ],
+  "users": [
+    {
+      "username": "applicant",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Applicant",
+      "lastName": "User",
+      "email": "applicant@example.com",
+      "requiredActions": [],
+      "groups": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Applicant123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "jury",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Jury",
+      "lastName": "Member",
+      "email": "jury@example.com",
+      "requiredActions": [],
+      "groups": [
+        "/jury"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Jury123!",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "teknofest-web",
+      "name": "Teknofest Web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_RP_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "${APP_URL}",
+      "baseUrl": "${APP_URL}/",
+      "redirectUris": [
+        "${APP_URL}/accounts/oidc/callback/"
+      ],
+      "webOrigins": [
+        "${APP_URL}"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "${APP_URL}/*",
+        "pkce.code.challenge.method": ""
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

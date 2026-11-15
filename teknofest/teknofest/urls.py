@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from mozilla_django_oidc.views import OIDCLogoutView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,6 +28,7 @@ urlpatterns = [
         auth_views.LoginView.as_view(redirect_authenticated_user=True),
         name='login',
     ),
-    path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('accounts/logout/', OIDCLogoutView.as_view(), name='logout'),
+    path('accounts/oidc/', include('mozilla_django_oidc.urls')),
     path('', include('main.urls')),
 ]

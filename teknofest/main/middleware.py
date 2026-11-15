@@ -4,6 +4,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import translation
 from django.utils.translation import get_supported_language_variant
+from mozilla_django_oidc.middleware import SessionRefresh
 
 from .permissions import is_jury
 
@@ -52,6 +53,7 @@ class ProfileCompletionMiddleware:
             "/jury/",
             "/staff/",
             "/api/",
+            "/accounts/oidc/",
         )
 
     def __call__(self, request):
@@ -70,3 +72,18 @@ class ProfileCompletionMiddleware:
 
         profile = getattr(user, "profile", None)
         return profile is None or not profile.is_complete
+
+
+class OIDCSessionRefresh(SessionRefresh):
+    """Renew the Keycloak ID token only for real OIDC sessions.
+
+    ``SessionRefresh`` keys off the authentication backend stored in the
+    session. Users logged in without an ID token (local admin accounts or
+    tests using ``force_login``) must not be bounced to the provider, so they
+    are skipped explicitly.
+    """
+
+    def is_refreshable_url(self, request):
+        if not request.session.get("oidc_id_token"):
+            return False
+        return super().is_refreshable_url(request)
