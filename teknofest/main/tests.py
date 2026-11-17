@@ -912,6 +912,44 @@ class AdminTests(TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
+    def test_admin_can_add_application(self):
+        applicant = get_user_model().objects.create_user(
+            username="admin-applicant",
+            email="admin-applicant@example.com",
+            password="secret123",
+        )
+        add_url = reverse("admin:main_application_add")
+        response = self.client.get(add_url)
+        self.assertEqual(response.status_code, 200)
+
+        data = {
+            "applicant": applicant.pk,
+            "form": self.form.pk,
+            "title": "Admin application",
+            "status": Application.Status.SUBMITTED,
+            "_save": "Save",
+        }
+        for inline in response.context["inline_admin_formsets"]:
+            prefix = inline.formset.prefix
+            data.update(
+                {
+                    f"{prefix}-TOTAL_FORMS": "0",
+                    f"{prefix}-INITIAL_FORMS": "0",
+                    f"{prefix}-MIN_NUM_FORMS": "0",
+                    f"{prefix}-MAX_NUM_FORMS": "1000",
+                }
+            )
+
+        response = self.client.post(add_url, data)
+
+        self.assertEqual(response.status_code, 302)
+        application = Application.objects.get(title="Admin application")
+        self.assertEqual(application.applicant, applicant)
+        self.assertEqual(application.form, self.form)
+        self.assertEqual(application.year, self.year)
+        self.assertEqual(application.category, self.category)
+        self.assertIsNotNone(application.submitted_at)
+
     def test_admin_dashboard_is_turkish_and_has_language_switcher(self):
         response = self.client.get(reverse("admin:index"))
 

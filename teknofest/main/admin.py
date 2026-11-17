@@ -8,6 +8,7 @@ from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .forms import FormDefinitionAdminForm, FormFieldAdminForm, ProfileAdminForm
@@ -328,7 +329,29 @@ class ApplicationAdmin(admin.ModelAdmin):
     )
     actions = ("start_review", "mark_evaluated", "reopen", "export_csv")
 
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:
+            # The applicant selects the form; year and category are derived
+            # from it in save_model(). The remaining fields are managed by the
+            # application service.
+            return (
+                "public_id",
+                "code",
+                "year",
+                "category",
+                "submitted_at",
+                "created_at",
+                "updated_at",
+            )
+        return self.readonly_fields
+
     def save_model(self, request, obj, form, change):
+        if not change:
+            obj.year = obj.form.year
+            obj.category = obj.form.category
+            if obj.submitted_at is None:
+                obj.submitted_at = timezone.now()
+
         old_status = None
         if change and "status" in form.changed_data:
             old_status = (
